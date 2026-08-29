@@ -32,8 +32,11 @@ class DocumentNumberService
         'expense' => ['prefix' => 'EXP', 'year' => true,  'width' => 4],
         'employee' => ['prefix' => 'EMP', 'year' => false, 'width' => 4],
         'service' => ['prefix' => 'SRV', 'year' => false, 'width' => 4],
-        'supplier' => ['prefix' => 'SUP', 'year' => false, 'width' => 4],
-        'journal' => ['prefix' => 'JE',  'year' => true,  'width' => 5],
+        'supplier' => ['prefix' => 'SUP', 'year' => false, 'width' => 5],
+        'supplier_bill' => ['prefix' => 'BILL', 'year' => true, 'width' => 4],
+        'supplier_payment' => ['prefix' => 'SPAY', 'year' => true, 'width' => 4],
+        'transfer' => ['prefix' => 'TRF', 'year' => true, 'width' => 4],
+        'journal' => ['prefix' => 'JRN', 'year' => true,  'width' => 6],
         'leave' => ['prefix' => 'LV',  'year' => true,  'width' => 5],
     ];
 

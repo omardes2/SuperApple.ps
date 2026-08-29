@@ -10,12 +10,17 @@ use App\Enums\TaskStatus;
 use App\Models\AttendanceRecord;
 use App\Models\Customer;
 use App\Models\Employee;
+use App\Models\Expense;
+use App\Models\FinancialAccount;
 use App\Models\Invoice;
+use App\Models\JournalEntryLine;
 use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\AccountingReportService;
+use App\Services\FinancialAccountService;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -83,6 +88,29 @@ class Dashboard extends Component
             ];
         }
 
-        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops, 'finance' => $finance]);
+        // Accounting cards (cash, AP, expenses, net profit) — accounting users.
+        $accounting = null;
+        if ($user->can('accounting.view') || $user->can('reports.profit_loss')) {
+            $cashTotal = '0.00';
+            foreach (FinancialAccount::all() as $fa) {
+                $cashTotal = Money::add($cashTotal, app(FinancialAccountService::class)->balanceIls($fa));
+            }
+            $apGl = JournalEntryLine::whereHas('account', fn ($q) => $q->where('code', '2100'))
+                ->whereHas('journalEntry', fn ($q) => $q->whereIn('status', ['posted', 'reversed']))
+                ->selectRaw('COALESCE(SUM(credit_ils)-SUM(debit_ils),0) as b')->value('b');
+            $expMonth = Expense::posted()
+                ->whereMonth('expense_date', now()->month)->whereYear('expense_date', now()->year)
+                ->sum('amount_ils');
+            $pl = app(AccountingReportService::class)->profitAndLoss(now()->startOfMonth()->toDateString(), now()->toDateString());
+
+            $accounting = [
+                'cash_ils' => Money::money($cashTotal),
+                'payable_ils' => Money::money($apGl ?? 0),
+                'expenses_month_ils' => Money::money($expMonth),
+                'net_profit_month_ils' => $pl['net_profit'],
+            ];
+        }
+
+        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops, 'finance' => $finance, 'accounting' => $accounting]);
     }
 }

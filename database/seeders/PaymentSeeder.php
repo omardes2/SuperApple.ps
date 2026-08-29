@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\User;
 use App\Services\PaymentService;
@@ -25,6 +26,11 @@ class PaymentSeeder extends Seeder
 
         $service = app(PaymentService::class);
 
+        // Link each payment to a real cash account so cash reconciles to the GL.
+        $ilsAccount = FinancialAccount::where('currency', 'ILS')->where('type', 'cash')->first();
+        $usdAccount = FinancialAccount::where('currency', 'USD')->first();
+        $acct = fn (string $currency) => $currency === 'USD' ? $usdAccount?->id : $ilsAccount?->id;
+
         // Open invoices grouped by customer (issued/sent/partially_paid, remaining > 0).
         $open = Invoice::whereIn('status', ['issued', 'sent', 'partially_paid'])
             ->where('remaining_usd', '>', 0)
@@ -46,6 +52,7 @@ class PaymentSeeder extends Seeder
                         'payment_amount' => $inv->remaining_usd,
                         'exchange_rate' => '3.31',
                         'payment_method' => 'bank_transfer',
+                        'account_id' => $acct('USD'),
                     ]),
                     [['invoice_id' => $inv->id, 'allocated_usd' => Money::money($inv->remaining_usd)]],
                 );
@@ -68,6 +75,7 @@ class PaymentSeeder extends Seeder
                         'payment_amount' => $ilsAmount,
                         'exchange_rate' => $rate,
                         'payment_method' => 'cash',
+                        'account_id' => $acct('ILS'),
                     ]),
                     [['invoice_id' => $inv->id, 'allocated_usd' => $half]],
                 );
@@ -89,6 +97,7 @@ class PaymentSeeder extends Seeder
                         'payment_amount' => $total,
                         'exchange_rate' => '3.30',
                         'payment_method' => 'cheque',
+                        'account_id' => $acct('USD'),
                     ]),
                     [
                         ['invoice_id' => $a->id, 'allocated_usd' => Money::money($a->remaining_usd)],
@@ -112,6 +121,7 @@ class PaymentSeeder extends Seeder
                         'payment_amount' => $over,
                         'exchange_rate' => '3.29',
                         'payment_method' => 'online_payment',
+                        'account_id' => $acct('USD'),
                     ]),
                     [['invoice_id' => $inv->id, 'allocated_usd' => Money::money($inv->remaining_usd)]],
                 );
@@ -130,6 +140,7 @@ class PaymentSeeder extends Seeder
                     'payment_amount' => $inv->remaining_usd,
                     'exchange_rate' => '3.30',
                     'payment_method' => 'cash',
+                    'account_id' => $acct('USD'),
                 ]);
                 $service->post($payment, [['invoice_id' => $inv->id, 'allocated_usd' => Money::money($inv->remaining_usd)]]);
                 $service->cancel($payment->fresh(), Auth::user(), 'إدخال تجريبي خاطئ — عكس كامل');

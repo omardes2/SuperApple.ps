@@ -71,7 +71,18 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Tests: core math/allocation/gain-loss (16), reversal/immutability (6), security (7), integrity/concurrency/auto-allocate/statement (10), smoke render (6). Full suite green + pint clean + build; no Sprint 0–3 regression.
 - ⛔ Not started (later sprints): cash/bank, journal entries, expenses, suppliers, payroll, subscriptions, WhatsApp.
 
-## Sprint 5–8
+## Sprint 5 — Accounting, expenses, suppliers, cash & banks ✅ (75 tests green)
+- ✅ Double-entry engine (`AccountingService`) — balanced ILS journals, source idempotency, immutable posted entries, reversal; system-account resolution by stable key.
+- ✅ `LedgerPostingService` builds the correct journal for each document; integrated (atomic) into invoice issue/cancel, payment post/cancel, expenses, supplier bills/payments, opening balances, transfers.
+- ✅ Chart of accounts + `system_accounts` map; `ChartOfAccountsSeeder`. Financial accounts with GL-derived balances + opening-balance journals; same-currency transfers.
+- ✅ Expenses (draft→approved→posted→cancelled) with category GL accounts; suppliers + vendor bills (AP accrual) + supplier payments with FX gain/loss; supplier balances.
+- ✅ Reports: Trial Balance, General Ledger, Profit & Loss, Balance Sheet, Reconciliation (AR/AP/Cash all tie to GL). `accounting:backfill` command (idempotent, `--dry-run`) for historical documents.
+- ✅ Permissions (chart_accounts.*, journals.*, financial_accounts.*, expenses.*, suppliers.*, supplier_bills.*, supplier_payments.*, reports.gl/trial_balance/profit_loss/balance_sheet/reconciliation) + Policies — Accountant + GM only; UI + navigation + dashboard cards (finance-only).
+- ✅ Docs: ACCOUNTING.md, CHART_OF_ACCOUNTS.md, EXPENSES.md, SUPPLIERS.md, CASH_BANKS.md (new); CURRENCY/INVOICES/PAYMENTS/DATABASE/PERMISSIONS/ARCHITECTURE/PLAN (updated).
+- ✅ Tests: double-entry, invoice/payment/expense/supplier accounting, invoice cancellation, financial accounts/transfers, reports, reconciliation, security, backfill, smoke — full suite green; no Sprint 0–4 regression.
+- ⛔ Not started (Sprint 6+): payroll posting/salary payable/employee loans, WhatsApp reminders, recurring-subscription accounting, VAT filing, inventory.
+
+## Sprint 6–8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

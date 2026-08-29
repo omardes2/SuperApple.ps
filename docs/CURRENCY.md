@@ -120,3 +120,8 @@ account_id          (nullable, NO FK — reserved for Sprint 5 cash/bank)
 reference_number, notes, status(draft|posted|cancelled), received_by
 ```
 `account_id` is intentionally unlinked in Sprint 4 — no cashbox/bank/GL yet.
+
+---
+
+## Sprint 5 — GL posting (implemented)
+Financial events now post double-entry journals in **ILS** (base ledger currency) while invoices/receivables stay USD. Invoice issue books AR/Revenue/Tax at the invoice's frozen rate; customer payments book cash, settle AR at the invoice rate, and post the FX difference to Exchange Gain/Loss (never revenue); overpayments go to Customer Credits (a liability). Full journal examples and rules in **ACCOUNTING.md**.

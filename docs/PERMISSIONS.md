@@ -70,3 +70,11 @@ The employee layout has **no financial routes at all**; even a hand-typed financ
 - `payments.view|create|edit|post|cancel|allocate|print`
 - `customer_statements.view`, `exchange_gain_loss.view`
 - Distribution: Super Admin (all via Gate::before), General Manager (all), **Accountant** (full payment lifecycle + statements + gain/loss). **HR Manager / Project Manager / Team Leader / Employee get NONE** — verified in `PaymentSecurityTest`. Enforced by route `can:` middleware + `PaymentPolicy` + component `authorize()`. The dashboard's financial cards render only for `payments.view` users. `payments.manage` (Sprint 3 placeholder) is retained; the granular verbs above are what the UI and policy check.
+
+## Sprint 5 additions (accounting — guarded)
+- **Chart of accounts / journals**: `chart_accounts.view|manage`, `journals.view|create|post|reverse|manual`.
+- **Cash & banks**: `financial_accounts.view|manage` (alongside existing `accounts.view|manage`).
+- **Expenses**: `expenses.view|create|edit|approve|post|cancel`, `expense_categories.manage`.
+- **Suppliers**: `suppliers.view|create|edit|manage`, `supplier_bills.view|create|edit|post|cancel`, `supplier_payments.view|create|post|cancel`.
+- **Reports**: `reports.gl`, `reports.trial_balance`, `reports.profit_loss`, `reports.balance_sheet`, `reports.reconciliation`.
+- Distribution: Super Admin (all via Gate::before), General Manager (all), **Accountant** (all accounting/expenses/suppliers/cash & reports). **HR Manager / Project Manager / Team Leader / Employee get NONE** — verified in `AccountingSecurityTest`. The `suppliers` group is now financial (`financial => true`), so suppliers/bills/payments are hidden from operational roles. Enforced by route `can:` middleware + Policies (Account/JournalEntry/FinancialAccount/Expense/Supplier/SupplierBill/SupplierPayment) + component `authorize()`. Dashboard accounting cards render only for `accounting.view`/`reports.profit_loss` users.

@@ -88,7 +88,7 @@ tests/
 | 2 | Customers, services, projects, tasks + task workflow |
 | 3 | Quotations, invoices, invoice items, exchange rates |
 | ✅ **4** | Payments, partial payments, ILS/USD conversion, allocation, customer balance, exchange gain/loss — `PaymentService`, `PaymentAllocationService`, `CustomerBalanceService`, `CustomerStatementService` (see PAYMENTS.md, CUSTOMER_BALANCES.md) |
-| 5 | Expenses, suppliers, cash & banks, accounting, journal entries |
+| ✅ **5** | Expenses, suppliers, cash & banks, double-entry accounting, journal entries — `AccountingService`, `LedgerPostingService`, expense/supplier/financial-account services, reports + reconciliation + `accounting:backfill` (see ACCOUNTING.md) |
 | 6 | Payroll, salary adjustments, payroll reports |
 | 7 | Subscriptions, recurring invoices, WhatsApp reminders |
 | 8 | Dashboards, reports, notifications, global search, UX polish |

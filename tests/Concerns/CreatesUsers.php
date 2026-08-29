@@ -2,15 +2,23 @@
 
 namespace Tests\Concerns;
 
+use App\Enums\FinancialAccountType;
 use App\Enums\RoleName;
+use App\Models\Account;
 use App\Models\Customer;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\ExpenseCategory;
+use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\FinancialAccountService;
 use App\Services\InvoiceService;
+use App\Services\SupplierService;
+use Database\Seeders\ChartOfAccountsSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -19,6 +27,10 @@ trait CreatesUsers
     protected function seedRoles(): void
     {
         $this->seed(RolePermissionSeeder::class);
+        // The chart of accounts is foundational for any financial flow (issuing
+        // an invoice or posting a payment now writes GL journals), so every test
+        // that seeds roles also gets the accounting backbone.
+        $this->seed(ChartOfAccountsSeeder::class);
     }
 
     protected function makeUser(RoleName $role, array $attributes = []): User
@@ -133,5 +145,52 @@ trait CreatesUsers
         );
 
         return app(InvoiceService::class)->issue($invoice);
+    }
+
+    /**
+     * An invoice with an explicit taxable line: unit price + tax rate (percent).
+     */
+    protected function makeTaxedInvoice(Customer $customer, string $unitPrice, float $taxRate, string $rate = '3.30'): Invoice
+    {
+        $invoice = app(InvoiceService::class)->createDraft(
+            ['customer_id' => $customer->id, 'invoice_date' => '2026-08-01', 'exchange_rate' => $rate],
+            [['item_name' => 'خدمة', 'quantity' => 1, 'unit_price_usd' => $unitPrice, 'tax_rate' => $taxRate]],
+        );
+
+        return app(InvoiceService::class)->issue($invoice);
+    }
+
+    /** A cash financial account backed by a GL account. */
+    protected function makeCashAccount(string $currency = 'ILS', string $opening = '0'): FinancialAccount
+    {
+        $code = $currency === 'USD' ? '1120' : '1110';
+        $gl = Account::where('code', $code)->firstOrFail();
+
+        return app(FinancialAccountService::class)->create([
+            'name' => 'صندوق اختبار '.$currency.' '.str()->random(4),
+            'type' => FinancialAccountType::Cash,
+            'currency' => $currency,
+            'gl_account_id' => $gl->id,
+            'opening_balance' => $opening,
+            'opening_balance_date' => '2026-07-01',
+        ]);
+    }
+
+    protected function makeSupplier(array $attributes = []): Supplier
+    {
+        return app(SupplierService::class)->create(array_merge([
+            'name' => 'مورد تجريبي '.str()->random(4),
+            'phone' => '0599000000',
+        ], $attributes));
+    }
+
+    protected function expenseCategory(): ExpenseCategory
+    {
+        $account = Account::where('code', '5900')->first();
+
+        return ExpenseCategory::firstOrCreate(
+            ['name' => 'فئة تجريبية'],
+            ['default_expense_account_id' => $account?->id, 'is_active' => true],
+        );
     }
 }

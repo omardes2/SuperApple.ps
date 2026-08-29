@@ -40,7 +40,26 @@ Legend: PK = id (bigint), FK noted, `→` references.
 - **payments**: id, `payment_number`(PAY-YYYY-####, unique), customer_id, payment_date, payment_currency(USD|ILS), payment_amount(15,2), exchange_rate(12,6 nullable), usd_equivalent(15,2), payment_method, **account_id (unsigned, nullable, indexed, NO FK — reserved for Sprint 5 cash/bank)**, reference_number, notes, status(draft|posted|cancelled), received_by→users, posted_at, cancelled_at, cancelled_by→users, cancellation_reason, created_by, updated_by. Indexes: customer_id, payment_date, status. `allocated`/`unallocated` are **derived** (not stored) from active allocations.
 - **payment_allocations**: id, payment_id→payments(cascade), invoice_id→invoices, allocated_usd(15,2), and an accounting snapshot per allocation: invoice_exchange_rate(12,6), payment_exchange_rate(12,6), invoice_accounting_value_ils(15,2), payment_accounting_value_ils(15,2), exchange_difference_ils(15,2), status(active|reversed), reversed_at, reversed_by→users, reversal_reason. Reversed rows are kept (never hard-deleted).
 
-## Sprint 5 (expenses/suppliers/accounting)
+## Sprint 5 (accounting/expenses/suppliers/cash & banks) — implemented
+
+Base ledger currency = ILS. Every posted journal balances (Σ debit_ils = Σ credit_ils).
+
+- **chart_of_accounts**: id, code(unique), name, parent_id→self(nullable), account_type(asset|liability|equity|revenue|expense), normal_balance(debit|credit), is_system, is_active, allow_manual_posting, description, created_by, updated_by. Postings hit active leaf accounts only.
+- **system_accounts**: id, key(unique), account_id→chart_of_accounts. Maps `SystemAccountKey` → account so logic never hard-codes a code.
+- **financial_accounts**: id, name, type(cash|bank|credit_card|other), currency(ILS|USD), gl_account_id→chart_of_accounts, bank_name, account_number, iban, opening_balance, opening_balance_date, is_active, notes. Balance is DERIVED from journal lines.
+- **journal_entries**: id, journal_number(JRN-YYYY-######, unique), entry_date, source_type, source_id, posting_type, description, status(draft|posted|reversed), is_reversal, posted_at, reversed_at, reversal_entry_id→self, created_by, posted_by. Unique(source_type, source_id, posting_type) for idempotency.
+- **journal_entry_lines**: id, journal_entry_id→journal_entries(cascade), account_id→chart_of_accounts, description, debit_ils, credit_ils, original_currency, original_amount, exchange_rate, + dimensions (customer_id, supplier_id, project_id, invoice_id, payment_id, expense_id, supplier_bill_id, supplier_payment_id, financial_account_id).
+- **account_transfers**: id, transfer_number, transfer_date, from_account_id/to_account_id→financial_accounts, currency, amount, amount_ils, notes, status, posted_at, created_by. Same-currency only.
+
+- **expense_categories**: id, name, default_expense_account_id→chart_of_accounts(nullable), is_active.
+- **expenses**: id, expense_number(EXP-YYYY-####), expense_date, category_id, supplier_id?, project_id?, employee_id?, description, currency, amount, exchange_rate?, amount_ils, payment_method, financial_account_id?, reference_number?, tax_amount?, status(draft|approved|posted|cancelled), approved_by?, posted_at?, cancelled_*, created_by, updated_by.
+- **suppliers**: id, supplier_number(SUP-#####), name, contact_person?, phone?, whatsapp_number?, address?, tax_number?, supplier_type?, notes?, is_active, created_by, updated_by. No email.
+- **supplier_bills**: id, bill_number(BILL-YYYY-####), supplier_id, project_id?, bill_date, due_date?, currency, subtotal, tax, total(original), exchange_rate?, total_ils, paid_original, remaining_original, status(draft|posted|partially_paid|paid|cancelled), reference_number?, notes?, posted_at?, cancelled_*, created_by, updated_by.
+- **supplier_bill_items**: id, supplier_bill_id(cascade), expense_account_id?→chart_of_accounts, project_id?, description, quantity, unit_price, tax, total, sort_order.
+- **supplier_payments**: id, payment_number(SPAY-YYYY-####), supplier_id, payment_date, currency, amount, exchange_rate?, amount_ils, financial_account_id?, reference_number?, notes?, status(draft|posted|cancelled), posted_at?, cancelled_*, created_by, updated_by.
+- **supplier_payment_allocations**: id, supplier_payment_id(cascade), supplier_bill_id, allocated_original, bill_accounting_value_ils, payment_accounting_value_ils, exchange_difference_ils, status(active|reversed), reversed_*.
+
+### Sprint 5 (original target — superseded by the implemented list above)
 - **expense_categories**: id, name.
 - **expenses**: id, reference_no, category_id, description, amount, currency, exchange_rate, amount_ils, expense_date, payment_method, account_id, supplier_id(nullable), project_id(nullable), customer_id(nullable), employee_id(nullable), department_id(nullable), notes, created_by.
 - **suppliers**: id, name, phone, whatsapp, address, tax_number, type, notes.

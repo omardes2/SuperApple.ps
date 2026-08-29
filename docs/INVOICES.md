@@ -31,3 +31,6 @@ Outstanding = Σ `remaining_usd` of issued (non-cancelled) invoices. Overdue is 
 
 ## Payments (Sprint 4)
 Once issued, an invoice can receive payment allocations (see PAYMENTS.md). `acceptsAllocation()` gates this (Issued/Sent/PartiallyPaid/Overdue **and** `remaining_usd > 0`; Draft/Cancelled/Paid are rejected). `PaymentAllocationService` updates `paid_usd_equivalent` / `remaining_usd` and **derives** the status — PartiallyPaid / Paid on allocation, back to Sent/Issued on reversal (preserving `sent_at`). Status is still never set by hand. The invoice page shows a payments panel (total / paid / remaining + allocations) and a **Record Payment** button that prefills a draft for the invoice.
+
+## GL posting (Sprint 5)
+Issuing an invoice now posts its accounting journal atomically (Dr Accounts Receivable, Cr Service Revenue, Cr Tax Payable) using the frozen issue rate — if GL posting fails the issue rolls back. Cancelling an issued invoice reverses that journal (and is blocked while active payment allocations exist). See ACCOUNTING.md.

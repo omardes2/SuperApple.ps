@@ -15,6 +15,10 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             SettingsSeeder::class,
             UserSeeder::class,
+            // Sprint 5 — accounting foundation (chart of accounts must exist
+            // before any invoice/payment/expense journal is posted).
+            ChartOfAccountsSeeder::class,
+            AccountingSetupSeeder::class,
             // Sprint 1 — HR
             DepartmentSeeder::class,
             LeaveTypeSeeder::class,
@@ -30,6 +34,8 @@ class DatabaseSeeder extends Seeder
             BillingSeeder::class,
             // Sprint 4 — payments & collection
             PaymentSeeder::class,
+            // Sprint 5 — suppliers, expenses, bills, supplier payments
+            Sprint5DemoSeeder::class,
         ]);
     }
 }

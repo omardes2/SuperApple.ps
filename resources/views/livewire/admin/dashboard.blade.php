@@ -17,6 +17,20 @@
         </div>
     @endif
 
+    {{-- Accounting KPIs — ILS base currency; accounting users only --}}
+    @if ($accounting)
+        <div>
+            <h3 class="mb-3 text-sm font-semibold text-slate-500">المحاسبة (ILS)</h3>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <a href="{{ route('admin.cash-banks') }}" class="block"><x-stat-card label="النقد والبنوك" :value="number_format((float) $accounting['cash_ils'], 2).' ₪'" icon="bank" tone="emerald" /></a>
+                <a href="{{ route('admin.suppliers') }}" class="block"><x-stat-card label="ذمم دائنة (موردون)" :value="number_format((float) $accounting['payable_ils'], 2).' ₪'" icon="truck" tone="amber" /></a>
+                <a href="{{ route('admin.expenses') }}" class="block"><x-stat-card label="مصاريف الشهر" :value="number_format((float) $accounting['expenses_month_ils'], 2).' ₪'" icon="minus" tone="red" /></a>
+                @php $np = (float) $accounting['net_profit_month_ils']; @endphp
+                <a href="{{ route('admin.reports.profit-loss') }}" class="block"><x-stat-card label="صافي ربح الشهر" :value="number_format($np, 2).' ₪'" hint="تقديري" icon="chart" :tone="$np >= 0 ? 'violet' : 'red'" /></a>
+            </div>
+        </div>
+    @endif
+
     {{-- Operational KPI placeholders --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @can('projects.view')

@@ -25,6 +25,7 @@ class PaymentService
         private readonly ExchangeRateService $rates,
         private readonly PaymentAllocationService $allocator,
         private readonly AuditLogger $audit,
+        private readonly LedgerPostingService $ledger,
     ) {}
 
     /**
@@ -140,6 +141,10 @@ class PaymentService
                 new: ['usd_equivalent' => $usd, 'allocated_usd' => $totalAllocated, 'unallocated_usd' => Money::subtract($usd, $totalAllocated)],
                 description: "ترحيل دفعة {$payment->payment_number} بقيمة {$usd} USD");
 
+            // GL posting is part of posting the payment: any failure rolls the
+            // whole thing back (a payment is never Posted without its journal).
+            $this->ledger->postPaymentReceipt($payment->refresh());
+
             return $payment;
         });
     }
@@ -159,6 +164,9 @@ class PaymentService
             foreach ($payment->activeAllocations()->get() as $allocation) {
                 $this->allocator->reverse($allocation, $actor, 'إلغاء الدفعة: '.$reason);
             }
+
+            // Reverse the GL journal before flipping status (kept as history).
+            $this->ledger->reversePaymentReceipt($payment, $reason);
 
             $payment->update([
                 'status' => PaymentStatus::Cancelled,

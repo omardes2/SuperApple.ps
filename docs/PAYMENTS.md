@@ -152,3 +152,6 @@ Financial data is never loaded for unauthorised users.
 No cashbox/bank ledger, GL/journal entries, expenses, suppliers, payroll posting,
 or WhatsApp. `payments.account_id` is nullable and unlinked, reserved for the
 Sprint 5 cash/bank module.
+
+## GL posting (Sprint 5)
+Posting a payment now also posts its GL journal atomically (Dr Cash/Bank, Cr Accounts Receivable per allocation, FX gain/loss, Cr Customer Credits for any unallocated amount); cancelling reverses it. The payment's `account_id` links to a `financial_accounts` cash/bank account (falling back to the default cash account by currency for historical/backfilled payments). See ACCOUNTING.md.

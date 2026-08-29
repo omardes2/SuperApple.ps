@@ -26,6 +26,7 @@ class InvoiceService
         private readonly ExchangeRateService $rates,
         private readonly AuditLogger $audit,
         private readonly Settings $settings,
+        private readonly LedgerPostingService $ledger,
     ) {}
 
     /**
@@ -177,6 +178,10 @@ class InvoiceService
                 ],
                 description: "إصدار فاتورة بقيمة {$totalUsd} USD (سعر صرف {$rate})");
 
+            // GL posting is part of issuing: if it fails, the whole issue rolls
+            // back (an invoice can never be Issued without its journal).
+            $this->ledger->postInvoiceIssue($invoice->refresh());
+
             return $invoice;
         });
     }
@@ -201,19 +206,29 @@ class InvoiceService
         if (blank($reason)) {
             throw new RuntimeException('يجب إدخال سبب الإلغاء.');
         }
+        // An invoice with active payment allocations cannot be cancelled — the
+        // payments must be cancelled/reversed first.
+        if ($invoice->activeAllocations()->exists()) {
+            throw new RuntimeException('لا يمكن إلغاء فاتورة لها دفعات مخصصة نشطة. ألغِ الدفعات أولاً.');
+        }
 
-        $invoice->update([
-            'status' => InvoiceStatus::Cancelled,
-            'cancelled_at' => now(),
-            'cancellation_reason' => $reason,
-            'cancelled_by' => Auth::id(),
-            'updated_by' => Auth::id(),
-        ]);
+        return DB::transaction(function () use ($invoice, $reason) {
+            // Reverse the issue journal (if the invoice was issued and posted).
+            $this->ledger->reverseInvoiceIssue($invoice, $reason);
 
-        $this->audit->log('invoice_cancelled', $invoice, 'Invoices',
-            new: ['reason' => $reason], description: 'إلغاء الفاتورة');
+            $invoice->update([
+                'status' => InvoiceStatus::Cancelled,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $reason,
+                'cancelled_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+            ]);
 
-        return $invoice;
+            $this->audit->log('invoice_cancelled', $invoice, 'Invoices',
+                new: ['reason' => $reason], description: 'إلغاء الفاتورة');
+
+            return $invoice;
+        });
     }
 
     private function defaultDueDate(string $invoiceDate): string

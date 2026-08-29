@@ -67,3 +67,26 @@ created_by
 ## Rounding
 - Monetary values stored as `decimal(15,2)`; exchange rates `decimal(12,6)`.
 - USD equivalents rounded to 2 decimals at allocation; ILS-at-issue rounded to 2 decimals.
+
+---
+
+## Sprint 3 — Invoice & Exchange Rate rules (implemented)
+
+### Fixed rules
+- **Base accounting currency = ILS.** **Invoice currency = USD.** **Invoice/customer balance = USD** (official receivable).
+- An invoice records the USD→ILS **exchange rate at issue**; it is **locked** — never editable afterward (enforced by `Invoice::LOCKED_FIELDS` + `IssuedInvoiceImmutableException`, and by `InvoicePolicy::update`).
+- **ILS equivalent** `total_ils_at_issue = total_usd × exchange_rate` is a **snapshot at issue**; later edits to the exchange-rate table never change it.
+- A future **payment exchange rate is INDEPENDENT** — Sprint 4 will record `payment.exchange_rate` at payment time and must NOT reuse `invoice.exchange_rate` to convert an ILS payment.
+- Payment currency later may be USD or ILS; exchange gain/loss is computed when payments/accounting arrive (Sprints 4–5). No payment logic exists in Sprint 3.
+
+### Decimal-safe math (`App\Support\Money`, `App\Support\DocumentCalculator`)
+- All money math uses **brick/math BigDecimal** — never native float.
+- **Rounding: HALF_UP** everywhere. Money scale = 2dp (USD & ILS). Exchange-rate scale = 6dp. Unit price stored to 4dp; each line's amounts are rounded to 2dp, and document totals are the **sum of the rounded line amounts** (so lines always add up to the totals).
+- Per line: `gross = qty × unit` → `discount` (percentage `gross×v/100`, or fixed; capped at gross) → `taxable = gross − discount` → `tax = taxable × rate/100` → `line_total = taxable + tax`.
+- Document: `subtotal = Σ gross`, `discount = Σ line discount`, `tax = Σ line tax`, `total = Σ line_total = subtotal − discount + tax`. **Line-level discounts only** (invoice-level discount intentionally omitted to avoid double-counting).
+
+### Worked example (mandatory)
+Invoice subtotal `$2,000`, tax 0, rate `3.28` → stored: `total_usd=2000.00`, `exchange_rate=3.280000`, `total_ils_at_issue=6560.00`, `paid_usd_equivalent=0.00`, `remaining_usd=2000.00`. Correcting the rate table to `3.35` afterward leaves the invoice at `3.280000` / `6560.00`.
+
+### Overdue
+Computed, never stored: `due_date < today` AND `remaining_usd > 0` AND status ∉ {Paid, Cancelled, Draft}. Surfaced via `Invoice::isOverdue()` / `effectiveStatus()`. No scheduler required.

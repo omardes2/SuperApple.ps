@@ -59,3 +59,9 @@ The employee layout has **no financial routes at all**; even a hand-typed financ
 - Operational (Sprint 2): `customers.manage|archive|attachments`; `services.create|edit|view_financial`; `projects.view_assigned|create|edit|members|attachments`; `tasks.view_own|edit|manage|comment|attachments|checklist`.
 - **Semantics**: `*.view` = view everything (managers); `*.view_own` / `projects.view_assigned` = scoped to the employee. `services.view` never exposes prices/costs — that needs `services.view_financial` (enforced in `Service::toArray`). Financial protection is enforced at the backend/query layer, not the UI.
 - **Least privilege**: PM manages projects/tasks and sees services without prices; Accountant has finance + service pricing but no project/task admin; HR has HR only; Employee/Team Leader are operational (own tasks/projects, comment/checklist/attachments).
+
+## Sprint 3 additions (financial — guarded)
+- `exchange_rates.view|manage`
+- `quotations.view|manage|create|edit|send|accept|reject|cancel|convert|print`
+- `invoices.view|manage|create|edit|issue|send|cancel|print`
+- Distribution: Super Admin (all via Gate::before), General Manager (all except roles.manage), **Accountant** (full billing lifecycle + exchange rates + service pricing). HR / Project Manager / Team Leader / Employee get **none** — pricing stays separated from operational work. Enforced by route `can:` middleware + Policies (Invoice/Quotation/ExchangeRate) + component `authorize()`; financial data is never loaded for unauthorised users.

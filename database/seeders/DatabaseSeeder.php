@@ -26,6 +26,8 @@ class DatabaseSeeder extends Seeder
             ServiceSeeder::class,
             ProjectSeeder::class,
             TaskSeeder::class,
+            // Sprint 3 — billing
+            BillingSeeder::class,
         ]);
     }
 }

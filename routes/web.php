@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InvoicePrintController;
 use App\Livewire\Admin\AttendanceIndex;
 use App\Livewire\Admin\AuditLogPage;
 use App\Livewire\Admin\CustomerProfile;
@@ -8,9 +9,14 @@ use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\DepartmentsIndex;
 use App\Livewire\Admin\EmployeeProfile;
 use App\Livewire\Admin\EmployeesIndex;
+use App\Livewire\Admin\ExchangeRatesIndex;
+use App\Livewire\Admin\InvoiceShow;
+use App\Livewire\Admin\InvoicesIndex;
 use App\Livewire\Admin\LeavesIndex;
 use App\Livewire\Admin\ProjectShow as AdminProjectShow;
 use App\Livewire\Admin\ProjectsIndex;
+use App\Livewire\Admin\QuotationShow;
+use App\Livewire\Admin\QuotationsIndex;
 use App\Livewire\Admin\ServicesIndex;
 use App\Livewire\Admin\SettingsPage;
 use App\Livewire\Admin\TaskShow as AdminTaskShow;
@@ -72,6 +78,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/projects/{project}', AdminProjectShow::class)->middleware('can:projects.view')->name('projects.show');
         Route::get('/tasks', TasksIndex::class)->middleware('can:tasks.view')->name('tasks');
         Route::get('/tasks/{task}', AdminTaskShow::class)->middleware('can:tasks.view')->name('tasks.show');
+
+        // Billing — Sprint 3
+        Route::get('/exchange-rates', ExchangeRatesIndex::class)->middleware('can:exchange_rates.view')->name('exchange-rates');
+        Route::get('/quotations', QuotationsIndex::class)->middleware('can:quotations.view')->name('quotations');
+        Route::get('/quotations/{quotation}', QuotationShow::class)->middleware('can:quotations.view')->name('quotations.show');
+        Route::get('/invoices', InvoicesIndex::class)->middleware('can:invoices.view')->name('invoices');
+        Route::get('/invoices/{invoice}', InvoiceShow::class)->middleware('can:invoices.view')->name('invoices.show');
+        Route::get('/invoices/{invoice}/print', [InvoicePrintController::class, 'invoice'])->middleware('can:invoices.print')->name('invoices.print');
+        Route::get('/quotations/{quotation}/print', [InvoicePrintController::class, 'quotation'])->middleware('can:quotations.print')->name('quotations.print');
 
         Route::get('/settings', SettingsPage::class)->middleware('can:settings.view')->name('settings');
         Route::get('/audit-log', AuditLogPage::class)->middleware('can:audit.view')->name('audit');

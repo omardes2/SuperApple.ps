@@ -23,11 +23,16 @@ class SettingsSeeder extends Seeder
 
         // Fixed currency business rules.
         $settings->setMany('finance', [
-            'default_currency' => ['value' => 'ILS', 'type' => 'string'],  // accounting base
-            'invoice_currency' => ['value' => 'USD', 'type' => 'string'],  // customer invoicing
+            'default_currency' => ['value' => 'ILS', 'type' => 'string'],       // accounting base
+            'base_accounting_currency' => ['value' => 'ILS', 'type' => 'string'],
+            'invoice_currency' => ['value' => 'USD', 'type' => 'string'],       // customer invoicing
+            'default_invoice_currency' => ['value' => 'USD', 'type' => 'string'],
             'default_exchange_rate' => ['value' => '3.30', 'type' => 'decimal'],
-            'invoice_terms' => ['value' => 'الدفع خلال 15 يوماً من تاريخ الفاتورة.', 'type' => 'string'],
-            'invoice_footer' => ['value' => 'شكراً لتعاملكم معنا.', 'type' => 'string'],
+            'default_invoice_due_days' => ['value' => '30', 'type' => 'int'],
+            'quotation_validity_days' => ['value' => '14', 'type' => 'int'],
+            'invoice_terms' => ['value' => 'الدفع خلال 30 يوماً من تاريخ الفاتورة.', 'type' => 'string'],
+            'invoice_footer' => ['value' => 'القيمة الأساسية المستحقة لهذه الفاتورة هي بالدولار الأمريكي، ويتم احتساب أي دفعة بالشيكل وفق سعر الصرف المسجل وقت استلام الدفعة.', 'type' => 'string'],
+            'quotation_terms' => ['value' => 'هذا العرض ساري حتى تاريخ الصلاحية المذكور. الأسعار بالدولار الأمريكي.', 'type' => 'string'],
         ]);
 
         $settings->setMany('attendance', [

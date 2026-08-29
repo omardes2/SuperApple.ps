@@ -14,7 +14,11 @@
     </div>
 
     @php
-        $tabs = ['overview' => 'نظرة عامة', 'projects' => 'المشاريع', 'tasks' => 'المهام', 'attachments' => 'المرفقات', 'activity' => 'سجل النشاط'];
+        $tabs = ['overview' => 'نظرة عامة', 'projects' => 'المشاريع', 'tasks' => 'المهام'];
+        if ($canQuotations) $tabs['quotations'] = 'عروض الأسعار';
+        if ($canInvoices) $tabs['invoices'] = 'الفواتير';
+        $tabs['attachments'] = 'المرفقات';
+        $tabs['activity'] = 'سجل النشاط';
     @endphp
     <div class="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
         @foreach ($tabs as $key => $label)
@@ -86,6 +90,47 @@
                         </tr>
                     @empty
                         <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">لا مهام.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if ($tab === 'quotations' && $canQuotations)
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">الرقم</th><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الإجمالي USD</th><th class="px-4 py-3">الحالة</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($quotations as $q)
+                        <tr>
+                            <td class="px-4 py-3 font-mono text-slate-500" dir="ltr"><a href="{{ route('admin.quotations.show', $q) }}" class="hover:text-brand-600 hover:underline">{{ $q->quotation_number }}</a></td>
+                            <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $q->quotation_date->format('Y-m-d') }}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $q->total_usd, 2) }}</td>
+                            <td class="px-4 py-3"><x-badge :class="$q->effectiveStatus()->badgeClass()">{{ $q->effectiveStatus()->label() }}</x-badge></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">لا عروض أسعار.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if ($tab === 'invoices' && $canInvoices)
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">الرقم</th><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الإجمالي USD</th><th class="px-4 py-3">المتبقي USD</th><th class="px-4 py-3">الحالة</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($invoices as $inv)
+                        <tr>
+                            <td class="px-4 py-3 font-mono text-slate-500" dir="ltr"><a href="{{ route('admin.invoices.show', $inv) }}" class="hover:text-brand-600 hover:underline">{{ $inv->invoice_number }}</a></td>
+                            <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $inv->invoice_date->format('Y-m-d') }}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $inv->total_usd, 2) }}</td>
+                            <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $inv->remaining_usd, 2) }}</td>
+                            <td class="px-4 py-3"><x-badge :class="$inv->effectiveStatus()->badgeClass()">{{ $inv->effectiveStatus()->label() }}</x-badge></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">لا فواتير.</td></tr>
                     @endforelse
                 </tbody>
             </table>

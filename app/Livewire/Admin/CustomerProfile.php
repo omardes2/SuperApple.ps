@@ -4,6 +4,8 @@ namespace App\Livewire\Admin;
 
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\Quotation;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -80,6 +82,18 @@ class CustomerProfile extends Component
             $data['activity'] = AuditLog::where('auditable_type', $this->customer->getMorphClass())
                 ->where('auditable_id', $this->customer->id)
                 ->with('user')->latest('created_at')->limit(50)->get();
+        }
+
+        // Financial tabs — only queried and shown for authorised users.
+        $data['canQuotations'] = auth()->user()->can('quotations.view');
+        $data['canInvoices'] = auth()->user()->can('invoices.view');
+
+        if ($this->tab === 'quotations' && $data['canQuotations']) {
+            $data['quotations'] = $this->customer->hasMany(Quotation::class)->latest()->get();
+        }
+
+        if ($this->tab === 'invoices' && $data['canInvoices']) {
+            $data['invoices'] = $this->customer->hasMany(Invoice::class)->latest()->get();
         }
 
         return view('livewire.admin.customer-profile', $data);

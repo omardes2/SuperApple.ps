@@ -123,13 +123,31 @@ final class Permissions
             'finance' => ['financial' => true, 'permissions' => [
                 'finance.view' => 'الوصول للقسم المالي',
             ]],
+            'exchange_rates' => ['financial' => true, 'permissions' => [
+                'exchange_rates.view' => 'عرض أسعار الصرف',
+                'exchange_rates.manage' => 'إدارة أسعار الصرف',
+            ]],
             'quotations' => ['financial' => true, 'permissions' => [
                 'quotations.view' => 'عرض عروض الأسعار',
                 'quotations.manage' => 'إدارة عروض الأسعار',
+                'quotations.create' => 'إنشاء عرض سعر',
+                'quotations.edit' => 'تعديل عرض سعر',
+                'quotations.send' => 'إرسال عرض سعر',
+                'quotations.accept' => 'قبول عرض سعر',
+                'quotations.reject' => 'رفض عرض سعر',
+                'quotations.cancel' => 'إلغاء عرض سعر',
+                'quotations.convert' => 'تحويل عرض سعر إلى فاتورة',
+                'quotations.print' => 'طباعة عرض السعر',
             ]],
             'invoices' => ['financial' => true, 'permissions' => [
                 'invoices.view' => 'عرض الفواتير',
                 'invoices.manage' => 'إدارة الفواتير',
+                'invoices.create' => 'إنشاء فاتورة',
+                'invoices.edit' => 'تعديل فاتورة',
+                'invoices.issue' => 'إصدار فاتورة',
+                'invoices.send' => 'إرسال فاتورة',
+                'invoices.cancel' => 'إلغاء فاتورة',
+                'invoices.print' => 'طباعة الفاتورة',
             ]],
             'payments' => ['financial' => true, 'permissions' => [
                 'payments.view' => 'عرض الدفعات',
@@ -209,12 +227,18 @@ final class Permissions
             RoleName::Accountant->value => array_merge([
                 'dashboard.view', 'customers.view', 'suppliers.view', 'suppliers.manage',
                 'subscriptions.view', 'subscriptions.manage', 'notifications.view',
-                'finance.view', 'quotations.view', 'quotations.manage',
-                'invoices.view', 'invoices.manage', 'payments.view', 'payments.manage',
+                'finance.view', 'payments.view', 'payments.manage',
                 'expenses.view', 'expenses.manage', 'accounts.view', 'accounts.manage',
                 'accounting.view', 'accounting.manage', 'payroll.view',
                 'reports.financial', 'reports.operational', 'audit.view',
-                // Service catalog incl. pricing (needed for quotations later).
+                // Exchange rates + full quotation & invoice lifecycle (Sprint 3).
+                'exchange_rates.view', 'exchange_rates.manage',
+                'quotations.view', 'quotations.manage', 'quotations.create', 'quotations.edit',
+                'quotations.send', 'quotations.accept', 'quotations.reject', 'quotations.cancel',
+                'quotations.convert', 'quotations.print',
+                'invoices.view', 'invoices.manage', 'invoices.create', 'invoices.edit',
+                'invoices.issue', 'invoices.send', 'invoices.cancel', 'invoices.print',
+                // Service catalog incl. pricing (needed for quotations/invoices).
                 'services.view', 'services.view_financial', 'services.create', 'services.edit', 'services.manage',
             ], self::selfService()),
 

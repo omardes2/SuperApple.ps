@@ -33,8 +33,9 @@ final class AdminNavigation
             [
                 'label' => 'المالية',
                 'items' => [
-                    ['route' => null, 'label' => 'عروض الأسعار', 'icon' => 'doc', 'permission' => 'quotations.view'],
-                    ['route' => null, 'label' => 'الفواتير', 'icon' => 'invoice', 'permission' => 'invoices.view'],
+                    ['route' => 'admin.quotations', 'label' => 'عروض الأسعار', 'icon' => 'doc', 'permission' => 'quotations.view'],
+                    ['route' => 'admin.invoices', 'label' => 'الفواتير', 'icon' => 'invoice', 'permission' => 'invoices.view'],
+                    ['route' => 'admin.exchange-rates', 'label' => 'أسعار الصرف', 'icon' => 'repeat', 'permission' => 'exchange_rates.view'],
                     ['route' => null, 'label' => 'الدفعات والتحصيل', 'icon' => 'cash', 'permission' => 'payments.view'],
                     ['route' => null, 'label' => 'الاشتراكات', 'icon' => 'repeat', 'permission' => 'subscriptions.view'],
                     ['route' => null, 'label' => 'المصاريف', 'icon' => 'minus', 'permission' => 'expenses.view'],

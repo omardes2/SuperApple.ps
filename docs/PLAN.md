@@ -46,7 +46,20 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Seeders: 10 customers, 16 services, 6 projects (+members), 34 tasks (+comments/checklists/status history).
 - ✅ Docs: `docs/OPERATIONS.md`. Full suite green + pint clean + build; no Sprint 0/1 regression.
 
-## Sprint 3–8
+## Sprint 3 — Billing ✅ (32 tests green; 149 total)
+- ✅ Decimal-safe money engine on brick/math (`Money`, `DocumentCalculator`) — HALF_UP, no floats.
+- ✅ Exchange rates (USD→ILS, one rate/day, update-not-duplicate, audited; suggested rate for documents).
+- ✅ Quotations + items with service/price snapshots; workflow (draft/send/accept/reject/cancel/duplicate-revision); `QuotationService`.
+- ✅ Invoices + items; `InvoiceService::issue()` as the single gate (validate → recompute → lock ILS snapshot → init payment fields → immutable). Multi-layer immutability (model guard + item guard + policy + service).
+- ✅ Quotation→Invoice conversion (accepted-only, transaction + unique index = exactly once); `QuotationToInvoiceService`.
+- ✅ Policies (Invoice/Quotation/ExchangeRate) + granular financial permissions; employees/PM/HR blocked, Accountant/GM full.
+- ✅ Admin UIs (exchange rates, quotation editor + workflow, invoice editor + issue/cancel, customer financial tabs) + A4 RTL print views for invoice & quotation.
+- ✅ Enums: Priority-style statuses (QuotationStatus, InvoiceStatus, ExchangeRateSource, DiscountType).
+- ✅ Seeders: 6 demo exchange rates, 10 quotations, 8 invoices (no fake payments — paid=0/remaining=total).
+- ✅ Docs: CURRENCY.md (updated), QUOTATIONS.md, INVOICES.md. Full suite green + pint clean + build; no Sprint 0/1/2 regression.
+- ⛔ Not started (later sprints): payments, partial payments, exchange gain/loss, cash/bank, journal entries, expenses.
+
+## Sprint 4–8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

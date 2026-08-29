@@ -42,6 +42,16 @@ class Customer extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

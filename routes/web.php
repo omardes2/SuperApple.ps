@@ -1,18 +1,23 @@
 <?php
 
 use App\Http\Controllers\InvoicePrintController;
+use App\Http\Controllers\PaymentReceiptController;
 use App\Livewire\Admin\AttendanceIndex;
 use App\Livewire\Admin\AuditLogPage;
 use App\Livewire\Admin\CustomerProfile;
 use App\Livewire\Admin\CustomersIndex;
+use App\Livewire\Admin\CustomerStatement;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\DepartmentsIndex;
 use App\Livewire\Admin\EmployeeProfile;
 use App\Livewire\Admin\EmployeesIndex;
+use App\Livewire\Admin\ExchangeGainLossReport;
 use App\Livewire\Admin\ExchangeRatesIndex;
 use App\Livewire\Admin\InvoiceShow;
 use App\Livewire\Admin\InvoicesIndex;
 use App\Livewire\Admin\LeavesIndex;
+use App\Livewire\Admin\PaymentShow;
+use App\Livewire\Admin\PaymentsIndex;
 use App\Livewire\Admin\ProjectShow as AdminProjectShow;
 use App\Livewire\Admin\ProjectsIndex;
 use App\Livewire\Admin\QuotationShow;
@@ -87,6 +92,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoices/{invoice}', InvoiceShow::class)->middleware('can:invoices.view')->name('invoices.show');
         Route::get('/invoices/{invoice}/print', [InvoicePrintController::class, 'invoice'])->middleware('can:invoices.print')->name('invoices.print');
         Route::get('/quotations/{quotation}/print', [InvoicePrintController::class, 'quotation'])->middleware('can:quotations.print')->name('quotations.print');
+
+        // Payments & collection — Sprint 4
+        Route::get('/payments', PaymentsIndex::class)->middleware('can:payments.view')->name('payments');
+        Route::get('/payments/{payment}', PaymentShow::class)->middleware('can:payments.view')->name('payments.show');
+        Route::get('/payments/{payment}/receipt', [PaymentReceiptController::class, 'receipt'])->middleware('can:payments.print')->name('payments.receipt');
+        Route::get('/customers/{customer}/statement', CustomerStatement::class)->middleware('can:customer_statements.view')->name('customers.statement');
+        Route::get('/reports/exchange-gain-loss', ExchangeGainLossReport::class)->middleware('can:exchange_gain_loss.view')->name('reports.exchange-gain-loss');
 
         Route::get('/settings', SettingsPage::class)->middleware('can:settings.view')->name('settings');
         Route::get('/audit-log', AuditLogPage::class)->middleware('can:audit.view')->name('audit');

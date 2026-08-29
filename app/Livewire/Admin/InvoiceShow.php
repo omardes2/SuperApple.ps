@@ -5,10 +5,12 @@ namespace App\Livewire\Admin;
 use App\Livewire\Concerns\ManagesDocumentLines;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Service;
 use App\Services\ExchangeRateService;
 use App\Services\InvoiceService;
+use App\Services\PaymentService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -152,6 +154,25 @@ class InvoiceShow extends Component
         session()->flash('status', 'تم إلغاء الفاتورة.');
     }
 
+    /**
+     * Start recording a payment against this invoice: create a draft for the
+     * invoice's customer and open the payment page with this invoice prefilled.
+     */
+    public function recordPayment(PaymentService $service)
+    {
+        $this->authorize('create', Payment::class);
+        abort_unless($this->invoice->acceptsAllocation(), 422, 'الفاتورة لا تقبل تخصيص دفعة.');
+
+        $payment = $service->createDraft([
+            'customer_id' => $this->invoice->customer_id,
+            'payment_date' => now()->toDateString(),
+            'payment_currency' => 'USD',
+            'payment_amount' => 0,
+        ]);
+
+        return redirect()->route('admin.payments.show', ['payment' => $payment, 'invoice' => $this->invoice->id]);
+    }
+
     private function runAction(callable $fn, string $message): void
     {
         try {
@@ -171,12 +192,19 @@ class InvoiceShow extends Component
     {
         $this->invoice->loadMissing(['customer', 'project', 'items.service', 'quotation']);
 
+        $canPayments = auth()->user()->can('payments.view');
+
         return view('livewire.admin.invoice-show', [
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'projects' => Project::orderBy('name')->get(['id', 'name']),
             'services' => Service::active()->orderBy('name')->get(['id', 'name']),
             'preview' => $this->preview(),
             'canEdit' => $this->invoice->isDraft() && auth()->user()->can('invoices.edit'),
+            'canPayments' => $canPayments,
+            'canRecordPayment' => $this->invoice->acceptsAllocation() && auth()->user()->can('payments.create'),
+            'allocations' => $canPayments
+                ? $this->invoice->allocations()->with('payment')->latest()->get()
+                : collect(),
         ]);
     }
 }

@@ -4,15 +4,21 @@
         <p class="text-sm text-slate-500">نظرة عامة على أداء الشركة اليوم.</p>
     </div>
 
-    {{-- KPI cards — each financial card only renders for authorised users --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @can('reports.financial')
-            <x-stat-card label="إيرادات الشهر" value="—" hint="USD" icon="cash" tone="emerald" />
-            <x-stat-card label="المحصّل هذا الشهر" value="—" hint="USD" icon="wallet" tone="brand" />
-            <x-stat-card label="المستحق (ذمم)" value="—" hint="USD" icon="invoice" tone="amber" />
-            <x-stat-card label="صافي الربح" value="—" hint="تقديري" icon="chart" tone="violet" />
-        @endcan
+    {{-- Financial KPIs — official currency USD; only for finance users --}}
+    @if ($finance)
+        <div>
+            <h3 class="mb-3 text-sm font-semibold text-slate-500">النظرة المالية (USD)</h3>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <a href="{{ route('admin.payments') }}" class="block"><x-stat-card label="محصّل هذا الشهر" :value="'$'.number_format((float) $finance['collected_month_usd'], 2)" hint="USD" icon="cash" tone="emerald" /></a>
+                <a href="{{ route('admin.invoices') }}" class="block"><x-stat-card label="المستحق (ذمم)" :value="'$'.number_format((float) $finance['outstanding_usd'], 2)" hint="USD" icon="invoice" tone="amber" /></a>
+                <x-stat-card label="أرصدة دائنة" :value="'$'.number_format((float) $finance['unallocated_credit_usd'], 2)" hint="غير مخصصة" icon="wallet" tone="brand" />
+                <a href="{{ route('admin.reports.exchange-gain-loss') }}" class="block"><x-stat-card label="صافي فروقات الصرف (الشهر)" :value="((float) $finance['exchange_net_ils'] >= 0 ? '+' : '').number_format((float) $finance['exchange_net_ils'], 2).' ₪'" hint="ILS — محقق" icon="repeat" :tone="(float) $finance['exchange_net_ils'] >= 0 ? 'violet' : 'red'" /></a>
+            </div>
+        </div>
+    @endif
 
+    {{-- Operational KPI placeholders --}}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @can('projects.view')
             <x-stat-card label="المشاريع النشطة" value="—" icon="folder" tone="brand" />
         @endcan

@@ -28,3 +28,6 @@ Route `can:invoices.*` + `InvoicePolicy` + component `authorize()`. Permissions:
 
 ## Outstanding / Overdue
 Outstanding = Σ `remaining_usd` of issued (non-cancelled) invoices. Overdue is computed (`isOverdue()` / `effectiveStatus()`), never stored — no scheduler.
+
+## Payments (Sprint 4)
+Once issued, an invoice can receive payment allocations (see PAYMENTS.md). `acceptsAllocation()` gates this (Issued/Sent/PartiallyPaid/Overdue **and** `remaining_usd > 0`; Draft/Cancelled/Paid are rejected). `PaymentAllocationService` updates `paid_usd_equivalent` / `remaining_usd` and **derives** the status — PartiallyPaid / Paid on allocation, back to Sent/Issued on reversal (preserving `sent_at`). Status is still never set by hand. The invoice page shows a payments panel (total / paid / remaining + allocations) and a **Record Payment** button that prefills a draft for the invoice.

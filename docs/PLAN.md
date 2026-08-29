@@ -59,7 +59,19 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Docs: CURRENCY.md (updated), QUOTATIONS.md, INVOICES.md. Full suite green + pint clean + build; no Sprint 0/1/2 regression.
 - ⛔ Not started (later sprints): payments, partial payments, exchange gain/loss, cash/bank, journal entries, expenses.
 
-## Sprint 4–8
+## Sprint 4 — Payments & collection ✅ (39 tests green; 188 total)
+- ✅ Payments engine on `PaymentService` (createDraft/updateDraft/post/cancel/autoAllocatePlan) — atomic post/cancel with DB transaction + `lockForUpdate`. Single independent `exchange_rate` per payment for both currencies.
+- ✅ `PaymentAllocationService` — same-customer + `acceptsAllocation` + positive + `≤ remaining` guards, per-allocation accounting snapshot, **exchange gain/loss** on the allocated portion, reversal that restores invoice remaining/status and keeps history (`reversed`, never deleted).
+- ✅ Derived invoice status (Paid/PartiallyPaid/Issued/Sent, `sent_at` preserved); remaining never negative (`< 0.01 USD` tolerance).
+- ✅ `CustomerBalanceService` (Outstanding / Unallocated credit / Net, three distinct USD figures + estimated ILS) and `CustomerStatementService` (USD ledger, multi-invoice payment counted once, cancelled excluded).
+- ✅ Immutability: `Payment::LOCKED_FIELDS` + `PostedPaymentImmutableException`; `PaymentPolicy`; granular permissions (`payments.view|create|edit|post|cancel|allocate|print`, `customer_statements.view`, `exchange_gain_loss.view`) — Accountant + GM only; Employee/PM/HR/TeamLeader none.
+- ✅ UI: payments list + summary cards, new-payment flow with live USD preview + allocation editor + **Auto-Allocate (oldest)**, cancel-with-reason, A4/A5 RTL **receipt** (no cost/margin/internal notes), customer statement, exchange gain/loss report, customer Payments tab + balance cards, invoice payments panel + Record Payment, finance dashboard cards (not for employees).
+- ✅ `account_id` nullable/unlinked (reserved for Sprint 5). No cashbox/bank/GL/expenses/suppliers/payroll/WhatsApp built.
+- ✅ Seeder: balanced demo payments (partial ILS, full USD, over-paid credit, cancelled+reversed). Docs: PAYMENTS.md, CUSTOMER_BALANCES.md (new); CURRENCY.md, INVOICES.md, DATABASE.md, PERMISSIONS.md, PLAN.md (updated).
+- ✅ Tests: core math/allocation/gain-loss (16), reversal/immutability (6), security (7), integrity/concurrency/auto-allocate/statement (10), smoke render (6). Full suite green + pint clean + build; no Sprint 0–3 regression.
+- ⛔ Not started (later sprints): cash/bank, journal entries, expenses, suppliers, payroll, subscriptions, WhatsApp.
+
+## Sprint 5–8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

@@ -62,6 +62,51 @@ final class Money
         return self::money(self::of($usd)->multipliedBy(self::of($rate)));
     }
 
+    /**
+     * usd_equivalent = ils_amount ÷ exchange_rate, rounded to money scale.
+     * A generous internal scale is used before the final HALF_UP rounding.
+     */
+    public static function convertIlsToUsd(int|string|float $ils, int|string|float $rate): string
+    {
+        $usd = self::of($ils)->dividedBy(self::of($rate), self::MONEY_SCALE + 8, RoundingMode::HalfUp);
+
+        return self::money($usd);
+    }
+
+    /** a − b at money scale. */
+    public static function subtract(int|string|float $a, int|string|float $b): string
+    {
+        return self::money(self::of($a)->minus(self::of($b)));
+    }
+
+    /** a + b at money scale. */
+    public static function add(int|string|float $a, int|string|float $b): string
+    {
+        return self::money(self::of($a)->plus(self::of($b)));
+    }
+
+    /** Sum a list of money values at money scale. */
+    public static function sum(iterable $values): string
+    {
+        $total = BigDecimal::zero();
+        foreach ($values as $v) {
+            $total = $total->plus(self::of($v));
+        }
+
+        return self::money($total);
+    }
+
+    public static function isGreaterThan(int|string|float $a, int|string|float $b): bool
+    {
+        return self::of(self::money($a))->isGreaterThan(self::money($b));
+    }
+
+    /** Absolute difference at money scale (always >= 0). */
+    public static function absDiff(int|string|float $a, int|string|float $b): string
+    {
+        return self::money(self::of($a)->minus(self::of($b))->abs());
+    }
+
     public static function isPositive(int|string|float $value): bool
     {
         return self::of($value)->isGreaterThan(0);

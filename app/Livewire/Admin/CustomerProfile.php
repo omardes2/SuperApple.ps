@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Quotation;
+use App\Services\CustomerBalanceService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -87,6 +88,8 @@ class CustomerProfile extends Component
         // Financial tabs — only queried and shown for authorised users.
         $data['canQuotations'] = auth()->user()->can('quotations.view');
         $data['canInvoices'] = auth()->user()->can('invoices.view');
+        $data['canPayments'] = auth()->user()->can('payments.view');
+        $data['canStatement'] = auth()->user()->can('customer_statements.view');
 
         if ($this->tab === 'quotations' && $data['canQuotations']) {
             $data['quotations'] = $this->customer->hasMany(Quotation::class)->latest()->get();
@@ -94,6 +97,15 @@ class CustomerProfile extends Component
 
         if ($this->tab === 'invoices' && $data['canInvoices']) {
             $data['invoices'] = $this->customer->hasMany(Invoice::class)->latest()->get();
+        }
+
+        // Official USD balance (3 distinct figures) — shown only to finance users.
+        if ($data['canPayments']) {
+            $data['balance'] = app(CustomerBalanceService::class)->summary($this->customer);
+        }
+
+        if ($this->tab === 'payments' && $data['canPayments']) {
+            $data['payments'] = $this->customer->payments()->with('receivedBy')->latest('payment_date')->latest('id')->get();
         }
 
         return view('livewire.admin.customer-profile', $data);

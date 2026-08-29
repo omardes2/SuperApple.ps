@@ -65,3 +65,8 @@ The employee layout has **no financial routes at all**; even a hand-typed financ
 - `quotations.view|manage|create|edit|send|accept|reject|cancel|convert|print`
 - `invoices.view|manage|create|edit|issue|send|cancel|print`
 - Distribution: Super Admin (all via Gate::before), General Manager (all except roles.manage), **Accountant** (full billing lifecycle + exchange rates + service pricing). HR / Project Manager / Team Leader / Employee get **none** — pricing stays separated from operational work. Enforced by route `can:` middleware + Policies (Invoice/Quotation/ExchangeRate) + component `authorize()`; financial data is never loaded for unauthorised users.
+
+## Sprint 4 additions (payments — guarded)
+- `payments.view|create|edit|post|cancel|allocate|print`
+- `customer_statements.view`, `exchange_gain_loss.view`
+- Distribution: Super Admin (all via Gate::before), General Manager (all), **Accountant** (full payment lifecycle + statements + gain/loss). **HR Manager / Project Manager / Team Leader / Employee get NONE** — verified in `PaymentSecurityTest`. Enforced by route `can:` middleware + `PaymentPolicy` + component `authorize()`. The dashboard's financial cards render only for `payments.view` users. `payments.manage` (Sprint 3 placeholder) is retained; the granular verbs above are what the UI and policy check.

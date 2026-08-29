@@ -6,9 +6,11 @@ use App\Enums\RoleName;
 use App\Models\Customer;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\InvoiceService;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -117,5 +119,19 @@ trait CreatesUsers
             'priority' => 'normal',
             'status' => 'new',
         ], $attributes));
+    }
+
+    /**
+     * An issued invoice for a given customer with a single USD line.
+     * Requires an authenticated user (created_by). $rate is the invoice rate.
+     */
+    protected function makeIssuedInvoice(Customer $customer, string $totalUsd, string $rate = '3.20'): Invoice
+    {
+        $invoice = app(InvoiceService::class)->createDraft(
+            ['customer_id' => $customer->id, 'invoice_date' => '2026-08-01', 'exchange_rate' => $rate],
+            [['item_name' => 'خدمة', 'quantity' => 1, 'unit_price_usd' => $totalUsd, 'tax_rate' => 0]],
+        );
+
+        return app(InvoiceService::class)->issue($invoice);
     }
 }

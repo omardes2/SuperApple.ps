@@ -90,3 +90,33 @@ Invoice subtotal `$2,000`, tax 0, rate `3.28` → stored: `total_usd=2000.00`, `
 
 ### Overdue
 Computed, never stored: `due_date < today` AND `remaining_usd > 0` AND status ∉ {Paid, Cancelled, Draft}. Surfaced via `Invoice::isOverdue()` / `effectiveStatus()`. No scheduler required.
+
+---
+
+## Sprint 4 — Payments, allocation & exchange gain/loss (implemented)
+
+Full detail in **PAYMENTS.md** and **CUSTOMER_BALANCES.md**. Key fixed rules as realised:
+
+- **One `exchange_rate` per payment** = USD→ILS at payment date, used for BOTH currencies. ILS → `usd_equivalent = amount ÷ rate`; USD → `usd_equivalent = amount` (rate still stored for accounting valuation and gain/loss). The rate is **required and > 0** to post, and **locked** after posting (`Payment::LOCKED_FIELDS` + `PostedPaymentImmutableException`).
+- A later payment **never** reuses `invoice.exchange_rate` to convert ILS — each payment has its own independent rate.
+- **Exchange difference per allocation** = `allocated_usd × payment_rate − allocated_usd × invoice_rate` (+ gain / − loss), on the allocated portion only, rounded to 2 ILS. It is **realised exchange gain/loss, never sales revenue**, and is snapshotted onto the allocation so later rate-table edits don't change it.
+- **Over-allocation is impossible**: `allocated ≤ invoice.remaining` AND `Σ allocations ≤ payment.usd_equivalent`; `remaining_usd` never goes negative (a `< 0.01 USD` residue is absorbed to 0).
+- **Invoice status is derived only by the service** (Paid/PartiallyPaid/Issued/Sent, `sent_at` preserved). Draft/Cancelled/Paid invoices reject allocation.
+- **Cancel** reverses allocations, restores invoice remaining/status, and keeps the allocation history marked `reversed` (no hard delete). Payment numbers (PAY-YYYY-####) are never reused after cancel.
+- **Customer balance** = three distinct USD figures — Outstanding, Unallocated credit, Net — never conflated; unallocated payment amount is kept as customer credit. An ILS value may be shown as a clearly-marked estimate only.
+- Concurrency via DB transaction + `lockForUpdate`; all math via `App\Support\Money` (brick/math, HALF_UP).
+
+### Payment fields (as built)
+```
+payment_number      PAY-YYYY-#### (unique)
+customer_id
+payment_date
+payment_currency    (USD | ILS)
+payment_amount      (in payment_currency, 2dp)
+exchange_rate       (USD->ILS at payment date, 6dp; required to post)
+usd_equivalent      = currency==USD ? amount : amount / exchange_rate
+payment_method      (cash|bank_transfer|cheque|credit_card|online_payment|other)
+account_id          (nullable, NO FK — reserved for Sprint 5 cash/bank)
+reference_number, notes, status(draft|posted|cancelled), received_by
+```
+`account_id` is intentionally unlinked in Sprint 4 — no cashbox/bank/GL yet.

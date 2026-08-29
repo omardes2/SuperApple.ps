@@ -36,9 +36,9 @@ Legend: PK = id (bigint), FK noted, `→` references.
 - **invoices**: id, reference_no, customer_id, quotation_id(nullable), project_id(nullable), issue_date, due_date, currency('USD'), subtotal_usd, discount_usd, tax_usd, total_usd, exchange_rate, total_ils_at_issue, paid_usd_equivalent, remaining_usd, status(enum), notes, issued_at, created_by.
 - **invoice_items**: id, invoice_id, service_id(nullable), description, quantity, unit_price_usd, discount_usd, tax_rate, line_total_usd.
 
-## Sprint 4 (payments)
-- **payments**: id, reference_no, customer_id, payment_date, payment_currency, payment_amount, exchange_rate, usd_equivalent, allocated_usd, unallocated_usd, payment_method, account_id, reference_number, notes, status(Active/Cancelled), created_by.
-- **payment_allocations**: id, payment_id, invoice_id, allocated_usd.
+## Sprint 4 (payments) — implemented
+- **payments**: id, `payment_number`(PAY-YYYY-####, unique), customer_id, payment_date, payment_currency(USD|ILS), payment_amount(15,2), exchange_rate(12,6 nullable), usd_equivalent(15,2), payment_method, **account_id (unsigned, nullable, indexed, NO FK — reserved for Sprint 5 cash/bank)**, reference_number, notes, status(draft|posted|cancelled), received_by→users, posted_at, cancelled_at, cancelled_by→users, cancellation_reason, created_by, updated_by. Indexes: customer_id, payment_date, status. `allocated`/`unallocated` are **derived** (not stored) from active allocations.
+- **payment_allocations**: id, payment_id→payments(cascade), invoice_id→invoices, allocated_usd(15,2), and an accounting snapshot per allocation: invoice_exchange_rate(12,6), payment_exchange_rate(12,6), invoice_accounting_value_ils(15,2), payment_accounting_value_ils(15,2), exchange_difference_ils(15,2), status(active|reversed), reversed_at, reversed_by→users, reversal_reason. Reversed rows are kept (never hard-deleted).
 
 ## Sprint 5 (expenses/suppliers/accounting)
 - **expense_categories**: id, name.

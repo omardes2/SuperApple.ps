@@ -152,6 +152,14 @@ final class Permissions
             'payments' => ['financial' => true, 'permissions' => [
                 'payments.view' => 'عرض الدفعات',
                 'payments.manage' => 'إدارة الدفعات',
+                'payments.create' => 'إنشاء دفعة',
+                'payments.edit' => 'تعديل دفعة',
+                'payments.post' => 'ترحيل دفعة',
+                'payments.cancel' => 'إلغاء دفعة',
+                'payments.allocate' => 'تخصيص الدفعات',
+                'payments.print' => 'طباعة إيصال الدفع',
+                'customer_statements.view' => 'عرض كشوف حساب العملاء',
+                'exchange_gain_loss.view' => 'عرض فروقات سعر الصرف',
             ]],
             'expenses' => ['financial' => true, 'permissions' => [
                 'expenses.view' => 'عرض المصاريف',
@@ -228,6 +236,8 @@ final class Permissions
                 'dashboard.view', 'customers.view', 'suppliers.view', 'suppliers.manage',
                 'subscriptions.view', 'subscriptions.manage', 'notifications.view',
                 'finance.view', 'payments.view', 'payments.manage',
+                'payments.create', 'payments.edit', 'payments.post', 'payments.cancel',
+                'payments.allocate', 'payments.print', 'customer_statements.view', 'exchange_gain_loss.view',
                 'expenses.view', 'expenses.manage', 'accounts.view', 'accounts.manage',
                 'accounting.view', 'accounting.manage', 'payroll.view',
                 'reports.financial', 'reports.operational', 'audit.view',

@@ -10,9 +10,13 @@ use App\Enums\TaskStatus;
 use App\Models\AttendanceRecord;
 use App\Models\Customer;
 use App\Models\Employee;
+use App\Models\Invoice;
 use App\Models\LeaveRequest;
+use App\Models\Payment;
+use App\Models\PaymentAllocation;
 use App\Models\Project;
 use App\Models\Task;
+use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -57,6 +61,28 @@ class Dashboard extends Component
             ];
         }
 
-        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops]);
+        // Financial cards — computed only for finance users (accountant / GM),
+        // never for employees / PM / HR. USD is the official currency.
+        $finance = null;
+        if ($user->can('payments.view')) {
+            $collected = Payment::posted()
+                ->whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year)
+                ->sum('usd_equivalent');
+            $outstanding = Invoice::issued()->sum('remaining_usd');
+            $postedUsd = Payment::posted()->sum('usd_equivalent');
+            $allocatedUsd = PaymentAllocation::active()->whereHas('payment', fn ($q) => $q->posted())->sum('allocated_usd');
+            $exchangeNet = PaymentAllocation::active()->whereHas('payment', fn ($q) => $q->posted()
+                ->whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year))
+                ->sum('exchange_difference_ils');
+
+            $finance = [
+                'collected_month_usd' => Money::money($collected),
+                'outstanding_usd' => Money::money($outstanding),
+                'unallocated_credit_usd' => Money::subtract($postedUsd, $allocatedUsd),
+                'exchange_net_ils' => Money::money($exchangeNet),
+            ];
+        }
+
+        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops, 'finance' => $finance]);
     }
 }

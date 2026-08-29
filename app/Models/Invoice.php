@@ -93,6 +93,28 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class);
+    }
+
+    public function activeAllocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class)->where('status', 'active');
+    }
+
+    /**
+     * May this invoice receive a payment allocation? Issued/Sent/PartiallyPaid
+     * (and computed-overdue) are eligible; Draft/Cancelled/Paid are not.
+     */
+    public function acceptsAllocation(): bool
+    {
+        return in_array($this->status, [
+            InvoiceStatus::Issued, InvoiceStatus::Sent,
+            InvoiceStatus::PartiallyPaid, InvoiceStatus::Overdue,
+        ], true) && Money::isPositive($this->remaining_usd);
+    }
+
     public function isDraft(): bool
     {
         return $this->status === InvoiceStatus::Draft;

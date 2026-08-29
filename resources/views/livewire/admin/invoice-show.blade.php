@@ -24,6 +24,9 @@
                 <button wire:click="openCancel" class="rounded-lg border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50">إلغاء الفاتورة</button>
             @endunless
         @endcan
+        @if ($canRecordPayment)
+            <button wire:click="recordPayment" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">تسجيل دفعة</button>
+        @endif
         @can('print', $invoice)
             <a href="{{ route('admin.invoices.print', $invoice) }}" target="_blank" class="mr-auto rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">طباعة</a>
         @endcan
@@ -108,6 +111,27 @@
                     @if ($invoice->quotation)<li class="flex justify-between"><span>من عرض</span><span dir="ltr">{{ $invoice->quotation->quotation_number }}</span></li>@endif
                 </ul>
             </div>
+
+            @if ($canPayments && ! $invoice->isDraft())
+                <div class="rounded-xl border border-slate-200 bg-white p-5 text-sm">
+                    <h3 class="mb-3 font-semibold text-slate-800">الدفعات والتحصيل</h3>
+                    <dl class="space-y-2 text-slate-600">
+                        <div class="flex justify-between"><dt>الإجمالي</dt><dd class="font-semibold text-slate-800" dir="ltr">${{ number_format((float) $invoice->total_usd, 2) }}</dd></div>
+                        <div class="flex justify-between"><dt>المدفوع</dt><dd class="text-emerald-700" dir="ltr">${{ number_format((float) $invoice->paid_usd_equivalent, 2) }}</dd></div>
+                        <div class="flex justify-between border-t border-slate-100 pt-2"><dt>المتبقي</dt><dd class="font-bold text-slate-900" dir="ltr">${{ number_format((float) $invoice->remaining_usd, 2) }}</dd></div>
+                    </dl>
+                    @if ($allocations->isNotEmpty())
+                        <ul class="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
+                            @foreach ($allocations as $alloc)
+                                <li class="flex items-center justify-between {{ $alloc->status === 'reversed' ? 'text-slate-400 line-through' : 'text-slate-600' }}">
+                                    <a href="{{ route('admin.payments.show', $alloc->payment) }}" class="font-mono hover:text-brand-600 hover:underline" dir="ltr">{{ $alloc->payment->payment_number }}</a>
+                                    <span dir="ltr">${{ number_format((float) $alloc->allocated_usd, 2) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
         </div>
     </div>
 

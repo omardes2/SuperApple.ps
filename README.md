@@ -67,10 +67,13 @@ php artisan test          # PHPUnit (SQLite in-memory)
 ```
 
 ## النشر للإنتاج (Production)
-للنشر إلى خادم إنتاج راجع [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
-(متطلبات الخادم، متغيّرات البيئة، أوامر النشر، عامل الطابور، المُجدوِل، جاهزية الإطلاق)،
-والنسخ الاحتياطي في [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md). فهرس التوثيق
-الكامل في [`docs/README.md`](docs/README.md).
+- **قائمة الإطلاق خطوة بخطوة:** [`docs/PRODUCTION_CHECKLIST.md`](docs/PRODUCTION_CHECKLIST.md) (BEFORE/DEPLOY/AFTER/BEFORE USERS/WHATSAPP).
+- **دليل النشر الكامل:** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — متطلبات الخادم، متغيّرات البيئة، أوامر النشر، عامل الطابور، المُجدوِل، البذر الإنتاجي، التراجع.
+- **النسخ الاحتياطي:** [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md). **عيّنات الخادم:** [`docs/deploy/`](docs/deploy).
+- **سكربتات:** `scripts/deploy-production.sh` (نشر آمن) و`scripts/verify-production.sh` (تحقّق غير مُخرِّب).
+- **البذر الإنتاجي:** `php artisan db:seed --class=ProductionSeeder --force` (بيانات أساسية فقط، بلا عرض تجريبي)، ثم أول مدير: `php artisan app:create-admin` (إدخال مخفي، لا كلمات مرور ضعيفة).
+
+فهرس التوثيق الكامل في [`docs/README.md`](docs/README.md).
 
 ## حالة التنفيذ
 - **Sprint 0 (مكتمل):** المصادقة، الأدوار والصلاحيات، تخطيط RTL للإدارة والموظف، الإعدادات، سجل العمليات (Audit Log)، ترقيم المستندات، طبقة الخدمات الأساسية، بيانات تجريبية، واختبارات صلاحيات ومالية أساسية.

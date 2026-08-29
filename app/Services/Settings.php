@@ -13,14 +13,24 @@ class Settings
 {
     private const CACHE_KEY = 'app.settings';
 
-    /** @var array<string,Setting>|null */
+    /** @var array<string,mixed>|null */
     private ?array $cache = null;
 
+    /**
+     * A map of "group.key" => already-typed value. Only primitives/arrays are
+     * cached — never Eloquent models — so reading the cache from a fresh CLI
+     * process can never produce an incomplete-class error (a driver-agnostic
+     * robustness fix; the returned values are identical either way).
+     *
+     * @return array<string,mixed>
+     */
     public function all(): array
     {
         if ($this->cache === null) {
             $this->cache = Cache::rememberForever(self::CACHE_KEY, function () {
-                return Setting::all()->keyBy(fn (Setting $s) => "{$s->group}.{$s->key}")->all();
+                return Setting::all()
+                    ->mapWithKeys(fn (Setting $s) => ["{$s->group}.{$s->key}" => $s->typedValue()])
+                    ->all();
             });
         }
 
@@ -29,9 +39,10 @@ class Settings
 
     public function get(string $group, string $key, mixed $default = null): mixed
     {
-        $setting = $this->all()["{$group}.{$key}"] ?? null;
+        $all = $this->all();
+        $composite = "{$group}.{$key}";
 
-        return $setting ? $setting->typedValue() : $default;
+        return array_key_exists($composite, $all) ? $all[$composite] : $default;
     }
 
     public function set(string $group, string $key, mixed $value, string $type = 'string'): void

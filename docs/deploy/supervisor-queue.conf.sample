@@ -1,0 +1,21 @@
+; SuperApple ERP — sample Supervisor program for the queue worker.
+; Place at /etc/supervisor/conf.d/superapple-queue.conf, then:
+;   sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start superapple-queue:*
+;
+; The queue driver is "database". WhatsApp jobs retry 3 times with 30/120/300s
+; backoff, so --tries=3 matches the job and --timeout=120 comfortably covers a
+; single (fast) send attempt. Adjust "user" and paths to your server.
+
+[program:superapple-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/superapple/artisan queue:work --sleep=3 --tries=3 --timeout=120 --max-time=3600
+directory=/var/www/superapple
+autostart=true
+autorestart=true
+stopwaitsecs=3600
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/log/superapple/queue-worker.log
+stopasgroup=true
+killasgroup=true

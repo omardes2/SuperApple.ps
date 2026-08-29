@@ -1,0 +1,12 @@
+# SuperApple ERP — Laravel scheduler cron entry.
+# Install for the deploy user (e.g. `sudo -u www-data crontab -e`) — ONE line.
+# It runs Laravel's scheduler every minute; Laravel decides what is actually due.
+#
+# The app schedules (see routes/console.php):
+#   - subscriptions:bill          daily 02:00  (withoutOverlapping)
+#   - payments:send-reminders     daily 09:00  (withoutOverlapping)
+# Verify with:  php artisan schedule:list
+#
+# Adjust the PHP path and project path to your server.
+
+* * * * * cd /var/www/superapple && /usr/bin/php artisan schedule:run >> /var/log/superapple/scheduler.log 2>&1

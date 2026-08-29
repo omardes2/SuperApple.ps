@@ -1,0 +1,53 @@
+# SuperApple ERP — sample Nginx server block (production).
+# Replace <domain> and paths. Document root MUST be the public/ directory.
+# Obtain TLS certs first (see docs/DEPLOYMENT.md — Certbot), then this block
+# serves HTTPS and redirects HTTP → HTTPS.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <domain>;
+    # Redirect all HTTP to HTTPS.
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name <domain>;
+
+    # Never point the root at the project root — only public/ is web-accessible.
+    root /var/www/superapple/public;
+    index index.php;
+
+    charset utf-8;
+    client_max_body_size 12M;   # matches the app's 10MB attachment limit + headroom
+
+    # Basic security headers (kept conservative to avoid breaking Livewire/Vite).
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # HSTS — enable only once HTTPS is confirmed working everywhere:
+    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    location ~ \.php$ {
+        # Match your PHP-FPM socket/version.
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Deny dotfiles (.env, .git, …) and never serve app internals directly.
+    location ~ /\.(?!well-known).* { deny all; }
+    location ~ ^/(vendor|storage|bootstrap|database|app|routes|config|tests)/ { deny all; }
+
+    error_log  /var/log/nginx/superapple_error.log;
+    access_log /var/log/nginx/superapple_access.log;
+}

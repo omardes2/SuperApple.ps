@@ -171,3 +171,56 @@ php artisan app:verify-integrity   # يتحقق من سلامة الدفاتر �
 - **بيانات دخول الـ seeder التجريبية (كلمة المرور `password`) للتطوير فقط** — غيّرها أو
   احذفها قبل الإنتاج، ولا تشغّل `--seed` على قاعدة الإنتاج.
 - فعّل نُسخ احتياطية دورية — انظر [`BACKUP_RESTORE.md`](BACKUP_RESTORE.md).
+
+## أدوات الإطلاق (Go-Live tooling)
+
+راجع **`docs/PRODUCTION_CHECKLIST.md`** لقائمة مرتّبة خطوة بخطوة (BEFORE/DEPLOY/AFTER/BEFORE USERS/WHATSAPP)، وعيّنات إعداد الخادم في **`docs/deploy/`**:
+`env.production.sample`، `nginx.conf.sample`، `supervisor-queue.conf.sample`، `systemd-queue.service.sample`، `scheduler-cron.sample`، `whatsapp-golive.md`.
+
+### البذر الإنتاجي (بلا بيانات تجريبية)
+شغّل **`ProductionSeeder` فقط** على الإنتاج — يزرع الأدوار والصلاحيات ودليل الحسابات (وربط الحسابات النظامية) والإعدادات الافتراضية، **ولا شيء آخر** (لا عملاء/موظفين/فواتير/دفعات تجريبية ولا حسابات دخول بكلمات مرور ضعيفة):
+```bash
+php artisan db:seed --class=ProductionSeeder --force
+```
+حارس الإنتاج مبني أيضاً في `DatabaseSeeder`: بيانات العرض لا تُزرع في `APP_ENV=production` إلا بضبط `APP_ALLOW_DEMO_SEED=true` صراحةً — لا تفعل ذلك في الإنتاج.
+
+### إنشاء أول مدير بأمان
+```bash
+php artisan app:create-admin
+```
+يطلب الاسم والبريد وكلمة المرور بإدخال **مخفي** (لا تظهر في الشاشة ولا في السجلات)، ويشترط تأكيداً و10 أحرف على الأقل، ويعيّن دور Super Admin. لا تستخدم كلمة مرور ضعيفة.
+
+### سكربتات جاهزة
+- **`bash scripts/deploy-production.sh`** — نشر تحديث بأمان: وضع صيانة → `composer install --no-dev` → بناء الأصول → `migrate --force` → إعادة بناء الكاش → `queue:restart` → إنهاء الصيانة. يتوقف عند أي خطأ (`set -e`) ولا يحتوي أسراراً، ولا يأخذ نسخة احتياطية للقاعدة (تُؤخذ يدوياً قبل التشغيل لتجنّب تمرير بيانات اعتماد).
+- **`bash scripts/verify-production.sh`** — تحقّق غير مُخرِّب: `about` + `app:health-check` + `app:verify-integrity` + `schedule:list` + `queue:failed`. يخرج بقيمة غير صفرية عند أي فشل.
+
+> تخزين المسارات (`route:cache`) متوافق مع هذا المشروع (تم التحقق)، لذا `php artisan optimize` آمن.
+
+### وضع الصيانة للتحديثات
+```bash
+php artisan down --render="errors::503"
+# ... composer/npm/migrate --force/إعادة بناء الكاش ...
+php artisan queue:restart
+php artisan up
+```
+
+### خطة التراجع (Rollback)
+1. `git checkout <آخر-commit-سليم>` ثم `composer install --no-dev --optimize-autoloader`.
+2. إن كان لا بد من التراجع عن هجرة: **استرجع القاعدة من النسخة الاحتياطية** قبل النشر — لا تشغّل `migrate:rollback` عشوائياً على الإنتاج.
+3. أعد بناء الكاش (`php artisan optimize`) ثم `php artisan queue:restart`.
+4. استرجع `storage` إن لزم (المرفقات) من النسخة الاحتياطية.
+
+### الوظائف الفاشلة (Failed jobs)
+البنية جاهزة (سائق `database-uuids`، جدول `failed_jobs`). أوامر التشغيل:
+```bash
+php artisan queue:failed          # عرض
+php artisan queue:retry <uuid>    # إعادة محاولة
+php artisan queue:retry all
+php artisan queue:forget <uuid>   # حذف واحدة (بسياسة، لا تلقائياً)
+```
+
+### الأرصدة الافتتاحية والذمم القديمة
+إذا كانت لدى الشركة أرصدة/ذمم فعلية قبل بدء الاستخدام: **لا** تُدخلها بتعديل `current_balance` ولا بإنشاء دفعات وهمية. استخدم مسار **الرصيد الافتتاحي المحاسبي** الموجود (قيد افتتاحي متوازن) للنقد/البنوك، وللذمم المدينة القديمة صمّم فواتير/قيوداً افتتاحية بأرقام حقيقية. لا تنفّذ ذلك إلا ببيانات فعلية.
+
+### المنطقة الزمنية (Timezone)
+التخزين بـ UTC افتراضياً (آمن للعمليات المالية). يمكن ضبط `APP_TIMEZONE` في `.env` عند الحاجة، لكن تغييرها بعد وجود معاملات يزيح حدود التواريخ (الدوام/الفوترة/الرواتب) — قرار متعمَّد، وليس لتصحيح بيانات تاريخية.

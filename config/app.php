@@ -65,7 +65,11 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Defaults to UTC (the safe storage timezone). Overridable via APP_TIMEZONE
+    // for display, but changing it after transactions exist shifts date
+    // boundaries (attendance/billing/payroll) — decide deliberately, and never
+    // to "fix" historical data.
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------

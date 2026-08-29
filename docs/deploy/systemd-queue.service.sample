@@ -1,0 +1,22 @@
+# SuperApple ERP — sample systemd unit for the queue worker (alternative to
+# Supervisor). Install at /etc/systemd/system/superapple-queue.service, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now superapple-queue.service
+# Adjust User/paths/PHP path to your server.
+
+[Unit]
+Description=SuperApple ERP queue worker
+After=network.target mysql.service
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/superapple
+ExecStart=/usr/bin/php /var/www/superapple/artisan queue:work --sleep=3 --tries=3 --timeout=120 --max-time=3600
+# Graceful stop so an in-flight job can finish (matches queue:restart semantics).
+ExecStop=/usr/bin/php /var/www/superapple/artisan queue:restart
+
+[Install]
+WantedBy=multi-user.target

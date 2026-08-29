@@ -42,8 +42,10 @@
 ## التشغيل والنشر (Operations & Deployment)
 
 - [`OPERATIONS.md`](OPERATIONS.md) — الجانب التشغيلي اليومي.
-- [`DEPLOYMENT.md`](DEPLOYMENT.md) — دليل النشر إلى الإنتاج.
+- [`PRODUCTION_CHECKLIST.md`](PRODUCTION_CHECKLIST.md) — قائمة الإطلاق خطوة بخطوة.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md) — دليل النشر إلى الإنتاج + التراجع + أدوات الإطلاق.
 - [`BACKUP_RESTORE.md`](BACKUP_RESTORE.md) — النسخ الاحتياطي والاستعادة.
+- [`deploy/`](deploy) — عيّنات الخادم: `env.production.sample`، `nginx.conf.sample`، `supervisor-queue.conf.sample`، `systemd-queue.service.sample`، `scheduler-cron.sample`، `whatsapp-golive.md`.
 
 > للبدء السريع محلياً راجع `README.md` في جذر المستودع. للإطلاق إلى الإنتاج ابدأ من
-> [`DEPLOYMENT.md`](DEPLOYMENT.md).
+> [`PRODUCTION_CHECKLIST.md`](PRODUCTION_CHECKLIST.md).

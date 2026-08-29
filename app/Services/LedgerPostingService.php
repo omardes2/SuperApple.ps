@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Enums\SystemAccountKey;
+use App\Models\EmployeeAdvance;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\JournalEntry;
 use App\Models\Payment;
+use App\Models\PayrollPayment;
+use App\Models\PayrollRun;
 use App\Models\SupplierBill;
 use App\Models\SupplierPayment;
 use App\Support\Money;
@@ -508,6 +511,169 @@ class LedgerPostingService
             'posting_type' => 'opening_balance',
             'description' => 'رصيد افتتاحي للحساب '.$account->name,
         ], $lines);
+    }
+
+    // ------------------------------------------------------------- Payroll (S6)
+
+    /**
+     * Payroll accrual. Dr Salary Expense (earned, i.e. gross − pay reductions);
+     * Cr Employee Advances Receivable (recovered advances); Cr other withholding
+     * accounts; Cr Salary Payable (net). Balances by construction.
+     */
+    public function postPayrollRun(PayrollRun $run): ?JournalEntry
+    {
+        if ($this->accounting->hasPosted('payroll_run', $run->id, 'payroll_run')) {
+            return null;
+        }
+
+        $run->loadMissing('items');
+
+        $salaryExpense = '0.00';
+        $advancesTotal = '0.00';
+        $salaryPayable = '0.00';
+        $otherByAccount = [];
+
+        foreach ($run->items as $item) {
+            $payReductions = Money::sum([$item->absence_deduction_ils, $item->late_deduction_ils, $item->unpaid_leave_deduction_ils]);
+            $earned = Money::subtract($item->gross_salary_ils, $payReductions);
+            $salaryExpense = Money::add($salaryExpense, $earned);
+            $advancesTotal = Money::add($advancesTotal, $item->advances_deduction_ils);
+            $salaryPayable = Money::add($salaryPayable, $item->net_salary_ils);
+
+            foreach ((array) ($item->calculation_snapshot['other_withheld_accounts'] ?? []) as $accId => $amount) {
+                $otherByAccount[$accId] = Money::add($otherByAccount[$accId] ?? '0.00', $amount);
+            }
+        }
+
+        $lines = [[
+            'account_id' => $this->accounting->systemAccountId(SystemAccountKey::SalaryExpense),
+            'description' => 'مصروف رواتب '.$run->periodLabel(),
+            'debit_ils' => $salaryExpense,
+        ]];
+
+        if (Money::isPositive($advancesTotal)) {
+            $lines[] = [
+                'account_id' => $this->accounting->systemAccountId(SystemAccountKey::EmployeeAdvancesReceivable),
+                'description' => 'استرداد سلف الموظفين',
+                'credit_ils' => $advancesTotal,
+            ];
+        }
+
+        foreach ($otherByAccount as $accId => $amount) {
+            if (! Money::isPositive($amount)) {
+                continue;
+            }
+            $lines[] = [
+                'account_id' => $accId > 0 ? (int) $accId : $this->accounting->systemAccountId(SystemAccountKey::PayrollOtherDeductions),
+                'description' => 'استقطاعات رواتب',
+                'credit_ils' => Money::money($amount),
+            ];
+        }
+
+        $lines[] = [
+            'account_id' => $this->accounting->systemAccountId(SystemAccountKey::SalaryPayable),
+            'description' => 'رواتب مستحقة الدفع '.$run->periodLabel(),
+            'credit_ils' => $salaryPayable,
+        ];
+
+        return $this->accounting->post([
+            'entry_date' => $run->period_end->toDateString(),
+            'source_type' => 'payroll_run',
+            'source_id' => $run->id,
+            'posting_type' => 'payroll_run',
+            'description' => 'ترحيل رواتب '.$run->periodLabel(),
+        ], $lines);
+    }
+
+    public function reversePayrollRun(PayrollRun $run, ?string $reason = null): ?JournalEntry
+    {
+        $entry = JournalEntry::posted()
+            ->where('source_type', 'payroll_run')->where('source_id', $run->id)
+            ->where('posting_type', 'payroll_run')->first();
+
+        return $entry ? $this->accounting->reverse($entry, null, $reason ?? 'عكس مسير الرواتب') : null;
+    }
+
+    /** Advance payment: Dr Employee Advances Receivable; Cr Cash/Bank. */
+    public function postAdvancePayment(EmployeeAdvance $advance): ?JournalEntry
+    {
+        if ($this->accounting->hasPosted('employee_advance', $advance->id, 'advance_payment')) {
+            return null;
+        }
+        $account = $advance->financial_account_id ? FinancialAccount::find($advance->financial_account_id) : null;
+        if ($account === null) {
+            throw new RuntimeException('يجب تحديد حساب نقدي/بنكي لدفع السلفة.');
+        }
+
+        $amount = Money::money($advance->amount_ils);
+
+        return $this->accounting->post([
+            'entry_date' => ($advance->approved_date ?? $advance->request_date)->toDateString(),
+            'source_type' => 'employee_advance',
+            'source_id' => $advance->id,
+            'posting_type' => 'advance_payment',
+            'description' => 'دفع سلفة '.$advance->advance_number,
+        ], [
+            [
+                'account_id' => $this->accounting->systemAccountId(SystemAccountKey::EmployeeAdvancesReceivable),
+                'description' => 'سلفة موظف '.$advance->advance_number,
+                'debit_ils' => $amount,
+            ],
+            [
+                'account_id' => $account->gl_account_id,
+                'description' => 'دفع سلفة نقداً',
+                'credit_ils' => $amount,
+                'financial_account_id' => $account->id,
+            ],
+        ]);
+    }
+
+    public function reverseAdvancePayment(EmployeeAdvance $advance, ?string $reason = null): ?JournalEntry
+    {
+        $entry = JournalEntry::posted()
+            ->where('source_type', 'employee_advance')->where('source_id', $advance->id)
+            ->where('posting_type', 'advance_payment')->first();
+
+        return $entry ? $this->accounting->reverse($entry, null, $reason ?? 'عكس دفع السلفة') : null;
+    }
+
+    /** Salary payment: Dr Salary Payable; Cr Cash/Bank. */
+    public function postSalaryPayment(PayrollPayment $payment): ?JournalEntry
+    {
+        if ($this->accounting->hasPosted('payroll_payment', $payment->id, 'salary_payment')) {
+            return null;
+        }
+        $account = FinancialAccount::findOrFail($payment->financial_account_id);
+        $amount = Money::money($payment->amount_ils);
+
+        return $this->accounting->post([
+            'entry_date' => $payment->payment_date->toDateString(),
+            'source_type' => 'payroll_payment',
+            'source_id' => $payment->id,
+            'posting_type' => 'salary_payment',
+            'description' => 'دفع راتب '.$payment->payment_number,
+        ], [
+            [
+                'account_id' => $this->accounting->systemAccountId(SystemAccountKey::SalaryPayable),
+                'description' => 'سداد راتب مستحق',
+                'debit_ils' => $amount,
+            ],
+            [
+                'account_id' => $account->gl_account_id,
+                'description' => 'دفع راتب نقداً',
+                'credit_ils' => $amount,
+                'financial_account_id' => $account->id,
+            ],
+        ]);
+    }
+
+    public function reverseSalaryPayment(PayrollPayment $payment, ?string $reason = null): ?JournalEntry
+    {
+        $entry = JournalEntry::posted()
+            ->where('source_type', 'payroll_payment')->where('source_id', $payment->id)
+            ->where('posting_type', 'salary_payment')->first();
+
+        return $entry ? $this->accounting->reverse($entry, null, $reason ?? 'عكس دفع الراتب') : null;
     }
 
     /**

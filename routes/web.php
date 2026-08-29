@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\PaymentReceiptController;
+use App\Http\Controllers\PayslipController;
 use App\Livewire\Admin\AttendanceIndex;
 use App\Livewire\Admin\AuditLogPage;
 use App\Livewire\Admin\BalanceSheetReport;
@@ -12,6 +13,8 @@ use App\Livewire\Admin\CustomersIndex;
 use App\Livewire\Admin\CustomerStatement;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\DepartmentsIndex;
+use App\Livewire\Admin\EmployeeAdvancesIndex;
+use App\Livewire\Admin\EmployeePayroll;
 use App\Livewire\Admin\EmployeeProfile;
 use App\Livewire\Admin\EmployeesIndex;
 use App\Livewire\Admin\ExchangeGainLossReport;
@@ -26,6 +29,9 @@ use App\Livewire\Admin\JournalsIndex;
 use App\Livewire\Admin\LeavesIndex;
 use App\Livewire\Admin\PaymentShow;
 use App\Livewire\Admin\PaymentsIndex;
+use App\Livewire\Admin\PayrollIndex;
+use App\Livewire\Admin\PayrollReports;
+use App\Livewire\Admin\PayrollShow;
 use App\Livewire\Admin\ProfitLossReport;
 use App\Livewire\Admin\ProjectShow as AdminProjectShow;
 use App\Livewire\Admin\ProjectsIndex;
@@ -45,6 +51,7 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Employee\Dashboard as EmployeeDashboard;
 use App\Livewire\Employee\MyAttendance;
 use App\Livewire\Employee\MyLeaves;
+use App\Livewire\Employee\MyPayslips;
 use App\Livewire\Employee\MyProjects;
 use App\Livewire\Employee\MyTasks;
 use App\Livewire\Employee\ProjectShow as EmployeeProjectShow;
@@ -132,6 +139,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/accounting/balance-sheet', BalanceSheetReport::class)->middleware('can:reports.balance_sheet')->name('reports.balance-sheet');
         Route::get('/accounting/reconciliation', ReconciliationReport::class)->middleware('can:reports.reconciliation')->name('reports.reconciliation');
 
+        // Payroll — Sprint 6
+        Route::get('/payroll', PayrollIndex::class)->middleware('can:payroll.view')->name('payroll');
+        Route::get('/payroll/reports', PayrollReports::class)->middleware('can:payroll.reports')->name('payroll.reports');
+        Route::get('/payroll/{run}', PayrollShow::class)->middleware('can:payroll.view')->name('payroll.show');
+        Route::get('/advances', EmployeeAdvancesIndex::class)->middleware('can:advances.view')->name('advances');
+        Route::get('/employees/{employee}/payroll', EmployeePayroll::class)->middleware('can:salary_profiles.view')->name('employees.payroll');
+
         Route::get('/settings', SettingsPage::class)->middleware('can:settings.view')->name('settings');
         Route::get('/audit-log', AuditLogPage::class)->middleware('can:audit.view')->name('audit');
     });
@@ -145,5 +159,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/tasks/{task}', EmployeeTaskShow::class)->middleware('can:tasks.view_own')->name('tasks.show');
         Route::get('/projects', MyProjects::class)->middleware('can:projects.view_assigned')->name('projects');
         Route::get('/projects/{project}', EmployeeProjectShow::class)->middleware('can:projects.view_assigned')->name('projects.show');
+        Route::get('/payslips', MyPayslips::class)->middleware('can:payslips.view_own')->name('payslips');
     });
+
+    // Payslip print — reachable by admins and by the employee themself; the
+    // PayrollItem policy enforces that an employee only opens their own.
+    Route::get('/payslips/{item}/print', [PayslipController::class, 'show'])->name('payslips.print');
 });

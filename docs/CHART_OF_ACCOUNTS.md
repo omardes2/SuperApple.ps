@@ -17,10 +17,13 @@ leaf** accounts; parents group them for reporting. Each account has a `code`,
 | 1130 | البنك (شيكل) | asset | — |
 | 1200 | ذمم مدينة (Accounts Receivable) | asset | `accounts_receivable` |
 | 1300 | مصاريف مدفوعة مقدماً (Prepaid) | asset | — |
+| 1400 | سلف الموظفين (Employee Advances) | asset | `employee_advances_receivable` |
 | 2000 | الالتزامات (Liabilities) | liability | — (parent) |
 | 2100 | ذمم دائنة (Accounts Payable) | liability | `accounts_payable` |
 | 2200 | ضريبة مستحقة (Tax Payable) | liability | `tax_payable` |
 | 2300 | أرصدة العملاء الدائنة (Customer Credits) | liability | `customer_credits` |
+| 2400 | رواتب مستحقة الدفع (Salary Payable) | liability | `salary_payable` |
+| 2500 | استقطاعات رواتب أخرى (Other Payroll Deductions) | liability | `payroll_other_deductions` |
 | 3000 | حقوق الملكية (Equity) | equity | — (parent) |
 | 3100 | رأس مال المالك (Owner Equity) | equity | — |
 | 3200 | حقوق ملكية - أرصدة افتتاحية | equity | `opening_balance_equity` |
@@ -29,7 +32,7 @@ leaf** accounts; parents group them for reporting. Each account has a `code`,
 | 4900 | أرباح فروقات الصرف (Exchange Gain) | revenue | `exchange_gain` |
 | 5000 | المصاريف (Expenses) | expense | — (parent) |
 | 5100 | مصروف إيجار (Rent) | expense | — |
-| 5200 | مصروف رواتب (Salary) | expense | — (prepared; no payroll posting yet) |
+| 5200 | مصروف رواتب (Salary Expense) | expense | `salary_expense` |
 | 5300 | مرافق وخدمات (Utilities) | expense | — |
 | 5400 | اشتراكات برمجية (Software) | expense | — |
 | 5500 | مصروف إعلانات (Advertising) | expense | — |

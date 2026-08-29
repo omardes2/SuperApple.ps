@@ -63,6 +63,32 @@ class Employee extends Model
         return $this->hasMany(EmployeeDocument::class);
     }
 
+    public function salaryProfiles(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryProfile::class);
+    }
+
+    public function salaryAdjustments(): HasMany
+    {
+        return $this->hasMany(SalaryAdjustment::class);
+    }
+
+    public function advances(): HasMany
+    {
+        return $this->hasMany(EmployeeAdvance::class);
+    }
+
+    public function payrollItems(): HasMany
+    {
+        return $this->hasMany(PayrollItem::class);
+    }
+
+    /** The salary profile in effect on a given date, if any. */
+    public function salaryProfileOn(string $date): ?EmployeeSalaryProfile
+    {
+        return $this->salaryProfiles()->effectiveOn($date)->first();
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

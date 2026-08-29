@@ -36,6 +36,8 @@ class DatabaseSeeder extends Seeder
             PaymentSeeder::class,
             // Sprint 5 — suppliers, expenses, bills, supplier payments
             Sprint5DemoSeeder::class,
+            // Sprint 6 — payroll, salaries, advances
+            PayrollDemoSeeder::class,
         ]);
     }
 }

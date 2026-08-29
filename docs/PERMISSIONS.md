@@ -78,3 +78,12 @@ The employee layout has **no financial routes at all**; even a hand-typed financ
 - **Suppliers**: `suppliers.view|create|edit|manage`, `supplier_bills.view|create|edit|post|cancel`, `supplier_payments.view|create|post|cancel`.
 - **Reports**: `reports.gl`, `reports.trial_balance`, `reports.profit_loss`, `reports.balance_sheet`, `reports.reconciliation`.
 - Distribution: Super Admin (all via Gate::before), General Manager (all), **Accountant** (all accounting/expenses/suppliers/cash & reports). **HR Manager / Project Manager / Team Leader / Employee get NONE** — verified in `AccountingSecurityTest`. The `suppliers` group is now financial (`financial => true`), so suppliers/bills/payments are hidden from operational roles. Enforced by route `can:` middleware + Policies (Account/JournalEntry/FinancialAccount/Expense/Supplier/SupplierBill/SupplierPayment) + component `authorize()`. Dashboard accounting cards render only for `accounting.view`/`reports.profit_loss` users.
+
+## Sprint 6 additions (payroll — guarded)
+- **Payroll**: `payroll.view|create|calculate|approve|post|reverse|pay|reports|manage`.
+- **Salaries**: `salary_profiles.view|manage`, `salary_adjustments.view|manage`.
+- **Advances**: `advances.view|create|approve|pay|manage`.
+- **Salary payments**: `payroll_payments.view|create|reverse`.
+- **Payslips**: `payslips.view_all` (financial); `payslips.view_own` (non-financial, in every staff self-service bundle).
+- **Reports**: `reports.salary_payable_reconciliation`, `reports.employee_advances_reconciliation`.
+- **Separation of duties**: **HR Manager** prepares (salary profiles/adjustments/advances create+approve, payroll create/calculate/approve, payslips.view_all) but has **no** GL/journals/posting; **Accountant** posts/pays/reverses payroll + advance payment + reconciliation but has **no** HR salary management; **GM/Super Admin** all. **PM / Team Leader / Employee** get no payroll (Employee keeps only `payslips.view_own`). Payslip privacy is enforced by `PayrollItemPolicy` (an employee opens only their own payslip, even by direct URL). Verified in `PayrollSecurityTest`.

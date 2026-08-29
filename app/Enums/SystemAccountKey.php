@@ -21,6 +21,10 @@ enum SystemAccountKey: string
     case DefaultCashIls = 'default_cash_ils';
     case DefaultCashUsd = 'default_cash_usd';
     case DefaultExpense = 'default_expense';
+    case EmployeeAdvancesReceivable = 'employee_advances_receivable';
+    case SalaryPayable = 'salary_payable';
+    case SalaryExpense = 'salary_expense';
+    case PayrollOtherDeductions = 'payroll_other_deductions';
 
     public function label(): string
     {
@@ -36,6 +40,10 @@ enum SystemAccountKey: string
             self::DefaultCashIls => 'الصندوق الافتراضي (شيكل)',
             self::DefaultCashUsd => 'الصندوق الافتراضي (دولار)',
             self::DefaultExpense => 'مصاريف أخرى (افتراضي)',
+            self::EmployeeAdvancesReceivable => 'سلف الموظفين (مدينة)',
+            self::SalaryPayable => 'رواتب مستحقة الدفع',
+            self::SalaryExpense => 'مصروف الرواتب',
+            self::PayrollOtherDeductions => 'استقطاعات رواتب أخرى',
         };
     }
 }

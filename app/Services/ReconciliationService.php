@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Enums\InvoiceStatus;
 use App\Enums\SystemAccountKey;
 use App\Models\Account;
+use App\Models\EmployeeAdvance;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\JournalEntryLine;
+use App\Models\PayrollItem;
 use App\Models\SupplierBill;
 use App\Support\Money;
 
@@ -86,11 +88,48 @@ class ReconciliationService
     }
 
     /**
+     * Salary Payable: GL 2400 credit balance == Σ posted payroll items' unpaid
+     * remaining (after reversals).
+     *
+     * @return array<string,mixed>
+     */
+    public function salaryPayable(): array
+    {
+        $glAccount = $this->accounting->systemAccount(SystemAccountKey::SalaryPayable);
+        $gl = Money::subtract('0', $this->glDebitBalance($glAccount->id)); // credit-positive
+
+        $subLedger = PayrollItem::whereHas('payrollRun', fn ($q) => $q->whereIn('status', ['posted', 'paid']))
+            ->sum('remaining_payable_ils');
+
+        return $this->result('رواتب مستحقة الدفع (Salary Payable)', $gl, Money::money($subLedger));
+    }
+
+    /**
+     * Employee Advances Receivable: GL 1400 debit balance == Σ outstanding
+     * advances remaining.
+     *
+     * @return array<string,mixed>
+     */
+    public function employeeAdvances(): array
+    {
+        $glAccount = $this->accounting->systemAccount(SystemAccountKey::EmployeeAdvancesReceivable);
+        $gl = $this->glDebitBalance($glAccount->id);
+
+        $subLedger = EmployeeAdvance::whereIn('status', ['paid', 'partially_recovered'])
+            ->sum('remaining_ils');
+
+        return $this->result('سلف الموظفين (Employee Advances)', $gl, Money::money($subLedger));
+    }
+
+    /**
      * @return list<array<string,mixed>>
      */
     public function all(): array
     {
-        return [$this->accountsReceivable(), $this->accountsPayable(), $this->cash()];
+        return [
+            $this->accountsReceivable(), $this->accountsPayable(), $this->cash(),
+            $this->salaryPayable(), $this->employeeAdvances(),
+        ];
     }
 
     private function glDebitBalance(int $accountId): string

@@ -63,7 +63,9 @@ final class AdminNavigation
                     ['route' => 'admin.departments', 'label' => 'الأقسام', 'icon' => 'grid', 'permission' => 'departments.view'],
                     ['route' => 'admin.attendance', 'label' => 'الدوام', 'icon' => 'clock', 'permission' => 'attendance.view'],
                     ['route' => 'admin.leaves', 'label' => 'الإجازات', 'icon' => 'calendar', 'permission' => 'leaves.view'],
-                    ['route' => null, 'label' => 'الرواتب', 'icon' => 'wallet', 'permission' => 'payroll.view'],
+                    ['route' => 'admin.payroll', 'label' => 'الرواتب', 'icon' => 'wallet', 'permission' => 'payroll.view'],
+                    ['route' => 'admin.advances', 'label' => 'سلف الموظفين', 'icon' => 'cash', 'permission' => 'advances.view'],
+                    ['route' => 'admin.payroll.reports', 'label' => 'تقارير الرواتب', 'icon' => 'chart', 'permission' => 'payroll.reports'],
                 ],
             ],
             [

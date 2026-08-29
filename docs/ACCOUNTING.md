@@ -47,7 +47,7 @@ Business logic resolves accounts by a stable **key** (`SystemAccountKey` →
 `accounts_receivable`, `accounts_payable`, `service_revenue`, `tax_payable`,
 `exchange_gain`, `exchange_loss`, `customer_credits`,
 `opening_balance_equity`, `default_cash_ils`, `default_cash_usd`,
-`default_expense`. See CHART_OF_ACCOUNTS.md.
+`default_expense`, `employee_advances_receivable`, `salary_payable`, `salary_expense`, `payroll_other_deductions`. See CHART_OF_ACCOUNTS.md.
 
 ## Journal examples (all amounts ILS)
 
@@ -120,6 +120,42 @@ The original journal is kept and marked `reversed`; a mirror journal is posted
 with debits/credits swapped and `posting_type = <original>_reversal`, netting
 the effect to zero while preserving history.
 
+### 11. Payroll accrual — gross 4,000, no deductions
+```
+Dr 5200 Salary Expense       4,000.00
+   Cr 2400 Salary Payable         4,000.00
+```
+
+### 12. Payroll with advance recovery — gross 4,000, recover 500
+```
+Dr 5200 Salary Expense       4,000.00
+   Cr 1400 Employee Advances       500.00
+   Cr 2400 Salary Payable        3,500.00
+```
+Absence/late/unpaid-leave reduce Salary Expense (employee earned less); advance
+recovery settles the receivable; other deductions credit their mapped account
+(or 2500 Other Payroll Deductions).
+
+### 13. Salary payment — pay 3,500 net
+```
+Dr 2400 Salary Payable       3,500.00
+   Cr <cash/bank>                 3,500.00
+```
+Partial payments are supported; the run is Paid only when every item is settled.
+
+### 14. Advance payment — pay a 1,000 advance
+```
+Dr 1400 Employee Advances    1,000.00
+   Cr <cash/bank>                 1,000.00
+```
+An advance is an asset, never salary expense.
+
+### 15. Payroll reversal
+The payroll_run journal is reversed (mirror entry), advance recoveries restored,
+and the run marked cancelled — blocked while posted salary payments exist. A
+salary payment is reversed the same way (Dr Cash / Cr Salary Payable), restoring
+the payable.
+
 ## Backfill
 
 `php artisan accounting:backfill [--dry-run]` creates journals for historical
@@ -143,8 +179,15 @@ report and `ReportsTest`.
 gain/loss as their own lines), Balance Sheet (Assets = Liabilities + Equity,
 with period retained earnings folded into equity).
 
-## Out of scope (Sprint 6+)
+## Payroll (Sprint 6)
 
-No payroll posting / salary payable / employee loans, no WhatsApp reminders, no
-recurring-subscription accounting, no advanced VAT filing, no inventory. The
-`5200 Salary Expense` account exists but nothing posts to it yet.
+Payroll now posts to the GL through the same engine — salary accrual (Dr Salary
+Expense / Cr Salary Payable, with advance recoveries and other withholdings),
+salary payments (Dr Salary Payable / Cr Cash), and advance payments (Dr Employee
+Advances / Cr Cash). See PAYROLL.md and journal examples 11–15 above. Two more
+reconciliations tie out: Salary Payable and Employee Advances.
+
+## Out of scope (Sprint 7+)
+
+No recurring-subscription accounting, no WhatsApp reminders, no advanced VAT
+filing, no inventory.

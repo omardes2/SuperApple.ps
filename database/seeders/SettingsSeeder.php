@@ -46,6 +46,12 @@ class SettingsSeeder extends Seeder
 
         $settings->setMany('payroll', [
             'overtime_rate' => ['value' => '1.5', 'type' => 'decimal'],
+            'salary_divisor' => ['value' => '30', 'type' => 'int'],
+            'default_overtime_multiplier' => ['value' => '1.5', 'type' => 'decimal'],
+            'late_deduction_enabled' => ['value' => false, 'type' => 'bool'],
+            'absence_deduction_enabled' => ['value' => true, 'type' => 'bool'],
+            'pay_day' => ['value' => '', 'type' => 'string'],
+            'allow_negative_net_salary' => ['value' => false, 'type' => 'bool'],
         ]);
 
         $settings->setMany('whatsapp', [

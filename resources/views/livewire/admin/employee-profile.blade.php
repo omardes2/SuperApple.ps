@@ -10,7 +10,12 @@
                 <p class="text-sm text-slate-500">{{ $employee->job_title ?? '—' }} · {{ $employee->department?->name ?? 'بدون قسم' }}</p>
             </div>
         </div>
-        <div class="mr-auto"><x-badge :class="$employee->employment_status->badgeClass()">{{ $employee->employment_status->label() }}</x-badge></div>
+        <div class="mr-auto flex items-center gap-2">
+            @can('salary_profiles.view')
+                <a href="{{ route('admin.employees.payroll', $employee) }}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">الرواتب والسلف</a>
+            @endcan
+            <x-badge :class="$employee->employment_status->badgeClass()">{{ $employee->employment_status->label() }}</x-badge>
+        </div>
     </div>
 
     @php

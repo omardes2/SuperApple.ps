@@ -18,6 +18,7 @@
             ['route' => 'employee.projects', 'label' => 'مشاريعي', 'icon' => 'folder', 'permission' => 'projects.view_assigned'],
             ['route' => 'employee.attendance', 'label' => 'الدوام', 'icon' => 'clock', 'permission' => 'attendance.view_own'],
             ['route' => 'employee.leaves', 'label' => 'الإجازات', 'icon' => 'calendar', 'permission' => 'leaves.view_own'],
+            ['route' => 'employee.payslips', 'label' => 'قسائم راتبي', 'icon' => 'wallet', 'permission' => 'payslips.view_own'],
             ['route' => null, 'label' => 'الإشعارات', 'icon' => 'bell', 'permission' => 'notifications.view'],
         ];
     @endphp

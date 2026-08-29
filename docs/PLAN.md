@@ -82,7 +82,18 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Tests: double-entry, invoice/payment/expense/supplier accounting, invoice cancellation, financial accounts/transfers, reports, reconciliation, security, backfill, smoke — full suite green; no Sprint 0–4 regression.
 - ⛔ Not started (Sprint 6+): payroll posting/salary payable/employee loans, WhatsApp reminders, recurring-subscription accounting, VAT filing, inventory.
 
-## Sprint 6–8
+## Sprint 6 — Payroll, salaries, advances ✅ (70 tests green)
+- ✅ Effective-dated salary profiles (off the employees table), salary adjustments (earnings/deductions, one-time + recurring), employee advances/loans.
+- ✅ `PayrollCalculator` (attendance/leave integration, absence/late/unpaid-leave deductions from settings, overtime, adjustments, advance recovery capped so net ≥ 0, full calculation snapshot) — pure, never mutates source.
+- ✅ `PayrollService` workflow (create → calculate → approve → post → paid), snapshots frozen at approval, posted runs immutable, reversal; `PayrollPaymentService` (partial salary payments, reversal); `EmployeeAdvanceService` (pay/recover/cancel with GL).
+- ✅ GL integration via `LedgerPostingService` (Dr Salary Expense / Cr Employee Advances / Cr other withholdings / Cr Salary Payable; salary payment Dr Salary Payable / Cr Cash; advance payment Dr Employee Advances / Cr Cash) — atomic, source-idempotent, reversible. New system accounts: 1400 Employee Advances, 2400 Salary Payable, 2500 Other Payroll Deductions; 5200 Salary Expense mapped.
+- ✅ Two new reconciliations (Salary Payable, Employee Advances); payroll flows into Trial Balance / P&L / Balance Sheet with no duplicate logic. Payroll reports (summary/by-dept/outstanding/advances/payments).
+- ✅ Permissions + Policies (PayrollRun/PayrollItem/SalaryProfile/SalaryAdjustment/EmployeeAdvance/PayrollPayment) with separation of duties (HR prepares, Accountant posts/pays). Payslip privacy (own payslip only). UI + navigation + printable A4 payslip + employee "My Payslips".
+- ✅ Seeder (salary profiles, advance, posted payroll run, salary payments); seed integrity: TB + BS balanced, all 5 reconciliations pass, no negative payroll/advance balances.
+- ✅ Docs: PAYROLL.md, SALARIES.md, ADVANCES.md (new); ACCOUNTING/CHART_OF_ACCOUNTS/DATABASE/PERMISSIONS/ARCHITECTURE/PLAN (updated). Full suite green; no Sprint 0–5 regression.
+- ⛔ Not started (Sprint 7+): subscriptions, recurring invoices, WhatsApp reminders.
+
+## Sprint 7–8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

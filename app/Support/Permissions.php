@@ -116,6 +116,9 @@ final class Permissions
             'notifications' => ['financial' => false, 'permissions' => [
                 'notifications.view' => 'عرض الإشعارات',
             ]],
+            'payslips' => ['financial' => false, 'permissions' => [
+                'payslips.view_own' => 'عرض قسيمة راتبي',
+            ]],
             'settings' => ['financial' => false, 'permissions' => [
                 'settings.view' => 'عرض الإعدادات',
                 'settings.manage' => 'إدارة الإعدادات',
@@ -202,6 +205,26 @@ final class Permissions
             'payroll' => ['financial' => true, 'permissions' => [
                 'payroll.view' => 'عرض الرواتب',
                 'payroll.manage' => 'إدارة الرواتب',
+                'payroll.create' => 'إنشاء مسير رواتب',
+                'payroll.calculate' => 'احتساب الرواتب',
+                'payroll.approve' => 'اعتماد الرواتب',
+                'payroll.post' => 'ترحيل الرواتب محاسبياً',
+                'payroll.reverse' => 'عكس مسير الرواتب',
+                'payroll.pay' => 'دفع الرواتب',
+                'payroll.reports' => 'تقارير الرواتب',
+                'salary_profiles.view' => 'عرض ملفات الرواتب',
+                'salary_profiles.manage' => 'إدارة ملفات الرواتب',
+                'salary_adjustments.view' => 'عرض تعديلات الرواتب',
+                'salary_adjustments.manage' => 'إدارة تعديلات الرواتب',
+                'advances.view' => 'عرض السلف',
+                'advances.create' => 'إنشاء سلفة',
+                'advances.approve' => 'اعتماد سلفة',
+                'advances.pay' => 'دفع سلفة',
+                'advances.manage' => 'إدارة السلف',
+                'payslips.view_all' => 'عرض قسائم الرواتب',
+                'payroll_payments.view' => 'عرض مدفوعات الرواتب',
+                'payroll_payments.create' => 'تنفيذ مدفوعات الرواتب',
+                'payroll_payments.reverse' => 'عكس مدفوعات الرواتب',
             ]],
             'reports_financial' => ['financial' => true, 'permissions' => [
                 'reports.financial' => 'التقارير المالية',
@@ -210,6 +233,8 @@ final class Permissions
                 'reports.profit_loss' => 'قائمة الدخل',
                 'reports.balance_sheet' => 'الميزانية العمومية',
                 'reports.reconciliation' => 'تقارير المطابقة',
+                'reports.salary_payable_reconciliation' => 'مطابقة الرواتب المستحقة',
+                'reports.employee_advances_reconciliation' => 'مطابقة سلف الموظفين',
             ]],
         ];
     }
@@ -270,7 +295,12 @@ final class Permissions
                 'payments.create', 'payments.edit', 'payments.post', 'payments.cancel',
                 'payments.allocate', 'payments.print', 'customer_statements.view', 'exchange_gain_loss.view',
                 'expenses.view', 'expenses.manage', 'accounts.view', 'accounts.manage',
-                'accounting.view', 'accounting.manage', 'payroll.view',
+                'accounting.view', 'accounting.manage',
+                // Payroll accounting (post/pay/reverse) — but NOT HR salary management.
+                'payroll.view', 'payroll.post', 'payroll.reverse', 'payroll.pay', 'payroll.reports',
+                'payroll_payments.view', 'payroll_payments.create', 'payroll_payments.reverse',
+                'advances.view', 'advances.pay', 'payslips.view_all',
+                'reports.salary_payable_reconciliation', 'reports.employee_advances_reconciliation',
                 'reports.financial', 'reports.operational', 'audit.view',
                 // Sprint 5 — accounting, expenses, suppliers, cash/banks.
                 'suppliers.create', 'suppliers.edit',
@@ -302,7 +332,13 @@ final class Permissions
                 'employees.view', 'employees.create', 'employees.edit', 'employees.manage', 'employees.documents',
                 'attendance.view', 'attendance.manage', 'attendance.adjust', 'attendance.reports',
                 'leaves.view', 'leaves.approve', 'leaves.reject', 'leaves.manage',
-                'payroll.view', 'payroll.manage',
+                // Payroll preparation (calculate/approve) — but NOT accounting posting/payment or GL.
+                'payroll.view', 'payroll.manage', 'payroll.create', 'payroll.calculate',
+                'payroll.approve', 'payroll.reports',
+                'salary_profiles.view', 'salary_profiles.manage',
+                'salary_adjustments.view', 'salary_adjustments.manage',
+                'advances.view', 'advances.create', 'advances.approve', 'advances.manage',
+                'payslips.view_all',
             ], self::selfService()),
 
             RoleName::ProjectManager->value => array_merge([
@@ -345,6 +381,7 @@ final class Permissions
         return [
             'attendance.view_own', 'attendance.check_in', 'attendance.check_out',
             'leaves.view_own', 'leaves.create', 'leaves.request',
+            'payslips.view_own', // every staff member may view their own payslips
         ];
     }
 }

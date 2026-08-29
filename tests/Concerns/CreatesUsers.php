@@ -5,21 +5,29 @@ namespace Tests\Concerns;
 use App\Enums\FinancialAccountType;
 use App\Enums\RoleName;
 use App\Models\Account;
+use App\Models\AttendanceRecord;
 use App\Models\Customer;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\EmployeeSalaryProfile;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
+use App\Models\PayrollRun;
 use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\FinancialAccountService;
 use App\Services\InvoiceService;
+use App\Services\PayrollService;
+use App\Services\SalaryProfileService;
 use App\Services\SupplierService;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 trait CreatesUsers
@@ -192,5 +200,63 @@ trait CreatesUsers
             ['name' => 'فئة تجريبية'],
             ['default_expense_account_id' => $account?->id, 'is_active' => true],
         );
+    }
+
+    // ---- Payroll (Sprint 6) ----
+
+    protected function makeSalaryProfile(Employee $employee, string $base, string $from = '2026-01-01', ?string $overtimeRate = null): EmployeeSalaryProfile
+    {
+        return app(SalaryProfileService::class)->setSalary($employee, [
+            'base_salary_ils' => $base,
+            'effective_from' => $from,
+            'overtime_rate' => $overtimeRate,
+        ]);
+    }
+
+    protected function makeAttendanceDay(Employee $employee, string $date, string $status = 'present', int $late = 0, int $overtime = 0): AttendanceRecord
+    {
+        return AttendanceRecord::create([
+            'employee_id' => $employee->id,
+            'attendance_date' => $date,
+            'status' => $status,
+            'late_minutes' => $late,
+            'overtime_minutes' => $overtime,
+            'worked_minutes' => 480,
+        ]);
+    }
+
+    protected function makeApprovedLeave(Employee $employee, bool $isPaid, string $start, string $end): LeaveRequest
+    {
+        static $seq = 0;
+        $seq++;
+        $type = LeaveType::firstOrCreate(
+            ['code' => $isPaid ? 'PAID' : 'UNPAID'],
+            ['name' => $isPaid ? 'إجازة مدفوعة' : 'إجازة غير مدفوعة', 'is_paid' => $isPaid, 'is_active' => true],
+        );
+
+        return LeaveRequest::create([
+            'reference_no' => 'LV-T-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT),
+            'employee_id' => $employee->id,
+            'leave_type_id' => $type->id,
+            'start_date' => $start,
+            'end_date' => $end,
+            'total_days' => Carbon::parse($start)->diffInDays($end) + 1,
+            'status' => 'approved',
+        ]);
+    }
+
+    protected function makePayrollRun(int $year = 2026, int $month = 8): PayrollRun
+    {
+        return app(PayrollService::class)->createRun($year, $month);
+    }
+
+    /** Mark every working day (sun–thu) of a run's month attended for an employee. */
+    protected function fillFullAttendance(Employee $employee, PayrollRun $run): void
+    {
+        for ($d = $run->period_start->copy(); $d->lte($run->period_end); $d->addDay()) {
+            if (in_array($d->dayOfWeek, [0, 1, 2, 3, 4], true)) {
+                $this->makeAttendanceDay($employee, $d->toDateString());
+            }
+        }
     }
 }

@@ -27,11 +27,14 @@ class ChartOfAccountsSeeder extends Seeder
             ['1130', 'البنك (شيكل)', AccountType::Asset, '1100', false, false],
             ['1200', 'ذمم مدينة (عملاء)', AccountType::Asset, '1000', true, false],
             ['1300', 'مصاريف مدفوعة مقدماً', AccountType::Asset, '1000', true, true],
+            ['1400', 'سلف الموظفين (مدينة)', AccountType::Asset, '1000', true, false],
 
             ['2000', 'الالتزامات', AccountType::Liability, null, true, false],
             ['2100', 'ذمم دائنة (موردون)', AccountType::Liability, '2000', true, false],
             ['2200', 'ضريبة مستحقة', AccountType::Liability, '2000', true, false],
             ['2300', 'أرصدة العملاء الدائنة', AccountType::Liability, '2000', true, false],
+            ['2400', 'رواتب مستحقة الدفع', AccountType::Liability, '2000', true, false],
+            ['2500', 'استقطاعات رواتب أخرى', AccountType::Liability, '2000', true, false],
 
             ['3000', 'حقوق الملكية', AccountType::Equity, null, true, false],
             ['3100', 'رأس مال المالك', AccountType::Equity, '3000', true, true],
@@ -83,6 +86,10 @@ class ChartOfAccountsSeeder extends Seeder
             SystemAccountKey::DefaultCashIls->value => '1110',
             SystemAccountKey::DefaultCashUsd->value => '1120',
             SystemAccountKey::DefaultExpense->value => '5900',
+            SystemAccountKey::EmployeeAdvancesReceivable->value => '1400',
+            SystemAccountKey::SalaryPayable->value => '2400',
+            SystemAccountKey::SalaryExpense->value => '5200',
+            SystemAccountKey::PayrollOtherDeductions->value => '2500',
         ];
 
         foreach ($map as $key => $code) {

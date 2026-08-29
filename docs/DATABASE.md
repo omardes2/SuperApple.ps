@@ -70,10 +70,15 @@ Base ledger currency = ILS. Every posted journal balances (Σ debit_ils = Σ cre
 - **journal_entries**: id, reference_no, entry_date, memo, source_type, source_id, status(Posted/Reversed), reversed_by(nullable), created_by.
 - **journal_entry_lines**: id, journal_entry_id, account_id→chart_of_accounts, debit, credit, currency, memo. (sum debit == sum credit)
 
-## Sprint 6 (payroll)
-- **payroll_runs**: id, reference_no, period_year, period_month, status(Draft/Approved/Paid), total_net, approved_by, approved_at, paid_at, created_by.
-- **payroll_items**: id, payroll_run_id, employee_id, base_salary, bonuses, commission, overtime, allowances, deductions, absence_deduction, late_deduction, loans, other_adjustments, net_salary.
-- **salary_adjustments**: id, employee_id, payroll_run_id(nullable), type, amount, reason, effective_month, created_by.
+## Sprint 6 (payroll) — implemented
+Base currency ILS. Salary is kept OFF the employees table (confidentiality).
+- **employee_salary_profiles**: id, employee_id, effective_from, effective_to?, base_salary_ils, salary_type(monthly|daily|hourly), working_days_basis?, daily_rate?, hourly_rate?, overtime_rate?(absolute ILS/hour), status(active|archived), approved_by?, created_by. Effective-dated history; a raise creates a new row.
+- **salary_adjustments**: id, employee_id, payroll_run_id?, adjustment_type(earning|deduction), category, amount_ils, effective_date, recurring_end_date?, description?, is_recurring, gl_account_id?→chart_of_accounts, status(active|cancelled), approved_by?, created_by.
+- **employee_advances**: id, advance_number(ADV-YYYY-####), employee_id, type(advance|loan), request_date, approved_date?, amount_ils, remaining_ils, installment_ils?, installments?, status(draft|approved|paid|partially_recovered|recovered|cancelled), financial_account_id?, paid_at?, approved_by?, cancelled_*, created_by, updated_by.
+- **employee_advance_recoveries**: id, employee_advance_id, payroll_run_id, payroll_item_id, amount_ils, status(active|reversed).
+- **payroll_runs**: id, payroll_number(PAYROLL-YYYY-MM), year, month (unique together), period_start, period_end, status(draft|calculated|approved|posted|paid|cancelled), total_gross_ils, total_deductions_ils, total_advances_ils, total_net_ils, calculated_at, approved_at/by, posted_at/by, paid_at, cancelled_*, created_by.
+- **payroll_items**: id, payroll_run_id, employee_id (unique together), *_snapshot (name/department/job_title), base_salary_ils, working/attended/paid_leave/unpaid_leave/absent days, late_minutes, overtime_minutes, overtime_amount_ils, allowances/bonuses/commissions_ils, absence/late/unpaid_leave/other/advances deduction_ils, gross_salary_ils, total_deductions_ils, net_salary_ils, paid_amount_ils, remaining_payable_ils, calculation_snapshot(json).
+- **payroll_payments**: id, payment_number(SALP-YYYY-#####), payroll_run_id, payroll_item_id, employee_id, amount_ils, financial_account_id, payment_date, reference?, status(posted|reversed), reversed_*, created_by.
 
 ## Sprint 7 (subscriptions/whatsapp)
 - **subscriptions**: id, customer_id, service_id, start_date, billing_cycle(Monthly/Yearly), amount_usd, next_invoice_date, status(Active/Paused/Cancelled/Expired), auto_generate_invoice.

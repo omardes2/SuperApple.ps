@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views';
+@source '../../app/Livewire';
+
+@theme {
+    --font-sans: 'Tajawal', 'Cairo', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, Arial,
+        sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+    /* Brand palette */
+    --color-brand-50: #eef4ff;
+    --color-brand-100: #d9e6ff;
+    --color-brand-200: #bcd3ff;
+    --color-brand-300: #8eb6ff;
+    --color-brand-400: #598eff;
+    --color-brand-500: #3366ff;
+    --color-brand-600: #1f47f5;
+    --color-brand-700: #1836e1;
+    --color-brand-800: #1a2fb6;
+    --color-brand-900: #1c2e8f;
+}
+
+/* RTL-friendly base */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-feature-settings: 'kern';
+}
+
+[x-cloak] {
+    display: none !important;
+}

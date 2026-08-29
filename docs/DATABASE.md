@@ -99,3 +99,8 @@ Base currency ILS. Salary is kept OFF the employees table (confidentiality).
 - **whatsapp_messages**: id, customer_id?, invoice_id?, payment_id?, subscription_id?, template_id?, phone, message_body, provider, provider_message_id?, direction, status, scheduled_for?/sent_at?/delivered_at?/read_at?/failed_at?, failure_reason?, created_by?.
 - **payment_reminder_rules**: id, name, offset_days, timing_type (before_due|due_date|after_due), template_id?, is_active, send_time?, created_by/updated_by.
 - **payment_reminder_logs**: id, invoice_id, reminder_rule_id?, whatsapp_message_id?, due_date, sent_on, status, note?. **unique(invoice_id, reminder_rule_id, due_date)** — duplicate-reminder guard.
+
+## Sprint 8 — Users profile columns
+- **users.last_login_at** (nullable timestamp) — recorded on each successful login.
+- **users.notification_preferences** (nullable json) — per-user toggles for notification categories (tasks/hr/finance/subscriptions/whatsapp).
+No new business tables in Sprint 8 — it is an integration/stabilisation sprint. Settings gained `system.version`, `subscriptions.expiry_warning_days`, and a `dashboard.*` threshold group.

@@ -60,3 +60,53 @@ template`)، `phone`, `message_body`, `provider`, `provider_message_id?`, `direc
 `whatsapp.view/send/retry/templates.view/templates.manage/settings.manage/
 reminders.view/reminders.manage/history.view`. المدير العام: الكل. المحاسب: الإرسال،
 التذكيرات، السجل، عرض القوالب (بلا إدارة القوالب/الإعدادات).
+
+## إعداد واتساب للإنتاج (WhatsApp production configuration)
+
+التطبيق يُشحن افتراضياً بمزوّد **Null** آمن، والإعداد `whatsapp.enabled = false`، أي
+**لا تُرسَل أي رسائل حقيقية** حتى يفعّلها مشغّل النظام قصداً. لإرسال رسائل فعلية في
+الإنتاج نفّذ الخطوات التالية:
+
+### 1) اختر مزوّداً حقيقياً
+
+- **Meta WhatsApp Cloud API** (رسمي من Meta)، أو
+- **360dialog** (شريك BSP).
+
+البنية جاهزة لكليهما عبر عقد `App\Contracts\WhatsAppProvider` دون إعادة تصميم؛ يُختار
+المزوّد وقت التشغيل من الإعداد `whatsapp.provider` (`null` | `log` | `fake` |
+لاحقاً `meta_cloud` | `dialog360`).
+
+### 2) مكان بيانات الاعتماد
+
+- **الإعدادات التشغيلية** (جدول `settings` عبر شاشة الإعدادات): `whatsapp.enabled`،
+  `whatsapp.provider`، `whatsapp.default_country_code` (الافتراضي `970`).
+- **توكنات/مفاتيح المزوّد** توضَع في **متغيّرات البيئة أو إعدادات آمنة على الخادم فقط**،
+  **لا في الشيفرة ولا في المستودع** (عناصر نائبة — placeholders):
+
+  ```dotenv
+  WHATSAPP_PHONE_NUMBER_ID=<your-phone-number-id>
+  WHATSAPP_TOKEN=<your-permanent-access-token>
+  # 360dialog بدلاً من ذلك:
+  # WHATSAPP_360_API_KEY=<your-360dialog-api-key>
+  ```
+
+> لا تضع أي بيانات اعتماد حقيقية في هذا الملف أو في أي ملف يُلتزم به في المستودع.
+
+### 3) التفعيل
+
+اضبط `whatsapp.provider` على المزوّد المختار و`whatsapp.enabled = true` بعد إدخال
+بيانات الاعتماد. أرسل رسالة اختبار من شاشة واتساب للتحقق قبل الاعتماد على الأتمتة.
+
+### 4) اعتماد القوالب مسبقاً (Cloud API)
+
+Meta Cloud API تشترط **اعتماد القوالب مسبقاً** قبل الإرسال. يجب أن تُطابق أسماء ولغات
+القوالب المعتمدة لدى Meta مفاتيح القوالب في التطبيق (`invoice_issued`,
+`payment_reminder_*`, `payment_received`, `subscription_invoice_created`, ...). أي رسالة
+خارج نافذة الـ 24 ساعة يجب أن تُرسَل عبر قالب معتمد.
+
+### 5) الـ Webhooks (تحسين مستقبلي)
+
+استقبال **إيصالات التسليم/القراءة** (delivery/read receipts) والرسائل **الواردة**
+(inbound) عبر webhooks **غير مُنفَّذ بعد** — تحسين مستقبلي. حالياً تُحدَّث حالة الرسالة
+عبر الإرسال وإعادة المحاولة فقط، ولا يوجد استقبال رسائل واردة.
+

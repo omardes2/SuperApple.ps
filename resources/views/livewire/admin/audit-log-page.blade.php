@@ -1,15 +1,26 @@
 <div class="space-y-4">
-    <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-        <div class="relative flex-1">
-            <input type="text" wire:model.live.debounce.400ms="search" placeholder="بحث في العمليات..."
-                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none">
-        </div>
-        <select wire:model.live="module" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none">
+    <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-slate-800">سجل العمليات</h2>
+        @if ($canExport)<button wire:click="export" class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600">تصدير CSV</button>@endif
+    </div>
+    <div class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <input type="text" wire:model.live.debounce.400ms="search" placeholder="بحث..." class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <select wire:model.live="module" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <option value="">كل الوحدات</option>
-            @foreach ($modules as $m)
-                <option value="{{ $m }}">{{ $m }}</option>
-            @endforeach
+            @foreach ($modules as $m)<option value="{{ $m }}">{{ $m }}</option>@endforeach
         </select>
+        <select wire:model.live="action" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <option value="">كل العمليات</option>
+            @foreach ($actions as $a)<option value="{{ $a }}">{{ $a }}</option>@endforeach
+        </select>
+        <select wire:model.live="userId" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <option value="">كل المستخدمين</option>
+            @foreach ($users as $u)<option value="{{ $u->id }}">{{ $u->name }}</option>@endforeach
+        </select>
+        <input type="date" wire:model.live="dateFrom" dir="ltr" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" title="من تاريخ">
+        <input type="date" wire:model.live="dateTo" dir="ltr" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" title="إلى تاريخ">
+        <input type="text" wire:model.live.debounce.400ms="recordId" placeholder="معرّف السجل" dir="ltr" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <button wire:click="resetFilters" class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600">مسح الفلاتر</button>
     </div>
 
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">

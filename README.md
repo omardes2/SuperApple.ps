@@ -9,6 +9,22 @@
 - `spatie/laravel-permission` للأدوار والصلاحيات
 - MySQL 8 (إنتاج) / SQLite (تطوير واختبارات)
 
+## الوحدات (Modules)
+العملاء (Customers)، الخدمات (Services)، المشاريع (Projects)، المهام (Tasks)،
+الموظفون (Employees)، الحضور والدوام (Attendance)، الإجازات (Leaves)،
+الرواتب/مسيّرات (Payroll)، السُلَف (Advances)، عروض الأسعار (Quotations)،
+الفواتير (Invoices)، الدفعات (Payments)، أسعار الصرف (Exchange Rates)،
+المحاسبة (Accounting)، الصناديق والبنوك (Cash & Banks)، المصاريف (Expenses)،
+الموردون (Suppliers)، الاشتراكات (Subscriptions)، الفواتير الدورية (Recurring Invoices)،
+واتساب (WhatsApp)، تذكيرات الدفع (Payment Reminders)، الإشعارات (Notifications)،
+سجل العمليات (Audit Logs).
+
+## المتطلبات (Requirements)
+- PHP 8.4 (الحد الأدنى `^8.3`) مع الإضافات: `bcmath, ctype, curl, dom, fileinfo,
+  filter, mbstring, openssl, pdo, tokenizer, xml, gd` (و`pdo_mysql` لقاعدة MySQL).
+- Composer 2، Node.js 20+ و npm.
+- MySQL 8 للإنتاج (أو SQLite للتطوير والاختبارات).
+
 ## القواعد المالية الثابتة
 - العملة المحاسبية الأساسية: **ILS**، عملة فواتير العملاء: **USD**، رصيد العميل الرسمي بالدولار.
 - الفاتورة تُثبّت سعر الصرف عند الإصدار ولا يتغير. كل دفعة تسجل سعر صرفها وتُحوّل إلى USD. فروق الصرف تُسجّل كـ Exchange Gain/Loss.
@@ -29,6 +45,11 @@ php artisan serve
 ```
 
 ## حسابات التجربة (كلمة المرور للجميع: `password`)
+
+> ⚠️ **للتطوير فقط.** حسابات وكلمات مرور الـ seeder التجريبية (`password`) مخصّصة
+> للتطوير والعرض فقط. **غيّرها أو احذفها قبل الإنتاج**، ولا تشغّل `--seed` على قاعدة
+> بيانات الإنتاج.
+
 | الدور | البريد |
 |------|--------|
 | Super Admin | admin@superapple.ps |
@@ -44,6 +65,12 @@ php artisan serve
 php artisan test          # PHPUnit (SQLite in-memory)
 ./vendor/bin/pint         # تنسيق الكود
 ```
+
+## النشر للإنتاج (Production)
+للنشر إلى خادم إنتاج راجع [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+(متطلبات الخادم، متغيّرات البيئة، أوامر النشر، عامل الطابور، المُجدوِل، جاهزية الإطلاق)،
+والنسخ الاحتياطي في [`docs/BACKUP_RESTORE.md`](docs/BACKUP_RESTORE.md). فهرس التوثيق
+الكامل في [`docs/README.md`](docs/README.md).
 
 ## حالة التنفيذ
 - **Sprint 0 (مكتمل):** المصادقة، الأدوار والصلاحيات، تخطيط RTL للإدارة والموظف، الإعدادات، سجل العمليات (Audit Log)، ترقيم المستندات، طبقة الخدمات الأساسية، بيانات تجريبية، واختبارات صلاحيات ومالية أساسية.

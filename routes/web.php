@@ -3,6 +3,8 @@
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\PaymentReceiptController;
 use App\Http\Controllers\PayslipController;
+use App\Livewire\Admin\ActivityFeed;
+use App\Livewire\Admin\ArAgingReport;
 use App\Livewire\Admin\AttendanceIndex;
 use App\Livewire\Admin\AuditLogPage;
 use App\Livewire\Admin\BalanceSheetReport;
@@ -10,6 +12,7 @@ use App\Livewire\Admin\CashBanksIndex;
 use App\Livewire\Admin\ChartOfAccounts;
 use App\Livewire\Admin\CustomerProfile;
 use App\Livewire\Admin\CustomersIndex;
+use App\Livewire\Admin\CustomersReport;
 use App\Livewire\Admin\CustomerStatement;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\DepartmentsIndex;
@@ -27,22 +30,28 @@ use App\Livewire\Admin\InvoicesIndex;
 use App\Livewire\Admin\JournalShow;
 use App\Livewire\Admin\JournalsIndex;
 use App\Livewire\Admin\LeavesIndex;
+use App\Livewire\Admin\NotificationCenter;
 use App\Livewire\Admin\PaymentShow;
 use App\Livewire\Admin\PaymentsIndex;
 use App\Livewire\Admin\PayrollIndex;
 use App\Livewire\Admin\PayrollReports;
 use App\Livewire\Admin\PayrollShow;
+use App\Livewire\Admin\ProductionReadiness;
 use App\Livewire\Admin\ProfitLossReport;
 use App\Livewire\Admin\ProjectShow as AdminProjectShow;
 use App\Livewire\Admin\ProjectsIndex;
+use App\Livewire\Admin\ProjectsReport;
 use App\Livewire\Admin\QuotationShow;
 use App\Livewire\Admin\QuotationsIndex;
 use App\Livewire\Admin\ReconciliationReport;
 use App\Livewire\Admin\ReminderRulesIndex;
+use App\Livewire\Admin\ReportsCenter;
+use App\Livewire\Admin\RolesPermissions;
 use App\Livewire\Admin\ServicesIndex;
 use App\Livewire\Admin\SettingsPage;
 use App\Livewire\Admin\SubscriptionShow;
 use App\Livewire\Admin\SubscriptionsIndex;
+use App\Livewire\Admin\SubscriptionsReport;
 use App\Livewire\Admin\SupplierBillShow;
 use App\Livewire\Admin\SupplierPaymentShow;
 use App\Livewire\Admin\SupplierProfile;
@@ -50,7 +59,9 @@ use App\Livewire\Admin\SuppliersIndex;
 use App\Livewire\Admin\TaskShow as AdminTaskShow;
 use App\Livewire\Admin\TasksIndex;
 use App\Livewire\Admin\TrialBalanceReport;
+use App\Livewire\Admin\UsersIndex;
 use App\Livewire\Admin\WhatsAppDashboard;
+use App\Livewire\Admin\WhatsAppReport;
 use App\Livewire\Admin\WhatsAppTemplatesIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Employee\Dashboard as EmployeeDashboard;
@@ -151,6 +162,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/advances', EmployeeAdvancesIndex::class)->middleware('can:advances.view')->name('advances');
         Route::get('/employees/{employee}/payroll', EmployeePayroll::class)->middleware('can:salary_profiles.view')->name('employees.payroll');
 
+        // Reports centre — Sprint 8
+        Route::get('/reports', ReportsCenter::class)->name('reports');
+        Route::get('/reports/ar-aging', ArAgingReport::class)->middleware('can:reports.ar_aging')->name('reports.ar-aging');
+        Route::get('/reports/customers', CustomersReport::class)->middleware('can:reports.customers')->name('reports.customers');
+        Route::get('/reports/projects', ProjectsReport::class)->middleware('can:reports.projects')->name('reports.projects');
+        Route::get('/reports/subscriptions', SubscriptionsReport::class)->middleware('can:reports.subscriptions')->name('reports.subscriptions');
+        Route::get('/reports/whatsapp', WhatsAppReport::class)->middleware('can:reports.whatsapp')->name('reports.whatsapp');
+
         // Subscriptions & recurring invoices — Sprint 7
         Route::get('/subscriptions', SubscriptionsIndex::class)->middleware('can:subscriptions.view')->name('subscriptions');
         Route::get('/subscriptions/{subscription}', SubscriptionShow::class)->middleware('can:subscriptions.view')->name('subscriptions.show');
@@ -159,6 +178,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/whatsapp', WhatsAppDashboard::class)->middleware('can:whatsapp.view')->name('whatsapp');
         Route::get('/whatsapp/templates', WhatsAppTemplatesIndex::class)->middleware('can:whatsapp.templates.view')->name('whatsapp.templates');
         Route::get('/whatsapp/reminders', ReminderRulesIndex::class)->middleware('can:whatsapp.reminders.view')->name('whatsapp.reminders');
+
+        // Notification centre + activity feed — Sprint 8
+        Route::get('/notifications', NotificationCenter::class)->middleware('can:notifications.view')->name('notifications');
+        Route::get('/activity', ActivityFeed::class)->name('activity');
+
+        // Users & roles — Sprint 8
+        Route::get('/users', UsersIndex::class)->middleware('can:users.view')->name('users');
+        Route::get('/roles', RolesPermissions::class)->middleware('can:roles.manage')->name('roles');
+        Route::get('/production-readiness', ProductionReadiness::class)->name('production-readiness');
 
         Route::get('/settings', SettingsPage::class)->middleware('can:settings.view')->name('settings');
         Route::get('/audit-log', AuditLogPage::class)->middleware('can:audit.view')->name('audit');

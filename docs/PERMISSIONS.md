@@ -93,3 +93,9 @@ The employee layout has **no financial routes at all**; even a hand-typed financ
 - **WhatsApp**: `whatsapp.view/send/retry/templates.view/templates.manage/settings.manage/reminders.view/reminders.manage/history.view`.
 - **Distribution**: **GM/Super Admin** all. **Accountant** — subscriptions view/create/edit/activate/pause/resume/cancel/bill/reports, WhatsApp send/retry/history/reminders(view+manage)/templates.view (no templates.manage, no settings.manage). **PM** — `subscriptions.view` only, **no prices** even as a project member. **HR / Employee** — none. Verified in `SubscriptionSecurityTest`.
 - **Policies**: `SubscriptionPolicy`, `WhatsAppMessagePolicy`, `WhatsAppTemplatePolicy`, `PaymentReminderRulePolicy`.
+
+## Sprint 8 — Reports, Users & Roles
+- **Reports centre**: `reports.executive`, `reports.ar_aging` (financial), `reports.customers`, `reports.projects`, `reports.tasks`, `reports.attendance_report`, `reports.subscriptions`, `reports.whatsapp`, `reports.export`.
+- **Users**: `users.view`, `users.manage` (GM + Super Admin). `roles.manage` stays Super-Admin-only (custom roles, permission assignment, matrix).
+- **Distribution**: Accountant gains executive/AR-aging/customers/subscriptions/whatsapp reports + export; HR gains attendance report; PM gains projects/tasks/customers reports (no finance). Global search, notifications, and the activity feed are all permission-filtered so no role sees data it lacks the permission for — verified in `GlobalSearchSecurityTest`, `PermissionMatrixTest`, `NotificationsUsersLoginTest`.
+- **Login security**: rate limiting (5/min per email+IP), inactive-account block, session regeneration, last-login tracking.

@@ -12,6 +12,10 @@ class SettingsSeeder extends Seeder
         /** @var Settings $settings */
         $settings = app(Settings::class);
 
+        $settings->setMany('system', [
+            'version' => ['value' => '1.0.0', 'type' => 'string'],
+        ]);
+
         $settings->setMany('company', [
             'name' => ['value' => 'SuperApple Creative Agency', 'type' => 'string'],
             'phone' => ['value' => '', 'type' => 'string'],
@@ -52,6 +56,17 @@ class SettingsSeeder extends Seeder
             'absence_deduction_enabled' => ['value' => true, 'type' => 'bool'],
             'pay_day' => ['value' => '', 'type' => 'string'],
             'allow_negative_net_salary' => ['value' => false, 'type' => 'bool'],
+        ]);
+
+        // Subscriptions + executive-dashboard thresholds (configurable, never hard-coded).
+        $settings->setMany('subscriptions', [
+            'expiry_warning_days' => ['value' => '14', 'type' => 'int'],
+        ]);
+
+        $settings->setMany('dashboard', [
+            'receivable_alert_days' => ['value' => '30', 'type' => 'int'],   // overdue > N days → alert
+            'large_balance_usd' => ['value' => '5000', 'type' => 'decimal'], // customer outstanding > X → alert
+            'supplier_bill_alert_days' => ['value' => '30', 'type' => 'int'],
         ]);
 
         $settings->setMany('whatsapp', [

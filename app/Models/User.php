@@ -13,10 +13,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'employee_id', 'is_active', 'locale'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'employee_id', 'is_active', 'locale', 'last_login_at', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+    /** Notification categories a user may toggle in their preferences. */
+    public const NOTIFICATION_CATEGORIES = ['tasks', 'hr', 'finance', 'subscriptions', 'whatsapp'];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
@@ -31,7 +34,17 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'last_login_at' => 'datetime',
+            'notification_preferences' => 'array',
         ];
+    }
+
+    /** Does this user want notifications in the given category? Default: yes. */
+    public function wantsNotification(string $category): bool
+    {
+        $prefs = $this->notification_preferences ?? [];
+
+        return (bool) ($prefs[$category] ?? true);
     }
 
     /**

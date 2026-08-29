@@ -141,11 +141,25 @@ final class Permissions
             'audit' => ['financial' => false, 'permissions' => [
                 'audit.view' => 'عرض سجل العمليات',
             ]],
+            'users' => ['financial' => false, 'permissions' => [
+                'users.view' => 'عرض المستخدمين',
+                'users.manage' => 'إدارة المستخدمين',
+            ]],
             'roles' => ['financial' => false, 'permissions' => [
                 'roles.manage' => 'إدارة الصلاحيات والأدوار',
             ]],
             'reports_operational' => ['financial' => false, 'permissions' => [
                 'reports.operational' => 'التقارير التشغيلية',
+            ]],
+            'reports_center' => ['financial' => false, 'permissions' => [
+                'reports.executive' => 'لوحة التقارير التنفيذية',
+                'reports.customers' => 'تقارير العملاء',
+                'reports.projects' => 'تقارير المشاريع',
+                'reports.tasks' => 'تقارير المهام',
+                'reports.attendance_report' => 'تقارير الدوام',
+                'reports.subscriptions' => 'تقارير الاشتراكات',
+                'reports.whatsapp' => 'تقارير المراسلات',
+                'reports.export' => 'تصدير التقارير',
             ]],
 
             // ---- Financial groups (guarded) ----
@@ -243,6 +257,7 @@ final class Permissions
             ]],
             'reports_financial' => ['financial' => true, 'permissions' => [
                 'reports.financial' => 'التقارير المالية',
+                'reports.ar_aging' => 'أعمار الذمم المدينة',
                 'reports.gl' => 'دفتر الأستاذ العام',
                 'reports.trial_balance' => 'ميزان المراجعة',
                 'reports.profit_loss' => 'قائمة الدخل',
@@ -324,6 +339,9 @@ final class Permissions
                 'advances.view', 'advances.pay', 'payslips.view_all',
                 'reports.salary_payable_reconciliation', 'reports.employee_advances_reconciliation',
                 'reports.financial', 'reports.operational', 'audit.view',
+                // Sprint 8 — reports centre + executive analytics.
+                'reports.executive', 'reports.ar_aging', 'reports.customers',
+                'reports.subscriptions', 'reports.whatsapp', 'reports.export',
                 // Sprint 5 — accounting, expenses, suppliers, cash/banks.
                 'suppliers.create', 'suppliers.edit',
                 'supplier_bills.view', 'supplier_bills.create', 'supplier_bills.edit',
@@ -361,6 +379,8 @@ final class Permissions
                 'salary_adjustments.view', 'salary_adjustments.manage',
                 'advances.view', 'advances.create', 'advances.approve', 'advances.manage',
                 'payslips.view_all',
+                // Sprint 8 — HR-side reports.
+                'reports.attendance_report',
             ], self::selfService()),
 
             RoleName::ProjectManager->value => array_merge([
@@ -375,6 +395,8 @@ final class Permissions
                 'tasks.view', 'tasks.view_own', 'tasks.create', 'tasks.edit', 'tasks.assign',
                 'tasks.manage', 'tasks.review', 'tasks.comment', 'tasks.attachments', 'tasks.checklist',
                 'services.view', // NOTE: no services.view_financial — PM cannot see prices/costs.
+                // Sprint 8 — operational reports (no finance).
+                'reports.projects', 'reports.tasks', 'reports.customers',
             ], self::selfService()),
 
             // Team Leader stays in the operational experience (per Sprint 0/1

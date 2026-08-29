@@ -109,8 +109,19 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Docs: SUBSCRIPTIONS, RECURRING_INVOICES, WHATSAPP, PAYMENT_REMINDERS + updates
 - ✅ Pint clean, npm build, no regression (Sprint 0–7 green)
 
-## Sprint 8
-See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
+## Sprint 8 — Final Integration & Production Readiness ✅
+- ✅ Executive dashboard (role-aware widgets, GL revenue, AR-aging summary, top customers, revenue-vs-expense + cash charts from GL, configurable executive alerts)
+- ✅ Reports centre + report pages (AR Aging, Customers, Projects/Tasks, Subscriptions, WhatsApp) with permission gating + CSV export (`ReportsService`)
+- ✅ Global search (`GlobalSearchService`, permission-aware, server-side, per-category limits) + top-bar UI
+- ✅ Notification centre (category tabs, mark read/all, preferences, permission-filtered) + working bell; Activity feed from audit log (permission-filtered); Audit log filters (user/module/action/date/record) + Super-Admin CSV export
+- ✅ Users management (create/link employee/activate-deactivate/reset password/role + direct perms/last login) + Roles & Permissions UI + Permission Matrix + dangerous-permission warnings
+- ✅ Login security (rate limiting, inactive block, session regeneration, last-login tracking)
+- ✅ `app:health-check` + `app:verify-integrity` commands (exit codes, no secrets) + Production Readiness page (Super Admin)
+- ✅ Sidebar reorg, breadcrumbs support, Arabic RTL error pages (403/404/419/500/503), unified `Format` helper, app version 1.0.0
+- ✅ Demo-seeder production guard (weak-password accounts + demo data never seed in production without `APP_ALLOW_DEMO_SEED`)
+- ✅ Docs: DEPLOYMENT, BACKUP_RESTORE, docs/README index, WhatsApp production checklist, README
+- ✅ Tests: E2E scenarios (1–5), permission matrix, global-search security, dashboard/reports, notifications/users/login, health/integrity, smoke — all green
+- ✅ Full regression Sprint 0–8 green; Pint clean; npm build; no debug/secrets/TODO
 
 ## Definition of Done per sprint
 1. Migrations run clean on fresh DB.

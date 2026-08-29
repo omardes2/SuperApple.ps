@@ -62,12 +62,17 @@
                 <button @click="open = !open" class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
-                <h1 class="text-lg font-semibold text-slate-800">{{ $header ?? ($title ?? 'لوحة التحكم') }}</h1>
+                <h1 class="hidden text-lg font-semibold text-slate-800 md:block">{{ $header ?? ($title ?? 'لوحة التحكم') }}</h1>
+                <div class="mx-2 hidden flex-1 justify-center md:flex">
+                    @livewire('admin.global-search')
+                </div>
                 <div class="mr-auto flex items-center gap-3">
                     @can('notifications.view')
-                        <button class="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+                        @php $unread = auth()->user()->unreadNotifications()->count(); @endphp
+                        <a href="{{ route('admin.notifications') }}" class="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="الإشعارات">
                             <x-icon name="bell" />
-                        </button>
+                            @if ($unread > 0)<span class="absolute -top-0.5 left-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{{ $unread > 9 ? '9+' : $unread }}</span>@endif
+                        </a>
                     @endcan
                     <div x-data="{ menu: false }" class="relative">
                         <button @click="menu = !menu" class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100">
@@ -98,6 +103,9 @@
                 @endif
                 {{ $slot }}
             </main>
+            <footer class="border-t border-slate-200 px-6 py-3 text-center text-xs text-slate-400">
+                SuperApple ERP · الإصدار {{ app(\App\Services\Settings::class)->get('system', 'version', '1.0.0') }}
+            </footer>
         </div>
     </div>
 

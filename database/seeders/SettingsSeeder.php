@@ -56,7 +56,10 @@ class SettingsSeeder extends Seeder
 
         $settings->setMany('whatsapp', [
             'enabled' => ['value' => false, 'type' => 'bool'],
-            'provider' => ['value' => 'manual', 'type' => 'string'],
+            // Provider driver: null | log | fake | (later) meta_cloud | dialog360.
+            'provider' => ['value' => 'null', 'type' => 'string'],
+            // Default country code for normalising local numbers (no leading +).
+            'default_country_code' => ['value' => '970', 'type' => 'string'],
         ]);
     }
 }

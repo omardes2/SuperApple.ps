@@ -89,3 +89,13 @@ Base currency ILS. Salary is kept OFF the employees table (confidentiality).
 ## Cross-cutting
 - **attachments**: id, attachable_type, attachable_id, disk, path, original_name, mime, size, uploaded_by.
 - **notifications**: Laravel notifications table (id uuid, type, notifiable, data, read_at).
+
+## Sprint 7 — Subscriptions & WhatsApp
+- **subscriptions**: id, subscription_number (SUB-YYYY-####), customer_id, project_id?, name, description?, billing_cycle, billing_interval, start_date, end_date?, next_billing_date, last_billed_at?, payment_terms_days?, currency (USD), subtotal/discount/tax/total_usd (snapshot), auto_generate_invoice, auto_issue_invoice, status, notes?, terms?, activated_at/paused_at/cancelled_at/cancelled_by/cancellation_reason, created_by/updated_by.
+- **subscription_items**: id, subscription_id, service_id?, item_name, description?, quantity, unit_price_usd (snapshot), discount_type?, discount_value?, tax_rate, sort_order.
+- **subscription_billings**: id, subscription_id, invoice_id?, period_start, period_end, billing_date, status (generated|issued|skipped|failed), error_message?. **unique(subscription_id, period_start, period_end)** — duplicate-billing guard.
+- **invoices.subscription_id** (nullable FK) — links a recurring invoice back to its subscription (informational only).
+- **whatsapp_templates**: id, name, key (unique), category, language, body, is_active, variables_schema?, created_by/updated_by.
+- **whatsapp_messages**: id, customer_id?, invoice_id?, payment_id?, subscription_id?, template_id?, phone, message_body, provider, provider_message_id?, direction, status, scheduled_for?/sent_at?/delivered_at?/read_at?/failed_at?, failure_reason?, created_by?.
+- **payment_reminder_rules**: id, name, offset_days, timing_type (before_due|due_date|after_due), template_id?, is_active, send_time?, created_by/updated_by.
+- **payment_reminder_logs**: id, invoice_id, reminder_rule_id?, whatsapp_message_id?, due_date, sent_on, status, note?. **unique(invoice_id, reminder_rule_id, due_date)** — duplicate-reminder guard.

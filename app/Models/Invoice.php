@@ -26,7 +26,7 @@ class Invoice extends Model
     ];
 
     protected $fillable = [
-        'invoice_number', 'quotation_id', 'customer_id', 'project_id', 'invoice_date',
+        'invoice_number', 'quotation_id', 'subscription_id', 'customer_id', 'project_id', 'invoice_date',
         'due_date', 'currency', 'subtotal_usd', 'discount_usd', 'tax_usd', 'total_usd',
         'exchange_rate', 'total_ils_at_issue', 'paid_usd_equivalent', 'remaining_usd',
         'status', 'issued_at', 'sent_at', 'cancelled_at', 'cancellation_reason',
@@ -86,6 +86,16 @@ class Invoice extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class);
+    }
+
+    public function whatsappMessages(): HasMany
+    {
+        return $this->hasMany(WhatsAppMessage::class)->latest();
     }
 
     public function items(): HasMany

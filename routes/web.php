@@ -38,8 +38,11 @@ use App\Livewire\Admin\ProjectsIndex;
 use App\Livewire\Admin\QuotationShow;
 use App\Livewire\Admin\QuotationsIndex;
 use App\Livewire\Admin\ReconciliationReport;
+use App\Livewire\Admin\ReminderRulesIndex;
 use App\Livewire\Admin\ServicesIndex;
 use App\Livewire\Admin\SettingsPage;
+use App\Livewire\Admin\SubscriptionShow;
+use App\Livewire\Admin\SubscriptionsIndex;
 use App\Livewire\Admin\SupplierBillShow;
 use App\Livewire\Admin\SupplierPaymentShow;
 use App\Livewire\Admin\SupplierProfile;
@@ -47,6 +50,8 @@ use App\Livewire\Admin\SuppliersIndex;
 use App\Livewire\Admin\TaskShow as AdminTaskShow;
 use App\Livewire\Admin\TasksIndex;
 use App\Livewire\Admin\TrialBalanceReport;
+use App\Livewire\Admin\WhatsAppDashboard;
+use App\Livewire\Admin\WhatsAppTemplatesIndex;
 use App\Livewire\Auth\Login;
 use App\Livewire\Employee\Dashboard as EmployeeDashboard;
 use App\Livewire\Employee\MyAttendance;
@@ -145,6 +150,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/payroll/{run}', PayrollShow::class)->middleware('can:payroll.view')->name('payroll.show');
         Route::get('/advances', EmployeeAdvancesIndex::class)->middleware('can:advances.view')->name('advances');
         Route::get('/employees/{employee}/payroll', EmployeePayroll::class)->middleware('can:salary_profiles.view')->name('employees.payroll');
+
+        // Subscriptions & recurring invoices — Sprint 7
+        Route::get('/subscriptions', SubscriptionsIndex::class)->middleware('can:subscriptions.view')->name('subscriptions');
+        Route::get('/subscriptions/{subscription}', SubscriptionShow::class)->middleware('can:subscriptions.view')->name('subscriptions.show');
+
+        // WhatsApp — Sprint 7
+        Route::get('/whatsapp', WhatsAppDashboard::class)->middleware('can:whatsapp.view')->name('whatsapp');
+        Route::get('/whatsapp/templates', WhatsAppTemplatesIndex::class)->middleware('can:whatsapp.templates.view')->name('whatsapp.templates');
+        Route::get('/whatsapp/reminders', ReminderRulesIndex::class)->middleware('can:whatsapp.reminders.view')->name('whatsapp.reminders');
 
         Route::get('/settings', SettingsPage::class)->middleware('can:settings.view')->name('settings');
         Route::get('/audit-log', AuditLogPage::class)->middleware('can:audit.view')->name('audit');

@@ -100,3 +100,10 @@ Each sprint: migrate → seed → test → lint/build → fix → commit, and is
 - Feature tests assert **authorization** (employee blocked from invoices/payroll, PM blocked from finance unless permitted) and **financial correctness** (exchange rate lock, partial payment USD math, ILS→USD balance, exchange gain/loss, no overpayment, no hard delete, cancelled payment reverses entry, customer balance).
 - Unit tests for service math.
 - SQLite in-memory for speed; migrations are DB-agnostic.
+
+## Sprint 7 — Subscriptions, Recurring Invoices & WhatsApp
+- **Subscriptions** describe recurring contracts; they post no accounting. `SubscriptionBillingService` turns due subscriptions into invoices **through `InvoiceService`** (no new accounting path), with three-layer duplicate prevention (row lock + existence check + unique index) and per-subscription independent transactions. `next_billing_date` advances only after a successful generation. MRR/ARR (`SubscriptionMetricsService`) are contracted-value management metrics, not accounting revenue.
+- **WhatsApp** is an outbound channel behind a `WhatsAppProvider` contract (Null/Log/Fake drivers; ready for Meta Cloud/360dialog). Financial code commits first, then dispatches `SendWhatsAppMessageJob` (retry/backoff, bounded) — a WhatsApp failure never rolls back an invoice or payment. Templates render strictly (missing variable → reject). No credentials in code (Settings/ENV only).
+- **Payment reminders** (manual + rule-driven daily command) collect in USD; any ILS figure is an estimate at the **latest** rate, never an invoice's frozen rate. Dedupe via a unique log index.
+- **Commands/scheduler**: `subscriptions:bill` (daily 02:00) and `payments:send-reminders` (daily 09:00), both with `--dry-run`.
+- Tested in `tests/Feature/Sprint7/*` (subscriptions, recurring invoices, duplicate/dry-run, MRR/ARR, phone, template render, manual+automatic reminders, WhatsApp failure isolation, security, provider contract, smoke render) using `FakeWhatsAppProvider` (offline).

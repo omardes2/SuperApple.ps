@@ -135,6 +135,33 @@
         </div>
     </div>
 
+    @if ($invoice->subscription)
+        <div class="mt-5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+            فاتورة اشتراك متكررة —
+            <a href="{{ route('admin.subscriptions.show', $invoice->subscription) }}" class="font-semibold underline">{{ $invoice->subscription->name }} ({{ $invoice->subscription->subscription_number }})</a>
+        </div>
+    @endif
+
+    @if ($canWhatsapp)
+        <div class="mt-5 rounded-xl border border-slate-200 bg-white p-5">
+            <h3 class="mb-3 font-semibold text-slate-800">سجل رسائل واتساب</h3>
+            <table class="min-w-full text-sm">
+                <thead class="text-right text-xs text-slate-500"><tr><th class="py-2">التاريخ</th><th class="py-2">النص</th><th class="py-2">الحالة</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($whatsappMessages as $m)
+                        <tr>
+                            <td class="py-2 text-slate-400" dir="ltr">{{ $m->created_at?->format('Y-m-d H:i') }}</td>
+                            <td class="py-2 text-slate-600">{{ \Illuminate\Support\Str::limit($m->message_body, 60) }}</td>
+                            <td class="py-2"><x-badge :class="$m->status->badgeClass()">{{ $m->status->label() }}</x-badge></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="py-6 text-center text-slate-400">لا رسائل.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     <x-modal show="showCancel" title="إلغاء الفاتورة">
         <form wire:submit="confirmCancel" class="space-y-4">
             <p class="text-sm text-slate-600">لا تُحذف الفاتورة الصادرة؛ تُلغى مع حفظ رقمها وسببها.</p>

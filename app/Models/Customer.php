@@ -52,6 +52,16 @@ class Customer extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function whatsappMessages(): HasMany
+    {
+        return $this->hasMany(WhatsAppMessage::class)->latest();
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

@@ -34,3 +34,6 @@ Once issued, an invoice can receive payment allocations (see PAYMENTS.md). `acce
 
 ## GL posting (Sprint 5)
 Issuing an invoice now posts its accounting journal atomically (Dr Accounts Receivable, Cr Service Revenue, Cr Tax Payable) using the frozen issue rate — if GL posting fails the issue rolls back. Cancelling an issued invoice reverses that journal (and is blocked while active payment allocations exist). See ACCOUNTING.md.
+
+## Recurring invoices (Sprint 7)
+A subscription-generated invoice is an ordinary invoice: same USD/exchange-rate/snapshot/GL/immutability rules, created through `InvoiceService`. The only addition is `invoices.subscription_id` linking it to its subscription. See RECURRING_INVOICES.md and SUBSCRIPTIONS.md.

@@ -41,7 +41,7 @@ final class AdminNavigation
                     ['route' => 'admin.expenses', 'label' => 'المصاريف', 'icon' => 'minus', 'permission' => 'expenses.view'],
                     ['route' => 'admin.suppliers', 'label' => 'الموردون', 'icon' => 'truck', 'permission' => 'suppliers.view'],
                     ['route' => 'admin.cash-banks', 'label' => 'الصندوق والبنوك', 'icon' => 'bank', 'permission' => 'financial_accounts.view'],
-                    ['route' => null, 'label' => 'الاشتراكات', 'icon' => 'repeat', 'permission' => 'subscriptions.view'],
+                    ['route' => 'admin.subscriptions', 'label' => 'الاشتراكات', 'icon' => 'repeat', 'permission' => 'subscriptions.view'],
                 ],
             ],
             [
@@ -71,7 +71,7 @@ final class AdminNavigation
             [
                 'label' => 'أدوات',
                 'items' => [
-                    ['route' => null, 'label' => 'واتساب', 'icon' => 'chat', 'permission' => 'whatsapp.view'],
+                    ['route' => 'admin.whatsapp', 'label' => 'واتساب', 'icon' => 'chat', 'permission' => 'whatsapp.view'],
                     ['route' => null, 'label' => 'التقارير', 'icon' => 'chart', 'permission' => 'reports.operational'],
                     ['route' => 'admin.audit', 'label' => 'سجل العمليات', 'icon' => 'shield', 'permission' => 'audit.view'],
                     ['route' => 'admin.settings', 'label' => 'الإعدادات', 'icon' => 'cog', 'permission' => 'settings.view'],

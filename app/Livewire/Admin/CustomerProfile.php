@@ -6,7 +6,10 @@ use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Quotation;
+use App\Models\Subscription;
 use App\Services\CustomerBalanceService;
+use App\Services\PaymentReminderService;
+use App\Support\TemplateRenderer;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -27,6 +30,11 @@ class CustomerProfile extends Component
 
     public $attachFile = null;
 
+    // Payment reminder modal
+    public bool $showReminder = false;
+
+    public string $reminderBody = '';
+
     public function mount(Customer $customer): void
     {
         $this->authorize('customers.view');
@@ -36,6 +44,36 @@ class CustomerProfile extends Component
     public function setTab(string $tab): void
     {
         $this->tab = $tab;
+    }
+
+    public function openReminder(PaymentReminderService $reminders): void
+    {
+        $this->authorize('whatsapp.send');
+        $template = $reminders->defaultManualTemplate();
+        // Prefill with the rendered default template so the operator can edit.
+        try {
+            $this->reminderBody = $template
+                ? TemplateRenderer::render($template->body, $reminders->balanceVariables($this->customer))
+                : '';
+        } catch (\Throwable $e) {
+            $this->reminderBody = '';
+        }
+        $this->showReminder = true;
+    }
+
+    public function sendReminder(PaymentReminderService $reminders): void
+    {
+        $this->authorize('whatsapp.send');
+        $this->validate(['reminderBody' => 'required|string|min:2']);
+        try {
+            $reminders->sendManualReminder($this->customer, $this->reminderBody);
+        } catch (\Throwable $e) {
+            $this->addError('reminder', $e->getMessage());
+
+            return;
+        }
+        $this->showReminder = false;
+        session()->flash('status', 'تم إرسال التذكير عبر واتساب.');
     }
 
     public function addAttachment(): void
@@ -106,6 +144,20 @@ class CustomerProfile extends Component
 
         if ($this->tab === 'payments' && $data['canPayments']) {
             $data['payments'] = $this->customer->payments()->with('receivedBy')->latest('payment_date')->latest('id')->get();
+        }
+
+        // Subscriptions & WhatsApp (Sprint 7).
+        $data['canSubscriptions'] = auth()->user()->can('subscriptions.view');
+        $data['canWhatsapp'] = auth()->user()->can('whatsapp.view');
+        $data['canSendWhatsapp'] = auth()->user()->can('whatsapp.send');
+        $data['canSubscriptionPrices'] = auth()->user()->can('viewPrices', Subscription::class);
+
+        if ($this->tab === 'subscriptions' && $data['canSubscriptions']) {
+            $data['subscriptions'] = $this->customer->subscriptions()->latest('id')->get();
+        }
+
+        if ($this->tab === 'communications' && $data['canWhatsapp']) {
+            $data['messages'] = $this->customer->whatsappMessages()->with('invoice')->limit(50)->get();
         }
 
         return view('livewire.admin.customer-profile', $data);

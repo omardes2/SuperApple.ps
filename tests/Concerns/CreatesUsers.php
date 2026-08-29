@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeSalaryProfile;
+use App\Models\ExchangeRate;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
@@ -17,6 +18,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\PayrollRun;
 use App\Models\Project;
+use App\Models\Subscription;
 use App\Models\Supplier;
 use App\Models\Task;
 use App\Models\User;
@@ -24,7 +26,10 @@ use App\Services\FinancialAccountService;
 use App\Services\InvoiceService;
 use App\Services\PayrollService;
 use App\Services\SalaryProfileService;
+use App\Services\Settings;
+use App\Services\SubscriptionService;
 use App\Services\SupplierService;
+use App\Services\WhatsApp\FakeWhatsAppProvider;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
@@ -248,6 +253,58 @@ trait CreatesUsers
     protected function makePayrollRun(int $year = 2026, int $month = 8): PayrollRun
     {
         return app(PayrollService::class)->createRun($year, $month);
+    }
+
+    // ---- Subscriptions & WhatsApp (Sprint 7) ----
+
+    /** Ensure a USD→ILS rate exists so auto-issue can snapshot one. */
+    protected function seedExchangeRate(string $date = '2026-08-01', string $rate = '3.60'): ExchangeRate
+    {
+        return ExchangeRate::firstOrCreate(
+            ['rate_date' => $date, 'base_currency' => 'USD', 'quote_currency' => 'ILS'],
+            ['rate' => $rate, 'source' => 'manual'],
+        );
+    }
+
+    /**
+     * Create a subscription (draft) via the real service.
+     *
+     * @param  array<string,mixed>  $attributes
+     * @param  list<array<string,mixed>>|null  $items
+     */
+    protected function makeSubscription(?Customer $customer = null, array $attributes = [], ?array $items = null): Subscription
+    {
+        $customer ??= $this->makeCustomer();
+        $items ??= [['item_name' => 'باقة', 'quantity' => 1, 'unit_price_usd' => '600', 'tax_rate' => 0]];
+
+        return app(SubscriptionService::class)->create(array_merge([
+            'customer_id' => $customer->id,
+            'name' => 'اشتراك تجريبي',
+            'billing_cycle' => 'monthly',
+            'billing_interval' => 1,
+            'start_date' => '2026-08-01',
+        ], $attributes), $items);
+    }
+
+    /** Create + activate a subscription in one step. */
+    protected function makeActiveSubscription(?Customer $customer = null, array $attributes = [], ?array $items = null): Subscription
+    {
+        $sub = $this->makeSubscription($customer, $attributes, $items);
+        app(SubscriptionService::class)->activate($sub->fresh());
+
+        return $sub->fresh();
+    }
+
+    /** Turn on WhatsApp with the offline Fake provider and return it. */
+    protected function useFakeWhatsApp(): FakeWhatsAppProvider
+    {
+        app(Settings::class)->set('whatsapp', 'enabled', true, 'bool');
+        app(Settings::class)->set('whatsapp', 'provider', 'fake', 'string');
+        app(Settings::class)->set('whatsapp', 'default_country_code', '970', 'string');
+        $fake = app(FakeWhatsAppProvider::class);
+        $fake->reset();
+
+        return $fake;
     }
 
     /** Mark every working day (sun–thu) of a run's month attended for an employee. */

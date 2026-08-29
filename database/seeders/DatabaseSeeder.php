@@ -38,6 +38,9 @@ class DatabaseSeeder extends Seeder
             Sprint5DemoSeeder::class,
             // Sprint 6 — payroll, salaries, advances
             PayrollDemoSeeder::class,
+            // Sprint 7 — WhatsApp templates + reminder rules, then subscriptions.
+            WhatsAppSeeder::class,
+            SubscriptionDemoSeeder::class,
         ]);
     }
 }

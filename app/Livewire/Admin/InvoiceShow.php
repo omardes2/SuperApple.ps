@@ -190,9 +190,10 @@ class InvoiceShow extends Component
 
     public function render()
     {
-        $this->invoice->loadMissing(['customer', 'project', 'items.service', 'quotation']);
+        $this->invoice->loadMissing(['customer', 'project', 'items.service', 'quotation', 'subscription']);
 
         $canPayments = auth()->user()->can('payments.view');
+        $canWhatsapp = auth()->user()->can('whatsapp.view');
 
         return view('livewire.admin.invoice-show', [
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
@@ -205,6 +206,8 @@ class InvoiceShow extends Component
             'allocations' => $canPayments
                 ? $this->invoice->allocations()->with('payment')->latest()->get()
                 : collect(),
+            'canWhatsapp' => $canWhatsapp,
+            'whatsappMessages' => $canWhatsapp ? $this->invoice->whatsappMessages()->limit(20)->get() : collect(),
         ]);
     }
 }

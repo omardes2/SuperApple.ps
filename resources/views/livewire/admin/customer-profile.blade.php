@@ -18,9 +18,14 @@
         if ($canQuotations) $tabs['quotations'] = 'عروض الأسعار';
         if ($canInvoices) $tabs['invoices'] = 'الفواتير';
         if ($canPayments) $tabs['payments'] = 'الدفعات';
+        if ($canSubscriptions) $tabs['subscriptions'] = 'الاشتراكات';
+        if ($canWhatsapp) $tabs['communications'] = 'المراسلات';
         $tabs['attachments'] = 'المرفقات';
         $tabs['activity'] = 'سجل النشاط';
     @endphp
+    @if ($canSendWhatsapp)
+        <div class="mb-3 flex justify-end"><button wire:click="openReminder" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">إرسال تذكير دفع (واتساب)</button></div>
+    @endif
     <div class="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
         @foreach ($tabs as $key => $label)
             <button wire:click="setTab('{{ $key }}')" class="shrink-0 border-b-2 px-4 py-2.5 text-sm transition {{ $tab === $key ? 'border-brand-600 font-medium text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800' }}">{{ $label }}</button>
@@ -222,5 +227,57 @@
                 </tbody>
             </table>
         </div>
+    @endif
+
+    @if ($tab === 'subscriptions' && ($canSubscriptions ?? false))
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">الرقم</th><th class="px-4 py-3">الاسم</th><th class="px-4 py-3">الدورة</th>@if ($canSubscriptionPrices ?? false)<th class="px-4 py-3">القيمة</th>@endif<th class="px-4 py-3">الفوترة القادمة</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3"></th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($subscriptions as $sub)
+                        <tr>
+                            <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $sub->subscription_number }}</td>
+                            <td class="px-4 py-3 text-slate-800">{{ $sub->name }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ $sub->billing_cycle->label() }}</td>
+                            @if ($canSubscriptionPrices ?? false)<td class="px-4 py-3 text-slate-700" dir="ltr">{{ number_format((float) $sub->total_usd, 2) }} $</td>@endif
+                            <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $sub->next_billing_date?->toDateString() ?? '—' }}</td>
+                            <td class="px-4 py-3"><x-badge :class="$sub->status->badgeClass()">{{ $sub->status->label() }}</x-badge></td>
+                            <td class="px-4 py-3"><a href="{{ route('admin.subscriptions.show', $sub) }}" class="text-brand-600 hover:underline">تفاصيل</a></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">لا اشتراكات.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if ($tab === 'communications' && ($canWhatsapp ?? false))
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">النص</th><th class="px-4 py-3">الفاتورة</th><th class="px-4 py-3">الحالة</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($messages as $m)
+                        <tr>
+                            <td class="px-4 py-3 text-slate-400" dir="ltr">{{ $m->created_at?->format('Y-m-d H:i') }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ \Illuminate\Support\Str::limit($m->message_body, 70) }}</td>
+                            <td class="px-4 py-3">@if ($m->invoice)<span class="font-mono text-xs text-slate-500" dir="ltr">{{ $m->invoice->invoice_number }}</span>@else—@endif</td>
+                            <td class="px-4 py-3"><x-badge :class="$m->status->badgeClass()">{{ $m->status->label() }}</x-badge></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">لا مراسلات.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if ($canSendWhatsapp ?? false)
+        <x-modal show="showReminder" title="إرسال تذكير دفع عبر واتساب" maxWidth="max-w-xl">
+            <p class="mb-2 text-xs text-slate-500">المبلغ بالدولار هو المرجع. القيمة بالشيكل تقديرية وفق آخر سعر صرف.</p>
+            @error('reminder')<p class="mb-2 rounded bg-red-50 px-3 py-2 text-xs text-red-600">{{ $message }}</p>@enderror
+            <textarea wire:model="reminderBody" rows="8" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>@error('reminderBody')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+            <div class="mt-4 flex justify-end gap-2"><button @click="$wire.showReminder=false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">تراجع</button><button wire:click="sendReminder" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">إرسال</button></div>
+        </x-modal>
     @endif
 </div>

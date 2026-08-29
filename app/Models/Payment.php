@@ -66,6 +66,11 @@ class Payment extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function whatsappMessages(): HasMany
+    {
+        return $this->hasMany(WhatsAppMessage::class)->latest();
+    }
+
     public function allocations(): HasMany
     {
         return $this->hasMany(PaymentAllocation::class);

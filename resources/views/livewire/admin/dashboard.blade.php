@@ -31,6 +31,18 @@
         </div>
     @endif
 
+    @if ($subscriptions)
+        <div>
+            <h3 class="mb-3 text-sm font-semibold text-slate-500">الاشتراكات (قيمة تعاقدية — ليست إيراداً محاسبياً)</h3>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <a href="{{ route('admin.subscriptions') }}" class="block"><x-stat-card label="الإيراد المتكرر الشهري (MRR)" :value="number_format((float) $subscriptions['mrr_usd'], 2).' $'" icon="repeat" tone="brand" /></a>
+                <a href="{{ route('admin.subscriptions') }}" class="block"><x-stat-card label="الإيراد المتكرر السنوي (ARR)" :value="number_format((float) $subscriptions['arr_usd'], 2).' $'" hint="MRR × 12" icon="chart" tone="emerald" /></a>
+                <a href="{{ route('admin.subscriptions') }}" class="block"><x-stat-card label="اشتراكات نشطة" :value="$subscriptions['active']" icon="check" tone="violet" /></a>
+                <a href="{{ route('admin.subscriptions') }}" class="block"><x-stat-card label="فوترة خلال 7 أيام" :value="$subscriptions['due_soon']" icon="calendar" tone="amber" /></a>
+            </div>
+        </div>
+    @endif
+
     {{-- Operational KPI placeholders --}}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @can('projects.view')

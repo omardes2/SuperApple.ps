@@ -93,7 +93,23 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Docs: PAYROLL.md, SALARIES.md, ADVANCES.md (new); ACCOUNTING/CHART_OF_ACCOUNTS/DATABASE/PERMISSIONS/ARCHITECTURE/PLAN (updated). Full suite green; no Sprint 0–5 regression.
 - ⛔ Not started (Sprint 7+): subscriptions, recurring invoices, WhatsApp reminders.
 
-## Sprint 7–8
+## Sprint 7 — Subscriptions, Recurring Invoices & WhatsApp ✅ (84 tests green)
+- ✅ Enums (SubscriptionStatus, BillingCycle, WhatsAppMessageStatus, ReminderTimingType)
+- ✅ Migrations: subscriptions, subscription_items, subscription_billings, invoices.subscription_id, whatsapp_templates, whatsapp_messages, payment_reminder_rules, payment_reminder_logs
+- ✅ Models + relations (Customer/Invoice/Payment ↔ subscriptions/whatsapp)
+- ✅ `SubscriptionService` (lifecycle), `SubscriptionBillingService` (recurring invoices via `InvoiceService`, idempotent, per-subscription txn, auto-issue with rate check + notify), `SubscriptionMetricsService` (MRR/ARR)
+- ✅ WhatsApp: `WhatsAppProvider` contract + Null/Log/Fake drivers, provider binding from settings, `WhatsAppService`, `WhatsAppTemplateService`, `TemplateRenderer` (strict), `PhoneNormalizer`
+- ✅ `PaymentReminderService` (manual + rule-driven; ILS estimate at latest rate)
+- ✅ `SendWhatsAppMessageJob` (retry/backoff, after-commit dispatch, financial isolation)
+- ✅ Commands `subscriptions:bill` + `payments:send-reminders` (--date/--dry-run/--subscription) + scheduler
+- ✅ Notifications (auto-issue failed, invoice failed, whatsapp failed, expiring soon)
+- ✅ Policies (Subscription/WhatsAppMessage/WhatsAppTemplate/PaymentReminderRule) + permissions + role bundles
+- ✅ Livewire UI (subscriptions index/show, whatsapp dashboard/templates/reminders, customer profile tabs + reminder modal, invoice whatsapp history + subscription link, dashboard cards) + routes + nav
+- ✅ Seeders (WhatsApp templates + reminder rules, subscriptions demo with recurring-invoice history; GL/TB balanced, AR reconciles, 0 duplicate periods)
+- ✅ Docs: SUBSCRIPTIONS, RECURRING_INVOICES, WHATSAPP, PAYMENT_REMINDERS + updates
+- ✅ Pint clean, npm build, no regression (Sprint 0–7 green)
+
+## Sprint 8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

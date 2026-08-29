@@ -107,11 +107,26 @@ final class Permissions
             ]],
             'subscriptions' => ['financial' => false, 'permissions' => [
                 'subscriptions.view' => 'عرض الاشتراكات',
+                'subscriptions.create' => 'إنشاء اشتراك',
+                'subscriptions.edit' => 'تعديل اشتراك',
+                'subscriptions.activate' => 'تفعيل اشتراك',
+                'subscriptions.pause' => 'إيقاف اشتراك مؤقتاً',
+                'subscriptions.resume' => 'استئناف اشتراك',
+                'subscriptions.cancel' => 'إلغاء اشتراك',
+                'subscriptions.bill' => 'فوترة الاشتراكات',
                 'subscriptions.manage' => 'إدارة الاشتراكات',
+                'subscriptions.reports' => 'تقارير الاشتراكات (MRR/ARR)',
             ]],
             'whatsapp' => ['financial' => false, 'permissions' => [
                 'whatsapp.view' => 'عرض واتساب',
                 'whatsapp.send' => 'إرسال رسائل واتساب',
+                'whatsapp.retry' => 'إعادة إرسال الرسائل الفاشلة',
+                'whatsapp.templates.view' => 'عرض قوالب واتساب',
+                'whatsapp.templates.manage' => 'إدارة قوالب واتساب',
+                'whatsapp.settings.manage' => 'إدارة إعدادات واتساب',
+                'whatsapp.reminders.view' => 'عرض قواعد التذكير',
+                'whatsapp.reminders.manage' => 'إدارة قواعد التذكير',
+                'whatsapp.history.view' => 'عرض سجل المراسلات',
             ]],
             'notifications' => ['financial' => false, 'permissions' => [
                 'notifications.view' => 'عرض الإشعارات',
@@ -290,7 +305,14 @@ final class Permissions
 
             RoleName::Accountant->value => array_merge([
                 'dashboard.view', 'customers.view', 'suppliers.view', 'suppliers.manage',
-                'subscriptions.view', 'subscriptions.manage', 'notifications.view',
+                // Subscriptions: view + generate invoices + management reports (not full config).
+                'subscriptions.view', 'subscriptions.create', 'subscriptions.edit',
+                'subscriptions.activate', 'subscriptions.pause', 'subscriptions.resume',
+                'subscriptions.cancel', 'subscriptions.bill', 'subscriptions.reports',
+                // WhatsApp: send invoice messages + payment reminders, retry, view history.
+                'whatsapp.view', 'whatsapp.send', 'whatsapp.retry', 'whatsapp.history.view',
+                'whatsapp.templates.view', 'whatsapp.reminders.view', 'whatsapp.reminders.manage',
+                'notifications.view',
                 'finance.view', 'payments.view', 'payments.manage',
                 'payments.create', 'payments.edit', 'payments.post', 'payments.cancel',
                 'payments.allocate', 'payments.print', 'customer_statements.view', 'exchange_gain_loss.view',
@@ -344,6 +366,9 @@ final class Permissions
             RoleName::ProjectManager->value => array_merge([
                 'dashboard.view', 'customers.view', 'reports.operational', 'notifications.view',
                 'departments.view', 'employees.view', 'attendance.view',
+                // Operational visibility of subscriptions only — prices stay hidden
+                // (SubscriptionPolicy::viewPrices), even for a project member.
+                'subscriptions.view',
                 // Full project & task management (no finance; service prices hidden).
                 'projects.view', 'projects.view_assigned', 'projects.create', 'projects.edit',
                 'projects.manage', 'projects.members', 'projects.attachments',

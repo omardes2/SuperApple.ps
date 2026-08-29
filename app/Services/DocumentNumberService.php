@@ -37,6 +37,7 @@ class DocumentNumberService
         'supplier_payment' => ['prefix' => 'SPAY', 'year' => true, 'width' => 4],
         'transfer' => ['prefix' => 'TRF', 'year' => true, 'width' => 4],
         'advance' => ['prefix' => 'ADV', 'year' => true, 'width' => 4],
+        'subscription' => ['prefix' => 'SUB', 'year' => true, 'width' => 4],
         'payroll_payment' => ['prefix' => 'SALP', 'year' => true, 'width' => 5],
         'journal' => ['prefix' => 'JRN', 'year' => true,  'width' => 6],
         'leave' => ['prefix' => 'LV',  'year' => true,  'width' => 5],

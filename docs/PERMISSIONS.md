@@ -87,3 +87,9 @@ The employee layout has **no financial routes at all**; even a hand-typed financ
 - **Payslips**: `payslips.view_all` (financial); `payslips.view_own` (non-financial, in every staff self-service bundle).
 - **Reports**: `reports.salary_payable_reconciliation`, `reports.employee_advances_reconciliation`.
 - **Separation of duties**: **HR Manager** prepares (salary profiles/adjustments/advances create+approve, payroll create/calculate/approve, payslips.view_all) but has **no** GL/journals/posting; **Accountant** posts/pays/reverses payroll + advance payment + reconciliation but has **no** HR salary management; **GM/Super Admin** all. **PM / Team Leader / Employee** get no payroll (Employee keeps only `payslips.view_own`). Payslip privacy is enforced by `PayrollItemPolicy` (an employee opens only their own payslip, even by direct URL). Verified in `PayrollSecurityTest`.
+
+## Sprint 7 — Subscriptions & WhatsApp
+- **Subscriptions** (non-financial group, but prices are gated): `subscriptions.view/create/edit/activate/pause/resume/cancel/bill/manage/reports`. Prices are shown only to users passing `SubscriptionPolicy::viewPrices` (subscriptions.manage or invoices.view).
+- **WhatsApp**: `whatsapp.view/send/retry/templates.view/templates.manage/settings.manage/reminders.view/reminders.manage/history.view`.
+- **Distribution**: **GM/Super Admin** all. **Accountant** — subscriptions view/create/edit/activate/pause/resume/cancel/bill/reports, WhatsApp send/retry/history/reminders(view+manage)/templates.view (no templates.manage, no settings.manage). **PM** — `subscriptions.view` only, **no prices** even as a project member. **HR / Employee** — none. Verified in `SubscriptionSecurityTest`.
+- **Policies**: `SubscriptionPolicy`, `WhatsAppMessagePolicy`, `WhatsAppTemplatePolicy`, `PaymentReminderRulePolicy`.

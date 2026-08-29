@@ -18,9 +18,11 @@ use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\Project;
+use App\Models\Subscription;
 use App\Models\Task;
 use App\Services\AccountingReportService;
 use App\Services\FinancialAccountService;
+use App\Services\SubscriptionMetricsService;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -111,6 +113,18 @@ class Dashboard extends Component
             ];
         }
 
-        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops, 'finance' => $finance, 'accounting' => $accounting]);
+        // Subscriptions (MRR/ARR are contracted value, NOT accounting revenue).
+        $subscriptions = null;
+        if ($user->can('subscriptions.reports')) {
+            $metrics = app(SubscriptionMetricsService::class);
+            $subscriptions = [
+                'mrr_usd' => $metrics->mrr(),
+                'arr_usd' => $metrics->arr(),
+                'active' => Subscription::active()->count(),
+                'due_soon' => $metrics->upcomingBillings(7)->count(),
+            ];
+        }
+
+        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops, 'finance' => $finance, 'accounting' => $accounting, 'subscriptions' => $subscriptions]);
     }
 }

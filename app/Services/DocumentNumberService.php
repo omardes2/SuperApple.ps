@@ -31,6 +31,7 @@ class DocumentNumberService
         'payment' => ['prefix' => 'PAY', 'year' => true,  'width' => 4],
         'expense' => ['prefix' => 'EXP', 'year' => true,  'width' => 4],
         'employee' => ['prefix' => 'EMP', 'year' => false, 'width' => 4],
+        'service' => ['prefix' => 'SRV', 'year' => false, 'width' => 4],
         'supplier' => ['prefix' => 'SUP', 'year' => false, 'width' => 4],
         'journal' => ['prefix' => 'JE',  'year' => true,  'width' => 5],
         'leave' => ['prefix' => 'LV',  'year' => true,  'width' => 5],

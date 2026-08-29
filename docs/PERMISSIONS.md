@@ -53,3 +53,9 @@ Permissions are atomic; roles bundle them and are editable. Super Admin bypasses
 5. API/JSON responses hide financial fields for unauthorized users (resource-level).
 
 The employee layout has **no financial routes at all**; even a hand-typed financial URL is blocked by `can:` middleware + policy, returning 403.
+
+## Sprint 1 & 2 additions
+- HR (Sprint 1): `departments.*`, `employees.create|edit|documents`, `attendance.view_own|check_in|check_out|adjust|reports`, `leaves.view_own|create|reject|manage`. Every staff role gets a **self-service** bundle (`attendance.view_own|check_in|check_out`, `leaves.view_own|create|request`).
+- Operational (Sprint 2): `customers.manage|archive|attachments`; `services.create|edit|view_financial`; `projects.view_assigned|create|edit|members|attachments`; `tasks.view_own|edit|manage|comment|attachments|checklist`.
+- **Semantics**: `*.view` = view everything (managers); `*.view_own` / `projects.view_assigned` = scoped to the employee. `services.view` never exposes prices/costs — that needs `services.view_financial` (enforced in `Service::toArray`). Financial protection is enforced at the backend/query layer, not the UI.
+- **Least privilege**: PM manages projects/tasks and sees services without prices; Accountant has finance + service pricing but no project/task admin; HR has HR only; Employee/Team Leader are operational (own tasks/projects, comment/checklist/attachments).

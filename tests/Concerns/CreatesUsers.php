@@ -3,8 +3,11 @@
 namespace Tests\Concerns;
 
 use App\Enums\RoleName;
+use App\Models\Customer;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Hash;
@@ -72,5 +75,47 @@ trait CreatesUsers
         $employee = $this->makeEmployee($user, $employeeAttributes);
 
         return [$user, $employee];
+    }
+
+    protected function makeCustomer(array $attributes = []): Customer
+    {
+        static $seq = 0;
+        $seq++;
+
+        return Customer::create(array_merge([
+            'customer_number' => 'CUS-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT),
+            'name' => 'عميل تجريبي '.$seq,
+            'phone' => '0591000000',
+            'status' => 'active',
+            'is_active' => true,
+        ], $attributes));
+    }
+
+    protected function makeProject(?Customer $customer = null, array $attributes = []): Project
+    {
+        static $seq = 0;
+        $seq++;
+        $customer ??= $this->makeCustomer();
+
+        return Project::create(array_merge([
+            'project_number' => 'PRJ-'.now()->year.'-'.str_pad((string) $seq, 4, '0', STR_PAD_LEFT),
+            'customer_id' => $customer->id,
+            'name' => 'مشروع تجريبي '.$seq,
+            'priority' => 'normal',
+            'status' => 'active',
+        ], $attributes));
+    }
+
+    protected function makeTask(array $attributes = []): Task
+    {
+        static $seq = 0;
+        $seq++;
+
+        return Task::create(array_merge([
+            'task_number' => 'TSK-'.str_pad((string) $seq, 6, '0', STR_PAD_LEFT),
+            'title' => 'مهمة تجريبية '.$seq,
+            'priority' => 'normal',
+            'status' => 'new',
+        ], $attributes));
     }
 }

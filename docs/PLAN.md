@@ -33,7 +33,20 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Docs: `docs/HR.md`
 - ✅ Full suite green + pint clean; no Sprint 0 regression
 
-## Sprint 2–8
+## Sprint 2 — Operational core ✅ (48 tests green; 117 total)
+- ✅ Customers (CRM) with categories, sources, statuses, profile tabs, attachments, archive-not-delete; `CustomerService`. No email field anywhere.
+- ✅ Services catalog with **backend financial-field protection** (`services.view_financial`); price/cost change auditing; `ServiceCatalogService`.
+- ✅ Projects with members (dedup), derived progress, profile (overview/tasks/team/files/activity), cancel-not-delete; `ProjectService`.
+- ✅ Tasks: full workflow (`TaskWorkflowService`), assignees, comments, checklist, status history, tags, unified attachments; customer/project consistency; `TaskService`.
+- ✅ Enums: Priority, CustomerStatus, CustomerSource, ServiceType, ProjectStatus, TaskStatus.
+- ✅ Real query-level visibility scoping (`visibleTo`) for customers/projects/tasks; employees can't enumerate others' data or open unrelated records (403).
+- ✅ Employee experience: My Tasks (filters), My Projects, task detail with workflow actions; admin experience: full index + detail pages.
+- ✅ Dashboards: operational cards (admin) + real task/project data (employee, placeholders removed).
+- ✅ Notifications: task assigned/submitted/status-changed, project member added.
+- ✅ Seeders: 10 customers, 16 services, 6 projects (+members), 34 tasks (+comments/checklists/status history).
+- ✅ Docs: `docs/OPERATIONS.md`. Full suite green + pint clean + build; no Sprint 0/1 regression.
+
+## Sprint 3–8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

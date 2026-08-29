@@ -36,8 +36,15 @@
                 </div>
             </div>
 
-            <x-stat-card label="مهامي اليوم" value="—" hint="بعد وحدة المهام" icon="check" tone="brand" />
-            <x-stat-card label="طلبات إجازة معلّقة" :value="$pendingLeaves" icon="calendar" tone="amber" />
+            <a href="{{ route('employee.tasks', ['filter' => 'today']) }}" class="block"><x-stat-card label="مهامي اليوم" :value="$tasks['today']" icon="check" tone="brand" /></a>
+            <a href="{{ route('employee.tasks', ['filter' => 'late']) }}" class="block"><x-stat-card label="مهام متأخرة" :value="$tasks['late']" icon="minus" tone="red" /></a>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <a href="{{ route('employee.tasks', ['filter' => 'waiting_review']) }}" class="block"><x-stat-card label="بانتظار المراجعة" :value="$tasks['waiting_review']" icon="doc" tone="amber" /></a>
+            <a href="{{ route('employee.tasks', ['filter' => 'changes_requested']) }}" class="block"><x-stat-card label="مطلوب تعديلات" :value="$tasks['changes_requested']" icon="check" tone="red" /></a>
+            <a href="{{ route('employee.projects') }}" class="block"><x-stat-card label="مشاريعي النشطة" :value="$tasks['projects']" icon="folder" tone="brand" /></a>
+            <x-stat-card label="طلبات إجازة معلّقة" :value="$pendingLeaves" icon="calendar" tone="violet" />
         </div>
 
         @if ($summary)

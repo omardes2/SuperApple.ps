@@ -27,20 +27,37 @@ final class Permissions
                 'customers.create' => 'إضافة عميل',
                 'customers.edit' => 'تعديل عميل',
                 'customers.delete' => 'حذف عميل',
+                'customers.manage' => 'إدارة العملاء والتصنيفات',
+                'customers.archive' => 'أرشفة العملاء',
+                'customers.attachments' => 'إدارة مرفقات العملاء',
             ]],
             'projects' => ['financial' => false, 'permissions' => [
-                'projects.view' => 'عرض المشاريع',
+                'projects.view' => 'عرض جميع المشاريع',
+                'projects.view_assigned' => 'عرض المشاريع المسندة',
+                'projects.create' => 'إنشاء مشروع',
+                'projects.edit' => 'تعديل مشروع',
                 'projects.manage' => 'إدارة المشاريع',
+                'projects.members' => 'إدارة أعضاء المشروع',
+                'projects.attachments' => 'إدارة مرفقات المشاريع',
             ]],
             'tasks' => ['financial' => false, 'permissions' => [
-                'tasks.view' => 'عرض المهام',
+                'tasks.view' => 'عرض جميع المهام',
+                'tasks.view_own' => 'عرض المهام الخاصة',
                 'tasks.create' => 'إنشاء مهمة',
+                'tasks.edit' => 'تعديل مهمة',
                 'tasks.assign' => 'إسناد المهام',
-                'tasks.review' => 'مراجعة المهام',
+                'tasks.manage' => 'إدارة المهام',
+                'tasks.review' => 'مراجعة واعتماد المهام',
+                'tasks.comment' => 'التعليق على المهام',
+                'tasks.attachments' => 'إدارة مرفقات المهام',
+                'tasks.checklist' => 'إدارة قائمة التحقق',
             ]],
             'services' => ['financial' => false, 'permissions' => [
                 'services.view' => 'عرض الخدمات',
+                'services.create' => 'إضافة خدمة',
+                'services.edit' => 'تعديل خدمة',
                 'services.manage' => 'إدارة الخدمات',
+                'services.view_financial' => 'عرض أسعار وتكاليف الخدمات',
             ]],
             'departments' => ['financial' => false, 'permissions' => [
                 'departments.view' => 'عرض الأقسام',
@@ -197,6 +214,8 @@ final class Permissions
                 'expenses.view', 'expenses.manage', 'accounts.view', 'accounts.manage',
                 'accounting.view', 'accounting.manage', 'payroll.view',
                 'reports.financial', 'reports.operational', 'audit.view',
+                // Service catalog incl. pricing (needed for quotations later).
+                'services.view', 'services.view_financial', 'services.create', 'services.edit', 'services.manage',
             ], self::selfService()),
 
             RoleName::HrManager->value => array_merge([
@@ -209,19 +228,29 @@ final class Permissions
             ], self::selfService()),
 
             RoleName::ProjectManager->value => array_merge([
-                'dashboard.view', 'customers.view', 'projects.view', 'projects.manage',
-                'tasks.view', 'tasks.create', 'tasks.assign', 'tasks.review',
-                'services.view', 'reports.operational', 'notifications.view',
+                'dashboard.view', 'customers.view', 'reports.operational', 'notifications.view',
                 'departments.view', 'employees.view', 'attendance.view',
+                // Full project & task management (no finance; service prices hidden).
+                'projects.view', 'projects.view_assigned', 'projects.create', 'projects.edit',
+                'projects.manage', 'projects.members', 'projects.attachments',
+                'tasks.view', 'tasks.view_own', 'tasks.create', 'tasks.edit', 'tasks.assign',
+                'tasks.manage', 'tasks.review', 'tasks.comment', 'tasks.attachments', 'tasks.checklist',
+                'services.view', // NOTE: no services.view_financial — PM cannot see prices/costs.
             ], self::selfService()),
 
+            // Team Leader stays in the operational experience (per Sprint 0/1
+            // architecture): an enhanced employee who can create tasks and
+            // collaborate, but team-wide assignment/review belongs to PM/GM.
             RoleName::TeamLeader->value => array_merge([
-                'dashboard.view', 'projects.view', 'tasks.view', 'tasks.create',
-                'tasks.assign', 'tasks.review', 'notifications.view',
+                'dashboard.view', 'notifications.view',
+                'projects.view_assigned', 'tasks.view_own', 'tasks.create',
+                'tasks.comment', 'tasks.attachments', 'tasks.checklist',
             ], self::selfService()),
 
             RoleName::Employee->value => array_merge([
-                'dashboard.view', 'projects.view', 'tasks.view', 'notifications.view',
+                'dashboard.view', 'notifications.view',
+                'projects.view_assigned', 'tasks.view_own',
+                'tasks.comment', 'tasks.attachments', 'tasks.checklist',
             ], self::selfService()),
         ];
     }

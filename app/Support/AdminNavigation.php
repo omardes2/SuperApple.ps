@@ -24,10 +24,10 @@ final class AdminNavigation
             [
                 'label' => 'العلاقات والمشاريع',
                 'items' => [
-                    ['route' => null, 'label' => 'العملاء', 'icon' => 'users', 'permission' => 'customers.view'],
-                    ['route' => null, 'label' => 'المشاريع', 'icon' => 'folder', 'permission' => 'projects.view'],
-                    ['route' => null, 'label' => 'المهام', 'icon' => 'check', 'permission' => 'tasks.view'],
-                    ['route' => null, 'label' => 'الخدمات', 'icon' => 'grid', 'permission' => 'services.view'],
+                    ['route' => 'admin.customers', 'label' => 'العملاء', 'icon' => 'users', 'permission' => 'customers.view'],
+                    ['route' => 'admin.projects', 'label' => 'المشاريع', 'icon' => 'folder', 'permission' => 'projects.view'],
+                    ['route' => 'admin.tasks', 'label' => 'المهام', 'icon' => 'check', 'permission' => 'tasks.view'],
+                    ['route' => 'admin.services', 'label' => 'الخدمات', 'icon' => 'grid', 'permission' => 'services.view'],
                 ],
             ],
             [

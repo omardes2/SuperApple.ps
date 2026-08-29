@@ -3,10 +3,16 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\CustomerStatus;
 use App\Enums\LeaveStatus;
+use App\Enums\ProjectStatus;
+use App\Enums\TaskStatus;
 use App\Models\AttendanceRecord;
+use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\Project;
+use App\Models\Task;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -39,6 +45,18 @@ class Dashboard extends Component
             ];
         }
 
-        return view('livewire.admin.dashboard', ['hr' => $hr]);
+        // Operational cards (customers / projects / tasks).
+        $ops = null;
+        if ($user->canAny(['customers.view', 'projects.view', 'tasks.view'])) {
+            $ops = [
+                'active_customers' => Customer::where('status', CustomerStatus::Active)->count(),
+                'active_projects' => Project::where('status', ProjectStatus::Active)->count(),
+                'tasks_today' => Task::whereDate('due_date', now()->toDateString())->count(),
+                'late_tasks' => Task::late()->count(),
+                'waiting_review' => Task::where('status', TaskStatus::WaitingReview)->count(),
+            ];
+        }
+
+        return view('livewire.admin.dashboard', ['hr' => $hr, 'ops' => $ops]);
     }
 }

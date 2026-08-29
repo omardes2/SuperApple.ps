@@ -3,9 +3,12 @@
 namespace App\Livewire\Employee;
 
 use App\Enums\LeaveStatus;
+use App\Enums\TaskStatus;
 use App\Livewire\Concerns\ResolvesActingEmployee;
 use App\Models\AttendanceRecord;
 use App\Models\LeaveRequest;
+use App\Models\Project;
+use App\Models\Task;
 use App\Services\AttendanceService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -45,11 +48,13 @@ class Dashboard extends Component
     public function render(AttendanceService $service)
     {
         // The employee dashboard is operational only — never any financial data.
-        $employee = Auth::user()->employee;
+        $user = Auth::user();
+        $employee = $user->employee;
 
         $today = null;
         $summary = null;
         $pendingLeaves = 0;
+        $tasks = ['today' => 0, 'late' => 0, 'waiting_review' => 0, 'changes_requested' => 0, 'projects' => 0];
 
         if ($employee) {
             $today = AttendanceRecord::where('employee_id', $employee->id)
@@ -58,6 +63,15 @@ class Dashboard extends Component
             $summary = $service->monthlySummary($employee, (int) now()->year, (int) now()->month);
             $pendingLeaves = LeaveRequest::where('employee_id', $employee->id)
                 ->where('status', LeaveStatus::Pending)->count();
+
+            $visible = fn () => Task::query()->visibleTo($user);
+            $tasks = [
+                'today' => $visible()->whereDate('due_date', now()->toDateString())->count(),
+                'late' => $visible()->late()->count(),
+                'waiting_review' => $visible()->where('status', TaskStatus::WaitingReview)->count(),
+                'changes_requested' => $visible()->where('status', TaskStatus::ChangesRequested)->count(),
+                'projects' => Project::query()->visibleTo($user)->open()->count(),
+            ];
         }
 
         return view('livewire.employee.dashboard', [
@@ -65,6 +79,7 @@ class Dashboard extends Component
             'today' => $today,
             'summary' => $summary,
             'pendingLeaves' => $pendingLeaves,
+            'tasks' => $tasks,
         ]);
     }
 }

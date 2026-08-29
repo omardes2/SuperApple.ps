@@ -21,6 +21,11 @@ class DatabaseSeeder extends Seeder
             EmployeeSeeder::class,
             AttendanceSeeder::class,
             LeaveRequestSeeder::class,
+            // Sprint 2 — operational core
+            CustomerSeeder::class,
+            ServiceSeeder::class,
+            ProjectSeeder::class,
+            TaskSeeder::class,
         ]);
     }
 }

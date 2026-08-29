@@ -27,6 +27,26 @@
         @endcan
     </div>
 
+    {{-- Operational overview (customers / projects / tasks) --}}
+    @if ($ops)
+        <div>
+            <h3 class="mb-3 text-sm font-semibold text-slate-500">النشاط التشغيلي</h3>
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+                @can('customers.view')
+                    <a href="{{ route('admin.customers') }}" class="block"><x-stat-card label="عملاء نشطون" :value="$ops['active_customers']" icon="users" tone="brand" /></a>
+                @endcan
+                @can('projects.view')
+                    <a href="{{ route('admin.projects') }}" class="block"><x-stat-card label="مشاريع نشطة" :value="$ops['active_projects']" icon="folder" tone="emerald" /></a>
+                @endcan
+                @can('tasks.view')
+                    <a href="{{ route('admin.tasks') }}" class="block"><x-stat-card label="مهام اليوم" :value="$ops['tasks_today']" icon="check" tone="violet" /></a>
+                    <a href="{{ route('admin.tasks', ['status' => 'waiting_review']) }}" class="block"><x-stat-card label="بانتظار المراجعة" :value="$ops['waiting_review']" icon="doc" tone="amber" /></a>
+                    <a href="{{ route('admin.tasks') }}" class="block"><x-stat-card label="مهام متأخرة" :value="$ops['late_tasks']" icon="minus" tone="red" /></a>
+                @endcan
+            </div>
+        </div>
+    @endif
+
     {{-- HR operational overview --}}
     @if ($hr)
         <div>

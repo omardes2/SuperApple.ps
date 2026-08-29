@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             SettingsSeeder::class,
             UserSeeder::class,
+            // Sprint 1 — HR
+            DepartmentSeeder::class,
+            LeaveTypeSeeder::class,
+            EmployeeSeeder::class,
+            AttendanceSeeder::class,
+            LeaveRequestSeeder::class,
         ]);
     }
 }

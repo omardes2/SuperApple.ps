@@ -42,18 +42,36 @@ final class Permissions
                 'services.view' => 'عرض الخدمات',
                 'services.manage' => 'إدارة الخدمات',
             ]],
+            'departments' => ['financial' => false, 'permissions' => [
+                'departments.view' => 'عرض الأقسام',
+                'departments.create' => 'إضافة قسم',
+                'departments.edit' => 'تعديل قسم',
+                'departments.manage' => 'إدارة الأقسام',
+            ]],
             'employees' => ['financial' => false, 'permissions' => [
                 'employees.view' => 'عرض الموظفين',
+                'employees.create' => 'إضافة موظف',
+                'employees.edit' => 'تعديل موظف',
                 'employees.manage' => 'إدارة الموظفين',
+                'employees.documents' => 'إدارة مستندات الموظفين',
             ]],
             'attendance' => ['financial' => false, 'permissions' => [
-                'attendance.view' => 'عرض الدوام',
+                'attendance.view' => 'عرض دوام جميع الموظفين',
+                'attendance.view_own' => 'عرض الدوام الخاص',
+                'attendance.check_in' => 'تسجيل الحضور',
+                'attendance.check_out' => 'تسجيل الانصراف',
                 'attendance.manage' => 'إدارة الدوام',
+                'attendance.adjust' => 'تعديل سجلات الدوام',
+                'attendance.reports' => 'تقارير الدوام',
             ]],
             'leaves' => ['financial' => false, 'permissions' => [
-                'leaves.view' => 'عرض الإجازات',
+                'leaves.view' => 'عرض إجازات جميع الموظفين',
+                'leaves.view_own' => 'عرض الإجازات الخاصة',
                 'leaves.request' => 'تقديم طلب إجازة',
+                'leaves.create' => 'إنشاء طلب إجازة',
                 'leaves.approve' => 'اعتماد الإجازات',
+                'leaves.reject' => 'رفض الإجازات',
+                'leaves.manage' => 'إدارة الإجازات',
             ]],
             'suppliers' => ['financial' => false, 'permissions' => [
                 'suppliers.view' => 'عرض الموردين',
@@ -171,7 +189,7 @@ final class Permissions
                 'roles.manage', // reserved for Super Admin by default
             ])),
 
-            RoleName::Accountant->value => [
+            RoleName::Accountant->value => array_merge([
                 'dashboard.view', 'customers.view', 'suppliers.view', 'suppliers.manage',
                 'subscriptions.view', 'subscriptions.manage', 'notifications.view',
                 'finance.view', 'quotations.view', 'quotations.manage',
@@ -179,32 +197,47 @@ final class Permissions
                 'expenses.view', 'expenses.manage', 'accounts.view', 'accounts.manage',
                 'accounting.view', 'accounting.manage', 'payroll.view',
                 'reports.financial', 'reports.operational', 'audit.view',
-            ],
+            ], self::selfService()),
 
-            RoleName::HrManager->value => [
-                'dashboard.view', 'employees.view', 'employees.manage',
-                'attendance.view', 'attendance.manage', 'leaves.view', 'leaves.approve',
-                'payroll.view', 'payroll.manage', 'reports.operational',
-                'notifications.view',
-            ],
+            RoleName::HrManager->value => array_merge([
+                'dashboard.view', 'notifications.view', 'reports.operational',
+                'departments.view', 'departments.create', 'departments.edit', 'departments.manage',
+                'employees.view', 'employees.create', 'employees.edit', 'employees.manage', 'employees.documents',
+                'attendance.view', 'attendance.manage', 'attendance.adjust', 'attendance.reports',
+                'leaves.view', 'leaves.approve', 'leaves.reject', 'leaves.manage',
+                'payroll.view', 'payroll.manage',
+            ], self::selfService()),
 
-            RoleName::ProjectManager->value => [
+            RoleName::ProjectManager->value => array_merge([
                 'dashboard.view', 'customers.view', 'projects.view', 'projects.manage',
                 'tasks.view', 'tasks.create', 'tasks.assign', 'tasks.review',
                 'services.view', 'reports.operational', 'notifications.view',
-                'attendance.view',
-            ],
+                'departments.view', 'employees.view', 'attendance.view',
+            ], self::selfService()),
 
-            RoleName::TeamLeader->value => [
+            RoleName::TeamLeader->value => array_merge([
                 'dashboard.view', 'projects.view', 'tasks.view', 'tasks.create',
-                'tasks.assign', 'tasks.review', 'attendance.view', 'leaves.request',
-                'notifications.view',
-            ],
+                'tasks.assign', 'tasks.review', 'notifications.view',
+            ], self::selfService()),
 
-            RoleName::Employee->value => [
-                'dashboard.view', 'projects.view', 'tasks.view',
-                'attendance.view', 'leaves.request', 'notifications.view',
-            ],
+            RoleName::Employee->value => array_merge([
+                'dashboard.view', 'projects.view', 'tasks.view', 'notifications.view',
+            ], self::selfService()),
+        ];
+    }
+
+    /**
+     * Personal HR self-service every staff member gets: see own attendance,
+     * check in/out, and file/see own leave. No visibility into other people's
+     * records and nothing financial.
+     *
+     * @return list<string>
+     */
+    public static function selfService(): array
+    {
+        return [
+            'attendance.view_own', 'attendance.check_in', 'attendance.check_out',
+            'leaves.view_own', 'leaves.create', 'leaves.request',
         ];
     }
 }

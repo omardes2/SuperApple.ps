@@ -27,13 +27,24 @@
         @endcan
     </div>
 
-    <div class="rounded-xl border border-slate-200 bg-white p-6">
-        <div class="flex items-center gap-3">
-            <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600"><x-icon name="grid" /></span>
-            <div>
-                <h3 class="font-semibold text-slate-800">المرحلة الأولى (Sprint 0) جاهزة</h3>
-                <p class="text-sm text-slate-500">تم تجهيز البنية الأساسية: المصادقة، الأدوار والصلاحيات، الإعدادات، وسجل العمليات. الوحدات التشغيلية والمالية تُبنى في المراحل التالية.</p>
+    {{-- HR operational overview --}}
+    @if ($hr)
+        <div>
+            <h3 class="mb-3 text-sm font-semibold text-slate-500">الموارد البشرية اليوم</h3>
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+                @can('employees.view')
+                    <x-stat-card label="إجمالي الموظفين" :value="$hr['total_employees']" icon="badge" tone="brand" />
+                @endcan
+                @can('attendance.view')
+                    <x-stat-card label="الحاضرون اليوم" :value="$hr['present']" icon="clock" tone="emerald" />
+                    <x-stat-card label="المتأخرون اليوم" :value="$hr['late']" icon="clock" tone="amber" />
+                    <x-stat-card label="الغائبون اليوم" :value="$hr['absent']" icon="minus" tone="red" />
+                @endcan
+                @can('leaves.view')
+                    <x-stat-card label="في إجازة" :value="$hr['on_leave']" icon="calendar" tone="violet" />
+                    <x-stat-card label="طلبات إجازة معلّقة" :value="$hr['pending_leaves']" icon="doc" tone="slate" />
+                @endcan
             </div>
         </div>
-    </div>
+    @endif
 </div>

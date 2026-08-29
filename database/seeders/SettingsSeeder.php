@@ -36,6 +36,7 @@ class SettingsSeeder extends Seeder
             'grace_minutes' => ['value' => '15', 'type' => 'int'],
             'work_days' => ['value' => ['sun', 'mon', 'tue', 'wed', 'thu'], 'type' => 'json'],
             'weekend' => ['value' => ['fri', 'sat'], 'type' => 'json'],
+            'default_working_hours' => ['value' => '8', 'type' => 'int'],
         ]);
 
         $settings->setMany('payroll', [

@@ -2,21 +2,29 @@
 
 namespace App\Livewire\Employee;
 
-use App\Enums\LeaveStatus;
 use App\Livewire\Concerns\ResolvesActingEmployee;
 use App\Models\AttendanceRecord;
-use App\Models\LeaveRequest;
 use App\Services\AttendanceService;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.employee')]
-#[Title('الرئيسية')]
-class Dashboard extends Component
+#[Title('دوامي')]
+class MyAttendance extends Component
 {
     use ResolvesActingEmployee;
+
+    public int $month;
+
+    public int $year;
+
+    public function mount(): void
+    {
+        $this->authorize('attendance.view_own');
+        $this->month = (int) now()->month;
+        $this->year = (int) now()->year;
+    }
 
     public function checkIn(AttendanceService $service): void
     {
@@ -44,27 +52,22 @@ class Dashboard extends Component
 
     public function render(AttendanceService $service)
     {
-        // The employee dashboard is operational only — never any financial data.
-        $employee = Auth::user()->employee;
+        $employee = $this->actingEmployee();
 
-        $today = null;
-        $summary = null;
-        $pendingLeaves = 0;
+        $today = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereDate('attendance_date', now()->toDateString())
+            ->first();
 
-        if ($employee) {
-            $today = AttendanceRecord::where('employee_id', $employee->id)
-                ->whereDate('attendance_date', now()->toDateString())
-                ->first();
-            $summary = $service->monthlySummary($employee, (int) now()->year, (int) now()->month);
-            $pendingLeaves = LeaveRequest::where('employee_id', $employee->id)
-                ->where('status', LeaveStatus::Pending)->count();
-        }
+        $records = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereYear('attendance_date', $this->year)
+            ->whereMonth('attendance_date', $this->month)
+            ->orderByDesc('attendance_date')
+            ->get();
 
-        return view('livewire.employee.dashboard', [
-            'employee' => $employee,
+        return view('livewire.employee.my-attendance', [
             'today' => $today,
-            'summary' => $summary,
-            'pendingLeaves' => $pendingLeaves,
+            'records' => $records,
+            'summary' => $service->monthlySummary($employee, $this->year, $this->month),
         ]);
     }
 }

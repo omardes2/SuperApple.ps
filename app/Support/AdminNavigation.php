@@ -46,9 +46,10 @@ final class AdminNavigation
             [
                 'label' => 'الموارد البشرية',
                 'items' => [
-                    ['route' => null, 'label' => 'الموظفون', 'icon' => 'badge', 'permission' => 'employees.view'],
-                    ['route' => null, 'label' => 'الدوام', 'icon' => 'clock', 'permission' => 'attendance.view'],
-                    ['route' => null, 'label' => 'الإجازات', 'icon' => 'calendar', 'permission' => 'leaves.view'],
+                    ['route' => 'admin.employees', 'label' => 'الموظفون', 'icon' => 'badge', 'permission' => 'employees.view'],
+                    ['route' => 'admin.departments', 'label' => 'الأقسام', 'icon' => 'grid', 'permission' => 'departments.view'],
+                    ['route' => 'admin.attendance', 'label' => 'الدوام', 'icon' => 'clock', 'permission' => 'attendance.view'],
+                    ['route' => 'admin.leaves', 'label' => 'الإجازات', 'icon' => 'calendar', 'permission' => 'leaves.view'],
                     ['route' => null, 'label' => 'الرواتب', 'icon' => 'wallet', 'permission' => 'payroll.view'],
                 ],
             ],

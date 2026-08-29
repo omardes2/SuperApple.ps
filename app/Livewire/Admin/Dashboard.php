@@ -2,6 +2,12 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\AttendanceStatus;
+use App\Enums\LeaveStatus;
+use App\Models\AttendanceRecord;
+use App\Models\Employee;
+use App\Models\LeaveRequest;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -12,8 +18,27 @@ class Dashboard extends Component
 {
     public function render()
     {
-        // Sprint 0 baseline dashboard. Financial cards are wired up in later
-        // sprints and are always gated behind the relevant permission.
-        return view('livewire.admin.dashboard');
+        $user = Auth::user();
+        $hr = null;
+
+        // HR operational cards — only computed for users allowed to see them.
+        if ($user->canAny(['employees.view', 'attendance.view', 'leaves.view'])) {
+            $today = now()->toDateString();
+            $dayRecords = AttendanceRecord::whereDate('attendance_date', $today)->get();
+            $activeCount = Employee::active()->count();
+            $present = $dayRecords->whereNotNull('check_in_at')->pluck('employee_id')->unique()->count();
+            $onLeave = $dayRecords->where('status', AttendanceStatus::Leave)->count();
+
+            $hr = [
+                'total_employees' => Employee::count(),
+                'present' => $present,
+                'late' => $dayRecords->where('status', AttendanceStatus::Late)->count(),
+                'on_leave' => $onLeave,
+                'absent' => max(0, $activeCount - $present - $onLeave),
+                'pending_leaves' => LeaveRequest::where('status', LeaveStatus::Pending)->count(),
+            ];
+        }
+
+        return view('livewire.admin.dashboard', ['hr' => $hr]);
     }
 }

@@ -16,8 +16,8 @@
             ['route' => 'employee.dashboard', 'label' => 'الرئيسية', 'icon' => 'home', 'permission' => 'dashboard.view'],
             ['route' => null, 'label' => 'مهامي', 'icon' => 'check', 'permission' => 'tasks.view'],
             ['route' => null, 'label' => 'مشاريعي', 'icon' => 'folder', 'permission' => 'projects.view'],
-            ['route' => null, 'label' => 'الدوام', 'icon' => 'clock', 'permission' => 'attendance.view'],
-            ['route' => null, 'label' => 'الإجازات', 'icon' => 'calendar', 'permission' => 'leaves.request'],
+            ['route' => 'employee.attendance', 'label' => 'الدوام', 'icon' => 'clock', 'permission' => 'attendance.view_own'],
+            ['route' => 'employee.leaves', 'label' => 'الإجازات', 'icon' => 'calendar', 'permission' => 'leaves.view_own'],
             ['route' => null, 'label' => 'الإشعارات', 'icon' => 'bell', 'permission' => 'notifications.view'],
         ];
     @endphp

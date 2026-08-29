@@ -21,7 +21,19 @@ Status legend: ✅ done · 🚧 in progress · ⬜ pending
 - ✅ Tests: auth, employee/PM cannot reach financial data, audit writes (no secret leak), settings save+audit, numbering, page rendering
 - ✅ migrate + test green + pint clean
 
-## Sprint 1–8
+## Sprint 1 — HR ✅ (39 tests green; 69 total)
+- ✅ Departments (CRUD, manager, active toggle, delete guard when employees exist) + `DepartmentService`
+- ✅ Employees module separate from User auth, bi-directional link, profile with tabs, documents; `EmployeeService` (auto number, circular-manager prevention). No salary/financial fields on the employee record.
+- ✅ Attendance: check-in/out (server clock, no double in/out), grace/late/worked/overtime maths, admin dashboard + adjustments, employee self-service; `AttendanceService`
+- ✅ Leaves: types, request workflow (submit/approve/reject/cancel/reverse), working-day counting excluding weekend, overlap protection, attendance sync on approval; `LeaveService`
+- ✅ Enums: EmploymentStatus, EmploymentType, AttendanceStatus, AttendanceSource, LeaveStatus
+- ✅ Granular permissions + self-service bundle; employee/admin dashboards updated with HR cards
+- ✅ Database notifications (leave submitted/approved/rejected, attendance adjusted)
+- ✅ Seeders: 8 departments, 5 leave types, 10 employees linked to demo users, ~2 weeks attendance, sample leaves
+- ✅ Docs: `docs/HR.md`
+- ✅ Full suite green + pint clean; no Sprint 0 regression
+
+## Sprint 2–8
 See ARCHITECTURE.md §8 and DATABASE.md. Executed only after the prior sprint's tests pass.
 
 ## Definition of Done per sprint

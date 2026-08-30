@@ -20,9 +20,10 @@ class ProductionSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RolePermissionSeeder::class,   // roles + permissions
-            SettingsSeeder::class,         // default settings (incl. currency rules, version)
-            ChartOfAccountsSeeder::class,  // chart of accounts + system account mappings
+            RolePermissionSeeder::class,        // roles + permissions
+            SettingsSeeder::class,              // default settings (incl. currency rules, version)
+            ChartOfAccountsSeeder::class,       // chart of accounts + system account mappings
+            LeaveTypesProductionSeeder::class,  // core leave types (annual/sick/unpaid/emergency)
         ]);
 
         $this->command?->info('تم تجهيز البيانات الأساسية للإنتاج (أدوار/صلاحيات/دليل حسابات/إعدادات). أنشئ المدير بـ: php artisan app:create-admin');

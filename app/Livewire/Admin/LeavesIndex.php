@@ -4,8 +4,10 @@ namespace App\Livewire\Admin;
 
 use App\Enums\LeaveStatus;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Services\LeaveService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -32,9 +34,90 @@ class LeavesIndex extends Component
 
     public bool $showReview = false;
 
+    // ---- Leave-type management (leaves.manage) ----
+    public bool $showTypes = false;
+
+    public bool $showTypeForm = false;
+
+    public ?int $typeId = null;
+
+    public string $typeName = '';
+
+    public string $typeCode = '';
+
+    public bool $typeIsPaid = true;
+
+    public bool $typeRequiresAttachment = false;
+
+    public bool $typeIsActive = true;
+
     public function mount(): void
     {
         $this->authorize('leaves.view');
+    }
+
+    public function openTypes(): void
+    {
+        $this->authorize('leaves.manage');
+        $this->showTypeForm = false;
+        $this->showTypes = true;
+    }
+
+    public function newType(): void
+    {
+        $this->authorize('leaves.manage');
+        $this->reset(['typeId', 'typeName', 'typeCode', 'typeRequiresAttachment']);
+        $this->typeIsPaid = true;
+        $this->typeIsActive = true;
+        $this->showTypeForm = true;
+    }
+
+    public function editType(int $id): void
+    {
+        $this->authorize('leaves.manage');
+        $type = LeaveType::findOrFail($id);
+        $this->typeId = $type->id;
+        $this->typeName = $type->name;
+        $this->typeCode = $type->code;
+        $this->typeIsPaid = $type->is_paid;
+        $this->typeRequiresAttachment = $type->requires_attachment;
+        $this->typeIsActive = $type->is_active;
+        $this->showTypeForm = true;
+    }
+
+    public function saveType(): void
+    {
+        $this->authorize('leaves.manage');
+        $this->validate([
+            'typeName' => 'required|string|max:120',
+            'typeCode' => ['required', 'string', 'max:40', Rule::unique('leave_types', 'code')->ignore($this->typeId)],
+        ]);
+
+        $data = [
+            'name' => $this->typeName,
+            'code' => $this->typeCode,
+            'is_paid' => $this->typeIsPaid,
+            'requires_attachment' => $this->typeRequiresAttachment,
+            'is_active' => $this->typeIsActive,
+        ];
+
+        if ($this->typeId) {
+            LeaveType::findOrFail($this->typeId)->update($data);
+        } else {
+            LeaveType::create($data);
+        }
+
+        $this->showTypeForm = false;
+        session()->flash('status', 'تم حفظ نوع الإجازة.');
+    }
+
+    /** Activate/deactivate — never a hard delete, so historical requests stay valid. */
+    public function toggleTypeActive(int $id): void
+    {
+        $this->authorize('leaves.manage');
+        $type = LeaveType::findOrFail($id);
+        $type->update(['is_active' => ! $type->is_active]);
+        session()->flash('status', $type->is_active ? 'تم تفعيل النوع.' : 'تم تعطيل النوع.');
     }
 
     public function updating($name): void
@@ -94,6 +177,8 @@ class LeavesIndex extends Component
         return view('livewire.admin.leaves-index', [
             'leaves' => $leaves,
             'statusOptions' => LeaveStatus::options(),
+            'canManageTypes' => auth()->user()->can('leaves.manage'),
+            'leaveTypes' => $this->showTypes ? LeaveType::orderBy('sort_order')->orderBy('name')->get() : collect(),
         ]);
     }
 }

@@ -32,14 +32,14 @@ class BackfillTest extends TestCase
     {
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.30');
-        $payment = app(PaymentService::class)->createDraft([
+        $payment = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30',
         ]);
         app(PaymentService::class)->post($payment, [['invoice_id' => $invoice->id, 'allocated_usd' => 1000]]);
 
         // A cancelled payment (history).
         $inv2 = $this->makeIssuedInvoice($customer, '500', '3.30');
-        $p2 = app(PaymentService::class)->createDraft([
+        $p2 = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 500, 'exchange_rate' => '3.30',
         ]);
         app(PaymentService::class)->post($p2, [['invoice_id' => $inv2->id, 'allocated_usd' => 500]]);

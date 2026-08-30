@@ -75,6 +75,19 @@
                         </select>
                     </div>
                     <div>
+                        <label class="mb-1 block text-sm text-slate-600">إيداع في <span class="text-red-500">*</span></label>
+                        <select wire:model.live="account_id" @disabled(! $canEdit) class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
+                            <option value="">— اختر الصندوق/الحساب —</option>
+                            @foreach ($depositAccounts as $acc)<option value="{{ $acc->id }}">{{ $acc->name }} ({{ $acc->currency }})</option>@endforeach
+                        </select>
+                        @if ($depositAccounts->isEmpty())
+                            <p class="mt-1 text-xs text-amber-600">لا يوجد حساب نقدي/بنكي نشط بعملة {{ $payment_currency }}. أنشئ حساباً من صفحة الصناديق والبنوك.</p>
+                        @else
+                            <p class="mt-1 text-xs text-slate-400">طريقة الدفع مستقلة عن حساب الإيداع الفعلي.</p>
+                        @endif
+                        @error('account_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
                         <label class="mb-1 block text-sm text-slate-600">رقم المرجع (اختياري)</label>
                         <input type="text" wire:model.live="reference_number" @disabled(! $canEdit) class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
                     </div>
@@ -183,6 +196,7 @@
                     <div class="flex justify-between"><dt class="text-slate-500">ما يعادله USD</dt><dd class="font-semibold text-slate-800" dir="ltr">${{ number_format((float) ($payment->isDraft() ? $usdPreview : $payment->usd_equivalent), 2) }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">سعر الصرف</dt><dd dir="ltr">{{ $payment->exchange_rate ?? '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">الطريقة</dt><dd>{{ $payment->payment_method->label() }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">الحساب المستلم</dt><dd class="font-medium">@if ($receivedAccount)<a href="{{ route('admin.cash-banks') }}" class="text-brand-600 hover:underline">{{ $receivedAccount->name }}</a>@else<span class="text-amber-600">غير محدد</span>@endif</dd></div>
                     @unless ($payment->isDraft())
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">مخصّص</dt><dd dir="ltr">${{ number_format((float) $payment->allocatedUsd(), 2) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">رصيد دائن</dt><dd class="font-semibold text-emerald-700" dir="ltr">${{ number_format((float) $payment->unallocatedUsd(), 2) }}</dd></div>

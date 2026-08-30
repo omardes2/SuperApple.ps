@@ -27,7 +27,7 @@ class PaymentSecurityTest extends TestCase
         $this->actingAs($this->makeUser(RoleName::Accountant));
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = app(PaymentService::class)->createDraft([
+        $payment = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => 1000, 'exchange_rate' => '3.30',
         ]);

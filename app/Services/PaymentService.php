@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\PaymentCurrency;
 use App\Enums\PaymentStatus;
+use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
@@ -112,6 +113,20 @@ class PaymentService
             }
             if ($payment->exchange_rate === null || Money::isZeroOrNegative($payment->exchange_rate)) {
                 throw new RuntimeException('سعر الصرف مطلوب ويجب أن يكون أكبر من صفر.');
+            }
+
+            // The receiving cash/bank account is mandatory: without it the ledger
+            // cannot attribute the receipt to an operational account and the
+            // /admin/cash-banks balance would never move.
+            $account = $payment->account_id ? FinancialAccount::find($payment->account_id) : null;
+            if ($account === null) {
+                throw new RuntimeException('يجب تحديد حساب الإيداع (صندوق/بنك) قبل ترحيل الدفعة.');
+            }
+            if (! $account->is_active) {
+                throw new RuntimeException('حساب الإيداع غير نشط.');
+            }
+            if ($account->currency !== $payment->payment_currency->value) {
+                throw new RuntimeException("عملة حساب الإيداع ({$account->currency}) لا تطابق عملة الدفعة ({$payment->payment_currency->value}).");
             }
 
             // Recompute the USD equivalent authoritatively.

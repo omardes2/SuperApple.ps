@@ -45,7 +45,7 @@ class PaymentAccountingTest extends TestCase
         // Debit Cash 3,300 ; Credit AR 3,200 ; Credit Exchange Gain 100.
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => 3300, 'exchange_rate' => '3.30',
         ]);
@@ -64,7 +64,7 @@ class PaymentAccountingTest extends TestCase
         // Debit Cash 3,200 ; Debit Exchange Loss 100 ; Credit AR 3,300.
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.30');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => 3200, 'exchange_rate' => '3.20',
         ]);
@@ -82,7 +82,7 @@ class PaymentAccountingTest extends TestCase
         // Cash accounting value 3,300 ; AR 3,200 ; Gain 100.
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => 1000, 'exchange_rate' => '3.30',
         ]);
@@ -100,7 +100,7 @@ class PaymentAccountingTest extends TestCase
         $customer = $this->makeCustomer();
         $a = $this->makeIssuedInvoice($customer, '1000', '3.20');
         $b = $this->makeIssuedInvoice($customer, '1500', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => 2500, 'exchange_rate' => '3.20',
         ]);
@@ -121,7 +121,7 @@ class PaymentAccountingTest extends TestCase
         // Pay $2,000, allocate $1,500 → $500 credit at rate 3.30 = 1,650 ILS.
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1500', '3.30');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => 2000, 'exchange_rate' => '3.30',
         ]);
@@ -135,7 +135,7 @@ class PaymentAccountingTest extends TestCase
     {
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => 3300, 'exchange_rate' => '3.30',
         ]);
@@ -151,7 +151,7 @@ class PaymentAccountingTest extends TestCase
     {
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => 3300, 'exchange_rate' => '3.30',
         ]);

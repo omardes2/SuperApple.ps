@@ -174,6 +174,19 @@ trait CreatesUsers
     }
 
     /** A cash financial account backed by a GL account. */
+    /** @var array<string,FinancialAccount> */
+    private array $memoCashAccounts = [];
+
+    /**
+     * A memoised active cash account for the given currency — the deposit
+     * account a customer payment lands in. Reused within a test so repeated
+     * payments post to the same account (and its balance accumulates).
+     */
+    protected function cashAccount(string $currency = 'ILS'): FinancialAccount
+    {
+        return $this->memoCashAccounts[$currency] ??= $this->makeCashAccount($currency);
+    }
+
     protected function makeCashAccount(string $currency = 'ILS', string $opening = '0'): FinancialAccount
     {
         $code = $currency === 'USD' ? '1120' : '1110';

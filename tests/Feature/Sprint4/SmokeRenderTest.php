@@ -23,7 +23,7 @@ class SmokeRenderTest extends TestCase
     private function postedPaymentFor(Customer $customer): Payment
     {
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = app(PaymentService::class)->createDraft([
+        $payment = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => 3300, 'exchange_rate' => '3.30',
         ]);
@@ -89,7 +89,7 @@ class SmokeRenderTest extends TestCase
         $this->actingAs($accountant);
         $customer = $this->makeCustomer();
 
-        $draft = app(PaymentService::class)->createDraft([
+        $draft = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 0,
         ]);
 

@@ -48,7 +48,7 @@ class PaymentAllocationLimitTest extends TestCase
     /** An ILS draft payment for a customer (amount 0 until entered in the UI). */
     private function ilsDraft(Customer $customer)
     {
-        return $this->service()->createDraft([
+        return $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id,
             'payment_currency' => 'ILS',
             'payment_amount' => 0,
@@ -226,7 +226,7 @@ class PaymentAllocationLimitTest extends TestCase
         $this->actingAs($this->makeUser(RoleName::GeneralManager));
         $customer = $this->customer();
         $invoice = $this->makeIssuedInvoice($customer, '10.00', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => '3.00', 'exchange_rate' => '3.01',
         ]); // ~1.00 USD
@@ -241,7 +241,7 @@ class PaymentAllocationLimitTest extends TestCase
         $this->actingAs($this->makeUser(RoleName::GeneralManager));
         $customer = $this->customer();
         $invoice = $this->makeIssuedInvoice($customer, '5.00', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => '100.00', 'exchange_rate' => '3.30',
         ]);
@@ -257,7 +257,7 @@ class PaymentAllocationLimitTest extends TestCase
         $customerA = $this->customer();
         $customerB = $this->customer();
         $invoiceB = $this->makeIssuedInvoice($customerB, '100.00', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customerA->id, 'payment_currency' => 'USD',
             'payment_amount' => '50.00', 'exchange_rate' => '3.30',
         ]);
@@ -277,7 +277,7 @@ class PaymentAllocationLimitTest extends TestCase
         $this->actingAs($gm);
         $customer = $this->customer();
         $invoice = $this->makeIssuedInvoice($customer, '10.00', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 0,
         ]);
 
@@ -298,7 +298,7 @@ class PaymentAllocationLimitTest extends TestCase
         $this->actingAs($gm);
         $customer = $this->customer();
         $invoice = $this->makeIssuedInvoice($customer, '10.00', '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => '10.00', 'exchange_rate' => '3.30',
         ]);

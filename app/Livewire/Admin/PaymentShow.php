@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\FinancialAccountType;
 use App\Enums\PaymentCurrency;
 use App\Enums\PaymentMethod;
 use App\Models\Customer;
+use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\ExchangeRateService;
@@ -33,6 +35,9 @@ class PaymentShow extends Component
     public ?string $exchange_rate = null;
 
     public string $payment_method = 'cash';
+
+    /** The cash/bank account that receives the money ("إيداع في"). */
+    public ?int $account_id = null;
 
     public ?string $reference_number = null;
 
@@ -93,6 +98,7 @@ class PaymentShow extends Component
         $this->payment_amount = (string) $this->payment->payment_amount;
         $this->exchange_rate = $this->payment->exchange_rate;
         $this->payment_method = $this->payment->payment_method->value;
+        $this->account_id = $this->payment->account_id;
         $this->reference_number = $this->payment->reference_number;
         $this->notes = (string) $this->payment->notes;
 
@@ -120,6 +126,12 @@ class PaymentShow extends Component
             $this->autoMode = false;
 
             return;
+        }
+
+        // The deposit account must match the payment currency; a currency change
+        // invalidates a previously chosen account.
+        if ($name === 'payment_currency') {
+            $this->account_id = null;
         }
 
         if (in_array($name, ['payment_amount', 'payment_currency', 'exchange_rate'], true) && $this->autoMode) {
@@ -212,6 +224,13 @@ class PaymentShow extends Component
     {
         $this->authorize('post', $this->payment);
         $this->validateDraft();
+        // A destination cash/bank account is mandatory to post — the money has
+        // to land somewhere. (The service re-checks existence/active/currency.)
+        $this->validate(
+            ['account_id' => 'required|integer|exists:financial_accounts,id'],
+            ['account_id.required' => 'يجب تحديد حساب الإيداع (صندوق/بنك) قبل ترحيل الدفعة.'],
+            ['account_id' => 'حساب الإيداع'],
+        );
         $this->persistDraft($service);
 
         $rows = [];
@@ -292,6 +311,7 @@ class PaymentShow extends Component
             'payment_amount' => $this->payment_amount,
             'exchange_rate' => $this->exchange_rate,
             'payment_method' => $this->payment_method,
+            'account_id' => $this->account_id,
             'reference_number' => $this->reference_number,
             'notes' => $this->notes,
         ]);
@@ -333,10 +353,21 @@ class PaymentShow extends Component
             $this->allocations
         ));
 
+        // Deposit accounts the money can land in: active cash/bank accounts whose
+        // currency matches this payment. USD is offered only if such an account
+        // exists (we never force one into being).
+        $depositAccounts = FinancialAccount::active()
+            ->whereIn('type', [FinancialAccountType::Cash->value, FinancialAccountType::Bank->value])
+            ->where('currency', $this->payment_currency)
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'currency']);
+
         return view('livewire.admin.payment-show', [
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'currencyOptions' => PaymentCurrency::options(),
             'methodOptions' => PaymentMethod::options(),
+            'depositAccounts' => $depositAccounts,
+            'receivedAccount' => $this->payment->account_id ? FinancialAccount::find($this->payment->account_id) : null,
             'openInvoices' => $openInvoices,
             'usdPreview' => $this->usdPreview,
             'allocatedTotal' => $allocatedTotal,

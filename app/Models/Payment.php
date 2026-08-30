@@ -20,7 +20,7 @@ class Payment extends Model
     /** Frozen once the payment is posted (enforced in booted()). */
     public const LOCKED_FIELDS = [
         'customer_id', 'payment_date', 'payment_currency', 'payment_amount',
-        'exchange_rate', 'usd_equivalent', 'payment_method',
+        'exchange_rate', 'usd_equivalent', 'payment_method', 'account_id',
     ];
 
     protected $fillable = [

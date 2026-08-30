@@ -37,7 +37,7 @@ class PaymentReversalTest extends TestCase
     private function paidScenario(Customer $customer, string $invoiceTotal = '1000'): array
     {
         $invoice = $this->makeIssuedInvoice($customer, $invoiceTotal, '3.20');
-        $payment = $this->service()->createDraft([
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => (string) ((float) $invoiceTotal * 3.30), 'exchange_rate' => '3.30',
         ]);
@@ -98,9 +98,9 @@ class PaymentReversalTest extends TestCase
         $invoice = $this->makeIssuedInvoice($customer, '3000', '3.20');
 
         // Two payments: $1,000 then $500 → invoice PartiallyPaid at $1,500 paid.
-        $p1 = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
+        $p1 = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
         $this->service()->post($p1, [['invoice_id' => $invoice->id, 'allocated_usd' => 1000]]);
-        $p2 = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 500, 'exchange_rate' => '3.30']);
+        $p2 = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 500, 'exchange_rate' => '3.30']);
         $this->service()->post($p2, [['invoice_id' => $invoice->id, 'allocated_usd' => 500]]);
 
         $this->assertSame('1500.00', $invoice->fresh()->paid_usd_equivalent);

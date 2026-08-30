@@ -43,7 +43,7 @@ class EndToEndTest extends TestCase
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.30');
 
         // Pay in full (ILS) and allocate to the invoice.
-        $payment = app(PaymentService::class)->createDraft([
+        $payment = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('ILS')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'ILS',
             'payment_amount' => '3300', 'exchange_rate' => '3.30', 'payment_date' => '2026-08-05',
         ]);
@@ -65,7 +65,7 @@ class EndToEndTest extends TestCase
         $invoice = $sub->invoices()->firstOrFail();
         $this->assertSame('issued', $invoice->status->value);
 
-        $payment = app(PaymentService::class)->createDraft([
+        $payment = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => '600', 'exchange_rate' => '3.60', 'payment_date' => '2026-08-05',
         ]);
@@ -115,7 +115,7 @@ class EndToEndTest extends TestCase
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.30');
 
-        $payment = app(PaymentService::class)->createDraft([
+        $payment = app(PaymentService::class)->createDraft(['account_id' => $this->cashAccount('USD')->id,
             'customer_id' => $customer->id, 'payment_currency' => 'USD',
             'payment_amount' => '1000', 'exchange_rate' => '3.30', 'payment_date' => '2026-08-05',
         ]);

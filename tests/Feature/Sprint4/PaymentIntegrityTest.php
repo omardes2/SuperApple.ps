@@ -32,8 +32,8 @@ class PaymentIntegrityTest extends TestCase
     public function test_payment_numbers_are_unique_and_sequential(): void
     {
         $customer = $this->makeCustomer();
-        $a = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 100, 'exchange_rate' => '3.30']);
-        $b = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 100, 'exchange_rate' => '3.30']);
+        $a = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 100, 'exchange_rate' => '3.30']);
+        $b = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 100, 'exchange_rate' => '3.30']);
 
         $this->assertNotSame($a->payment_number, $b->payment_number);
         $this->assertStringStartsWith('PAY-', $a->payment_number);
@@ -44,11 +44,11 @@ class PaymentIntegrityTest extends TestCase
     {
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $p1 = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
+        $p1 = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
         $this->service()->post($p1, [['invoice_id' => $invoice->id, 'allocated_usd' => 1000]]);
         $this->service()->cancel($p1->fresh(), auth()->user(), 'خطأ');
 
-        $p2 = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 500, 'exchange_rate' => '3.30']);
+        $p2 = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 500, 'exchange_rate' => '3.30']);
         $this->assertNotSame($p1->payment_number, $p2->payment_number);
     }
 
@@ -58,7 +58,7 @@ class PaymentIntegrityTest extends TestCase
         $good = $this->makeIssuedInvoice($customer, '1000', '3.20');
         $other = $this->makeIssuedInvoice($this->makeCustomer(), '1000', '3.20'); // different customer → invalid
 
-        $payment = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 2000, 'exchange_rate' => '3.30']);
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 2000, 'exchange_rate' => '3.30']);
 
         try {
             $this->service()->post($payment, [
@@ -81,7 +81,7 @@ class PaymentIntegrityTest extends TestCase
     {
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
         $this->service()->post($payment, [['invoice_id' => $invoice->id, 'allocated_usd' => 1000]]);
 
         $invoice->refresh();
@@ -98,7 +98,7 @@ class PaymentIntegrityTest extends TestCase
         $newer->forceFill(['due_date' => '2026-12-31'])->saveQuietly();
         $older->forceFill(['due_date' => '2026-09-01'])->saveQuietly();
 
-        $payment = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1200, 'exchange_rate' => '3.30']);
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1200, 'exchange_rate' => '3.30']);
         $plan = $this->service()->autoAllocatePlan($payment);
 
         $this->assertSame($older->id, $plan[0]['invoice_id']);
@@ -114,7 +114,7 @@ class PaymentIntegrityTest extends TestCase
         $b = $this->makeIssuedInvoice($customer, '1500', '3.20');
 
         // One payment settles both invoices — appears once as a $2,500 credit.
-        $payment = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 2500, 'exchange_rate' => '3.30']);
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 2500, 'exchange_rate' => '3.30']);
         $this->service()->post($payment, [
             ['invoice_id' => $a->id, 'allocated_usd' => 1000],
             ['invoice_id' => $b->id, 'allocated_usd' => 1500],
@@ -133,7 +133,7 @@ class PaymentIntegrityTest extends TestCase
     {
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '1000', '3.20');
-        $payment = $this->service()->createDraft(['customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
+        $payment = $this->service()->createDraft(['account_id' => $this->cashAccount('USD')->id, 'customer_id' => $customer->id, 'payment_currency' => 'USD', 'payment_amount' => 1000, 'exchange_rate' => '3.30']);
         $this->service()->post($payment, [['invoice_id' => $invoice->id, 'allocated_usd' => 1000]]);
         $this->service()->cancel($payment->fresh(), auth()->user(), 'خطأ');
 

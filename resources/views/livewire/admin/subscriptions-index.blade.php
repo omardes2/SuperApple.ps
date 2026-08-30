@@ -57,7 +57,6 @@
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="mb-1 block text-sm text-slate-600">العميل</label><select wire:model="customer_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">— اختر —</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>@error('customer_id')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
-                <div><label class="mb-1 block text-sm text-slate-600">المشروع (اختياري)</label><select wire:model="project_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">—</option>@foreach ($projects as $p)<option value="{{ $p->id }}">{{ $p->name }}</option>@endforeach</select></div>
             </div>
             <div><label class="mb-1 block text-sm text-slate-600">اسم الاشتراك</label><input wire:model="name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">@error('name')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
             <div class="grid grid-cols-3 gap-3">

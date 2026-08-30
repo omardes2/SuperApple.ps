@@ -7,8 +7,6 @@ use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\Project;
-use App\Models\Quotation;
 use App\Models\Subscription;
 use App\Models\Supplier;
 use App\Models\SupplierBill;
@@ -43,12 +41,6 @@ class GlobalSearchService
                     ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->name, $m->customer_number]));
         }
 
-        if ($user->can('projects.view')) {
-            $groups[] = $this->group('projects', 'المشاريع', 'admin.projects.show',
-                Project::query()->where(fn ($q) => $q->where('name', 'like', $like)->orWhere('project_number', 'like', $like))
-                    ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->name, $m->project_number]));
-        }
-
         if ($user->can('tasks.view')) {
             $groups[] = $this->group('tasks', 'المهام', 'admin.tasks.show',
                 Task::query()->where(fn ($q) => $q->where('title', 'like', $like)->orWhere('task_number', 'like', $like))
@@ -59,12 +51,6 @@ class GlobalSearchService
             $groups[] = $this->group('employees', 'الموظفون', 'admin.employees.show',
                 Employee::query()->where(fn ($q) => $q->where('full_name', 'like', $like)->orWhere('employee_number', 'like', $like))
                     ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->full_name, $m->employee_number]));
-        }
-
-        if ($user->can('quotations.view')) {
-            $groups[] = $this->group('quotations', 'عروض الأسعار', 'admin.quotations.show',
-                Quotation::query()->where('quotation_number', 'like', $like)
-                    ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->quotation_number, $m->customer?->name]));
         }
 
         if ($user->can('invoices.view')) {

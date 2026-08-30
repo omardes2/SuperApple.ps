@@ -27,7 +27,7 @@ class SmokeRenderTest extends TestCase
 
         foreach ([
             '/admin', '/admin/reports', '/admin/reports/ar-aging', '/admin/reports/customers',
-            '/admin/reports/projects', '/admin/reports/subscriptions', '/admin/reports/whatsapp',
+            '/admin/reports/subscriptions', '/admin/reports/whatsapp',
             '/admin/notifications', '/admin/activity', '/admin/users', '/admin/roles',
             '/admin/production-readiness', '/admin/audit-log',
         ] as $url) {

@@ -51,13 +51,6 @@
                             @error('customer_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="mb-1 block text-sm font-medium text-slate-700">المشروع</label>
-                            <select wire:model="project_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                                <option value="">— بدون —</option>
-                                @foreach ($projects as $p)<option value="{{ $p->id }}">{{ $p->name }}</option>@endforeach
-                            </select>
-                        </div>
-                        <div>
                             <label class="mb-1 block text-sm font-medium text-slate-700">تاريخ الفاتورة</label>
                             <input type="date" wire:model="invoice_date" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         </div>
@@ -108,7 +101,6 @@
                     @if ($invoice->issued_at)<li class="flex justify-between"><span>صدرت</span><span dir="ltr">{{ $invoice->issued_at->format('Y-m-d H:i') }}</span></li>@endif
                     @if ($invoice->sent_at)<li class="flex justify-between"><span>أُرسلت</span><span dir="ltr">{{ $invoice->sent_at->format('Y-m-d') }}</span></li>@endif
                     @if ($invoice->cancelled_at)<li class="flex justify-between"><span>أُلغيت</span><span dir="ltr">{{ $invoice->cancelled_at->format('Y-m-d') }}</span></li>@endif
-                    @if ($invoice->quotation)<li class="flex justify-between"><span>من عرض</span><span dir="ltr">{{ $invoice->quotation->quotation_number }}</span></li>@endif
                 </ul>
             </div>
 

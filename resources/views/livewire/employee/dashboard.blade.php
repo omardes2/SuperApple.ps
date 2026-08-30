@@ -43,7 +43,6 @@
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <a href="{{ route('employee.tasks', ['filter' => 'waiting_review']) }}" class="block"><x-stat-card label="بانتظار المراجعة" :value="$tasks['waiting_review']" icon="doc" tone="amber" /></a>
             <a href="{{ route('employee.tasks', ['filter' => 'changes_requested']) }}" class="block"><x-stat-card label="مطلوب تعديلات" :value="$tasks['changes_requested']" icon="check" tone="red" /></a>
-            <a href="{{ route('employee.projects') }}" class="block"><x-stat-card label="مشاريعي النشطة" :value="$tasks['projects']" icon="folder" tone="brand" /></a>
             <x-stat-card label="طلبات إجازة معلّقة" :value="$pendingLeaves" icon="calendar" tone="violet" />
         </div>
 

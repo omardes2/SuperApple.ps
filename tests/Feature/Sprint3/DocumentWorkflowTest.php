@@ -3,19 +3,20 @@
 namespace Tests\Feature\Sprint3;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\QuotationStatus;
 use App\Enums\RoleName;
 use App\Livewire\Admin\InvoiceShow;
-use App\Livewire\Admin\QuotationShow;
-use App\Models\Quotation;
+use App\Models\Invoice;
 use App\Services\InvoiceService;
-use App\Services\QuotationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use RuntimeException;
 use Tests\Concerns\CreatesUsers;
 use Tests\TestCase;
 
+/**
+ * Invoice draft-editing workflow. (Quotations were retired — invoices are now
+ * created directly from the customer, so the quotation lifecycle tests were
+ * removed; the shared line-editor behaviour is exercised here on invoices.)
+ */
 class DocumentWorkflowTest extends TestCase
 {
     use CreatesUsers, RefreshDatabase;
@@ -26,68 +27,40 @@ class DocumentWorkflowTest extends TestCase
         $this->seedRoles();
     }
 
-    private function draftQuotation(): Quotation
+    private function draftInvoice(): Invoice
     {
-        return app(QuotationService::class)->createDraft(
-            ['customer_id' => $this->makeCustomer()->id],
-            [['item_name' => 'خدمة', 'quantity' => 1, 'unit_price_usd' => 100]]);
+        return app(InvoiceService::class)->createDraft(
+            ['customer_id' => $this->makeCustomer()->id, 'exchange_rate' => '3.30'],
+            [['item_name' => 'خدمة', 'quantity' => 1, 'unit_price_usd' => 100, 'tax_rate' => 0]]);
     }
 
-    public function test_draft_quotation_can_be_edited_via_component(): void
+    public function test_draft_invoice_can_be_edited_via_component(): void
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $invoice = $this->draftInvoice();
 
-        Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $invoice])
             ->set('lines.0.unit_price_usd', 250)
             ->set('lines.0.quantity', 2)
             ->call('save')
             ->assertHasNoErrors();
 
-        $this->assertSame('500.00', $q->fresh()->total_usd);
-    }
-
-    public function test_sent_quotation_cannot_be_silently_edited(): void
-    {
-        $gm = $this->makeUser(RoleName::GeneralManager);
-        $this->actingAs($gm);
-        $q = $this->draftQuotation();
-        app(QuotationService::class)->send($q);
-
-        // Service layer refuses to edit a non-draft.
-        $this->expectException(RuntimeException::class);
-        app(QuotationService::class)->updateDraft($q->fresh(), [], [['item_name' => 'x', 'quantity' => 1, 'unit_price_usd' => 999]]);
-    }
-
-    public function test_sent_quotation_can_be_duplicated_as_revision(): void
-    {
-        $gm = $this->makeUser(RoleName::GeneralManager);
-        $this->actingAs($gm);
-        $q = $this->draftQuotation();
-        app(QuotationService::class)->send($q);
-
-        $revision = app(QuotationService::class)->duplicateAsRevision($q->fresh());
-
-        $this->assertSame(QuotationStatus::Draft, $revision->status);
-        $this->assertSame($q->id, $revision->revision_of);
-        $this->assertSame(1, $revision->items()->count());
-        // The original is untouched.
-        $this->assertSame(QuotationStatus::Sent, $q->fresh()->status);
+        $this->assertSame('500.00', $invoice->fresh()->total_usd);
     }
 
     public function test_negative_price_and_quantity_are_rejected(): void
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $invoice = $this->draftInvoice();
 
-        Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $invoice])
             ->set('lines.0.unit_price_usd', -10)
             ->call('save')
             ->assertHasErrors('lines.0.unit_price_usd');
 
-        Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $invoice])
             ->set('lines.0.quantity', 0)
             ->call('save')
             ->assertHasErrors('lines.0.quantity');

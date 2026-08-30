@@ -75,8 +75,8 @@ class AuthorizationTest extends TestCase
         $this->assertFalse($pm->can('finance.view'));
         $this->assertFalse($pm->can('reports.financial'));
 
-        // But keeps its operational abilities.
-        $this->assertTrue($pm->can('projects.manage'));
+        // But keeps its operational abilities (projects were retired → tasks).
+        $this->assertTrue($pm->can('tasks.manage'));
         $this->assertTrue($pm->can('tasks.assign'));
     }
 

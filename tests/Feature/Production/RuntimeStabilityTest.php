@@ -7,12 +7,9 @@ use App\Enums\RoleName;
 use App\Livewire\Admin\InvoiceShow;
 use App\Livewire\Admin\InvoicesIndex;
 use App\Livewire\Admin\PaymentsIndex;
-use App\Livewire\Admin\QuotationShow;
 use App\Models\Invoice;
-use App\Models\Quotation;
 use App\Models\Service;
 use App\Services\InvoiceService;
-use App\Services\QuotationService;
 use Database\Seeders\ProductionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -57,14 +54,6 @@ class RuntimeStabilityTest extends TestCase
         ]);
     }
 
-    private function draftQuotation(): Quotation
-    {
-        return app(QuotationService::class)->createDraft(
-            ['customer_id' => $this->makeCustomer()->id],
-            [['item_name' => 'بند', 'quantity' => 1, 'unit_price_usd' => 100, 'tax_rate' => 0]],
-        );
-    }
-
     private function draftInvoice(): Invoice
     {
         return app(InvoiceService::class)->createDraft(
@@ -81,10 +70,10 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
         $service = $this->serviceWithNullFinancials();
 
-        $component = Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        $component = Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->set('lines.0.service_id', $service->id)
             ->assertHasNoErrors();
 
@@ -117,13 +106,13 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
         $service = Service::create([
             'service_code' => 'SRV-PRICED', 'name' => 'تصميم هوية', 'service_type' => 'one_time',
             'default_price_usd' => '500.00', 'tax_rate' => '16.00', 'is_active' => true,
         ]);
 
-        $component = Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        $component = Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->set('lines.0.service_id', $service->id)
             ->set('lines.0.quantity', 2)
             ->assertHasNoErrors()
@@ -146,9 +135,9 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
 
-        Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->set('lines.0.unit_price_usd', '')   // cleared price
             ->set('lines.0.quantity', '')          // cleared quantity
             ->set('lines.0.tax_rate', '')          // cleared tax
@@ -161,9 +150,9 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
 
-        $component = Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        $component = Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->set('lines.0.service_id', '')       // manual line
             ->set('lines.0.item_name', 'بند مجاني')
             ->set('lines.0.unit_price_usd', 0)
@@ -176,14 +165,14 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
         $nullSvc = $this->serviceWithNullFinancials();
         $priced = Service::create([
             'service_code' => 'SRV-2', 'name' => 'استضافة', 'service_type' => 'monthly',
             'default_price_usd' => '120.00', 'tax_rate' => '0', 'is_active' => true,
         ]);
 
-        $component = Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        $component = Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->set('lines.0.service_id', $nullSvc->id)   // first: null-priced
             ->assertHasNoErrors()
             ->set('lines.0.service_id', $priced->id)    // then switch
@@ -197,10 +186,10 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
         $svc = $this->serviceWithNullFinancials();
 
-        Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->call('addLine')
             ->set('lines.1.service_id', $svc->id)       // null-priced second line
             ->assertHasNoErrors()
@@ -220,13 +209,13 @@ class RuntimeStabilityTest extends TestCase
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
-        $q = $this->draftQuotation();
+        $q = $this->draftInvoice();
         $svc = Service::create([
             'service_code' => 'SRV-R', 'name' => 'خدمة', 'service_type' => 'one_time',
             'default_price_usd' => '200.00', 'tax_rate' => '10', 'is_active' => true,
         ]);
 
-        Livewire::actingAs($gm)->test(QuotationShow::class, ['quotation' => $q])
+        Livewire::actingAs($gm)->test(InvoiceShow::class, ['invoice' => $q])
             ->set('lines.0.service_id', $svc->id)
             ->set('lines.0.quantity', 3)
             ->call('save')
@@ -292,17 +281,17 @@ class RuntimeStabilityTest extends TestCase
     private function adminUrls(): array
     {
         return [
-            '/admin', '/admin/customers', '/admin/services', '/admin/quotations',
+            '/admin', '/admin/customers', '/admin/services',
             '/admin/invoices', '/admin/payments', '/admin/subscriptions', '/admin/whatsapp',
             '/admin/whatsapp/templates', '/admin/whatsapp/reminders', '/admin/exchange-rates',
-            '/admin/projects', '/admin/tasks', '/admin/departments', '/admin/employees',
+            '/admin/tasks', '/admin/departments', '/admin/employees',
             '/admin/attendance', '/admin/leaves', '/admin/payroll', '/admin/payroll/reports',
             '/admin/advances', '/admin/expenses', '/admin/suppliers', '/admin/cash-banks',
             '/admin/accounting/chart', '/admin/accounting/journals', '/admin/accounting/trial-balance',
             '/admin/accounting/general-ledger', '/admin/accounting/profit-loss',
             '/admin/accounting/balance-sheet', '/admin/accounting/reconciliation',
             '/admin/reports', '/admin/reports/ar-aging', '/admin/reports/customers',
-            '/admin/reports/projects', '/admin/reports/subscriptions', '/admin/reports/whatsapp',
+            '/admin/reports/subscriptions', '/admin/reports/whatsapp',
             '/admin/reports/exchange-gain-loss', '/admin/settings', '/admin/users', '/admin/roles',
             '/admin/notifications', '/admin/activity', '/admin/audit-log', '/admin/production-readiness',
         ];
@@ -344,7 +333,7 @@ class RuntimeStabilityTest extends TestCase
 
         foreach ([
             '/employee', '/employee/attendance', '/employee/leaves',
-            '/employee/payslips', '/employee/projects', '/employee/tasks',
+            '/employee/payslips', '/employee/tasks',
         ] as $url) {
             $this->get($url)->assertOk();
         }
@@ -358,7 +347,7 @@ class RuntimeStabilityTest extends TestCase
     {
         [$user] = $this->makeStaff();
 
-        foreach (['/admin/invoices', '/admin/payments', '/admin/quotations', '/admin/accounting/chart'] as $url) {
+        foreach (['/admin/invoices', '/admin/payments', '/admin/accounting/chart'] as $url) {
             $this->actingAs($user)->get($url)->assertRedirect(route('employee.dashboard'));
         }
     }

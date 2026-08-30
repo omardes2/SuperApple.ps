@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\Quotation;
 use App\Models\Subscription;
 use App\Services\CustomerBalanceService;
 use App\Services\PaymentReminderService;
@@ -105,10 +104,6 @@ class CustomerProfile extends Component
     {
         $data = [];
 
-        if ($this->tab === 'projects') {
-            $data['projects'] = $this->customer->projects()->withCount('tasks')->latest()->get();
-        }
-
         if ($this->tab === 'tasks') {
             $data['tasks'] = $this->customer->tasks()->with('primaryAssignee')->latest()->limit(60)->get();
         }
@@ -124,14 +119,9 @@ class CustomerProfile extends Component
         }
 
         // Financial tabs — only queried and shown for authorised users.
-        $data['canQuotations'] = auth()->user()->can('quotations.view');
         $data['canInvoices'] = auth()->user()->can('invoices.view');
         $data['canPayments'] = auth()->user()->can('payments.view');
         $data['canStatement'] = auth()->user()->can('customer_statements.view');
-
-        if ($this->tab === 'quotations' && $data['canQuotations']) {
-            $data['quotations'] = $this->customer->hasMany(Quotation::class)->latest()->get();
-        }
 
         if ($this->tab === 'invoices' && $data['canInvoices']) {
             $data['invoices'] = $this->customer->hasMany(Invoice::class)->latest()->get();

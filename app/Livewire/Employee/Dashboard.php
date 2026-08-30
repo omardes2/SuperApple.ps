@@ -7,7 +7,6 @@ use App\Enums\TaskStatus;
 use App\Livewire\Concerns\ResolvesActingEmployee;
 use App\Models\AttendanceRecord;
 use App\Models\LeaveRequest;
-use App\Models\Project;
 use App\Models\Task;
 use App\Services\AttendanceService;
 use Illuminate\Support\Facades\Auth;
@@ -54,7 +53,7 @@ class Dashboard extends Component
         $today = null;
         $summary = null;
         $pendingLeaves = 0;
-        $tasks = ['today' => 0, 'late' => 0, 'waiting_review' => 0, 'changes_requested' => 0, 'projects' => 0];
+        $tasks = ['today' => 0, 'late' => 0, 'waiting_review' => 0, 'changes_requested' => 0];
 
         if ($employee) {
             $today = AttendanceRecord::where('employee_id', $employee->id)
@@ -70,7 +69,6 @@ class Dashboard extends Component
                 'late' => $visible()->late()->count(),
                 'waiting_review' => $visible()->where('status', TaskStatus::WaitingReview)->count(),
                 'changes_requested' => $visible()->where('status', TaskStatus::ChangesRequested)->count(),
-                'projects' => Project::query()->visibleTo($user)->open()->count(),
             ];
         }
 

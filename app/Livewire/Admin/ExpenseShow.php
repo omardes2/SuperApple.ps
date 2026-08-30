@@ -6,7 +6,6 @@ use App\Enums\ExpenseStatus;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
-use App\Models\Project;
 use App\Models\Supplier;
 use App\Services\ExpenseService;
 use App\Support\Money;
@@ -26,8 +25,6 @@ class ExpenseShow extends Component
     public ?int $category_id = null;
 
     public ?int $supplier_id = null;
-
-    public ?int $project_id = null;
 
     public string $description = '';
 
@@ -61,7 +58,6 @@ class ExpenseShow extends Component
         $this->expense_date = $this->expense->expense_date->toDateString();
         $this->category_id = $this->expense->category_id;
         $this->supplier_id = $this->expense->supplier_id;
-        $this->project_id = $this->expense->project_id;
         $this->description = (string) $this->expense->description;
         $this->currency = $this->expense->currency;
         $this->amount = (string) $this->expense->amount;
@@ -78,7 +74,6 @@ class ExpenseShow extends Component
             'expense_date' => 'required|date',
             'category_id' => 'required|integer|exists:expense_categories,id',
             'supplier_id' => 'nullable|integer|exists:suppliers,id',
-            'project_id' => 'nullable|integer|exists:projects,id',
             'description' => 'required|string|max:255',
             'currency' => 'required|in:ILS,USD',
             'amount' => 'required|numeric|gt:0',
@@ -94,7 +89,6 @@ class ExpenseShow extends Component
             'expense_date' => $this->expense_date,
             'category_id' => $this->category_id,
             'supplier_id' => $this->supplier_id,
-            'project_id' => $this->project_id,
             'description' => $this->description,
             'currency' => $this->currency,
             'amount' => $this->amount,
@@ -172,12 +166,11 @@ class ExpenseShow extends Component
 
     public function render()
     {
-        $this->expense->loadMissing(['category', 'financialAccount', 'supplier', 'project']);
+        $this->expense->loadMissing(['category', 'financialAccount', 'supplier']);
 
         return view('livewire.admin.expense-show', [
             'categories' => ExpenseCategory::orderBy('name')->get(),
             'suppliers' => Supplier::active()->orderBy('name')->get(['id', 'name']),
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
             'accounts' => FinancialAccount::active()->orderBy('name')->get(),
             'canEdit' => ($this->expense->isDraft() || $this->expense->status === ExpenseStatus::Approved) && auth()->user()->can('expenses.edit'),
             'canPost' => ($this->expense->isDraft() || $this->expense->status === ExpenseStatus::Approved) && auth()->user()->can('expenses.post'),

@@ -55,11 +55,13 @@ class PermissionMatrixTest extends TestCase
         }
     }
 
-    public function test_project_manager_has_projects_but_no_finance(): void
+    public function test_project_manager_has_tasks_but_no_finance(): void
     {
         $pm = $this->makeUser(RoleName::ProjectManager);
-        $this->assertTrue($pm->can('projects.manage'));
-        $this->assertTrue($pm->can('reports.projects'));
+        $this->assertTrue($pm->can('tasks.manage'));
+        $this->assertTrue($pm->can('reports.tasks'));
+        // Projects were retired — the permission no longer exists for anyone.
+        $this->assertFalse($pm->can('projects.manage'));
         foreach (['invoices.view', 'payments.view', 'journals.view', 'payroll.view', 'reports.financial', 'services.view_financial'] as $perm) {
             $this->assertFalse($pm->can($perm), "PM must NOT have [{$perm}]");
         }

@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Enums\AttendanceStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\LeaveStatus;
-use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use App\Models\AttendanceRecord;
 use App\Models\Customer;
@@ -17,7 +16,6 @@ use App\Models\JournalEntryLine;
 use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
-use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\SubscriptionBilling;
 use App\Models\Task;
@@ -70,15 +68,16 @@ class Dashboard extends Component
             ];
         }
 
-        // Operational cards (customers / projects / tasks).
+        // Operational cards (customers / tasks). Projects were retired.
         $ops = null;
-        if ($user->canAny(['customers.view', 'projects.view', 'tasks.view'])) {
+        if ($user->canAny(['customers.view', 'tasks.view'])) {
             $ops = [
                 'active_customers' => Customer::where('status', CustomerStatus::Active)->count(),
-                'active_projects' => Project::where('status', ProjectStatus::Active)->count(),
                 'tasks_today' => Task::whereDate('due_date', now()->toDateString())->count(),
                 'late_tasks' => Task::late()->count(),
                 'waiting_review' => Task::where('status', TaskStatus::WaitingReview)->count(),
+                'completed_month' => Task::where('status', TaskStatus::Completed)
+                    ->whereMonth('updated_at', now()->month)->whereYear('updated_at', now()->year)->count(),
             ];
         }
 

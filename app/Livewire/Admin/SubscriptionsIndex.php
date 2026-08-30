@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Enums\BillingCycle;
 use App\Enums\SubscriptionStatus;
 use App\Models\Customer;
-use App\Models\Project;
 use App\Models\Subscription;
 use App\Services\SubscriptionMetricsService;
 use App\Services\SubscriptionService;
@@ -29,8 +28,6 @@ class SubscriptionsIndex extends Component
 
     // Create form
     public ?int $customer_id = null;
-
-    public ?int $project_id = null;
 
     public string $name = '';
 
@@ -64,7 +61,7 @@ class SubscriptionsIndex extends Component
     public function openCreate(): void
     {
         $this->authorize('create', Subscription::class);
-        $this->reset(['customer_id', 'project_id', 'name', 'description', 'billing_cycle', 'billing_interval', 'end_date', 'payment_terms_days', 'terms']);
+        $this->reset(['customer_id', 'name', 'description', 'billing_cycle', 'billing_interval', 'end_date', 'payment_terms_days', 'terms']);
         $this->billing_cycle = 'monthly';
         $this->billing_interval = 1;
         $this->auto_generate_invoice = true;
@@ -104,7 +101,6 @@ class SubscriptionsIndex extends Component
 
         $service->create([
             'customer_id' => $this->customer_id,
-            'project_id' => $this->project_id ?: null,
             'name' => $this->name,
             'description' => $this->description ?: null,
             'billing_cycle' => $this->billing_cycle,
@@ -137,7 +133,6 @@ class SubscriptionsIndex extends Component
             'statuses' => SubscriptionStatus::options(),
             'cycles' => BillingCycle::options(),
             'customers' => Customer::active()->orderBy('name')->get(['id', 'name']),
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
             'summary' => $metrics->summary(),
             'canCreate' => Auth::user()->can('subscriptions.create'),
             'canPrices' => $canPrices,

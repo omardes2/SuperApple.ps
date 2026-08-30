@@ -24,7 +24,6 @@
             'attendance' => 'الدوام',
             'leaves' => 'الإجازات',
             'tasks' => 'المهام',
-            'projects' => 'المشاريع',
             'documents' => 'المستندات',
             'activity' => 'سجل النشاط',
         ];
@@ -115,9 +114,6 @@
     {{-- Tasks / Projects placeholders (Sprint 2) --}}
     @if ($tab === 'tasks')
         <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-400">تُعرض مهام الموظف بعد تنفيذ وحدة المهام (Sprint 2).</div>
-    @endif
-    @if ($tab === 'projects')
-        <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-400">تُعرض مشاريع الموظف بعد تنفيذ وحدة المشاريع (Sprint 2).</div>
     @endif
 
     {{-- Documents --}}

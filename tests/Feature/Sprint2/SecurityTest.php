@@ -34,7 +34,7 @@ class SecurityTest extends TestCase
     {
         [$user] = $this->makeStaff();
 
-        foreach (['/admin/customers', '/admin/projects', '/admin/tasks', '/admin/services'] as $url) {
+        foreach (['/admin/customers', '/admin/tasks', '/admin/services'] as $url) {
             $this->actingAs($user)->get($url)->assertRedirect(route('employee.dashboard'));
         }
     }

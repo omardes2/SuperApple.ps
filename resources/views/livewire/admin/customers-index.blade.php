@@ -38,7 +38,7 @@
                     <th class="px-4 py-3">الرقم</th><th class="px-4 py-3">الاسم</th>
                     <th class="px-4 py-3">المسؤول</th><th class="px-4 py-3">الهاتف</th>
                     <th class="px-4 py-3">المدينة</th><th class="px-4 py-3">التصنيف</th>
-                    <th class="px-4 py-3">الحالة</th><th class="px-4 py-3">المشاريع</th>
+                    <th class="px-4 py-3">الحالة</th><th class="px-4 py-3">المهام</th>
                     <th class="px-4 py-3">إجراءات</th>
                 </tr>
             </thead>
@@ -54,7 +54,7 @@
                         <td class="px-4 py-3 text-slate-600">{{ $customer->city ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $customer->category?->name ?? '—' }}</td>
                         <td class="px-4 py-3"><x-badge :class="$customer->status->badgeClass()">{{ $customer->status->label() }}</x-badge></td>
-                        <td class="px-4 py-3 text-slate-600">{{ $customer->projects_count }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $customer->tasks_count }}</td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
                                 <a href="{{ route('admin.customers.show', $customer) }}" class="text-brand-600 hover:underline">عرض</a>

@@ -31,15 +31,10 @@ final class Permissions
                 'customers.archive' => 'أرشفة العملاء',
                 'customers.attachments' => 'إدارة مرفقات العملاء',
             ]],
-            'projects' => ['financial' => false, 'permissions' => [
-                'projects.view' => 'عرض جميع المشاريع',
-                'projects.view_assigned' => 'عرض المشاريع المسندة',
-                'projects.create' => 'إنشاء مشروع',
-                'projects.edit' => 'تعديل مشروع',
-                'projects.manage' => 'إدارة المشاريع',
-                'projects.members' => 'إدارة أعضاء المشروع',
-                'projects.attachments' => 'إدارة مرفقات المشاريع',
-            ]],
+            // NOTE: the "projects" module was retired (tasks are the operational
+            // unit now); its permissions were removed from the catalogue so they
+            // no longer appear in the roles UI. The tables/models remain for
+            // historical data only.
             'tasks' => ['financial' => false, 'permissions' => [
                 'tasks.view' => 'عرض جميع المهام',
                 'tasks.view_own' => 'عرض المهام الخاصة',
@@ -154,7 +149,6 @@ final class Permissions
             'reports_center' => ['financial' => false, 'permissions' => [
                 'reports.executive' => 'لوحة التقارير التنفيذية',
                 'reports.customers' => 'تقارير العملاء',
-                'reports.projects' => 'تقارير المشاريع',
                 'reports.tasks' => 'تقارير المهام',
                 'reports.attendance_report' => 'تقارير الدوام',
                 'reports.subscriptions' => 'تقارير الاشتراكات',
@@ -170,18 +164,9 @@ final class Permissions
                 'exchange_rates.view' => 'عرض أسعار الصرف',
                 'exchange_rates.manage' => 'إدارة أسعار الصرف',
             ]],
-            'quotations' => ['financial' => true, 'permissions' => [
-                'quotations.view' => 'عرض عروض الأسعار',
-                'quotations.manage' => 'إدارة عروض الأسعار',
-                'quotations.create' => 'إنشاء عرض سعر',
-                'quotations.edit' => 'تعديل عرض سعر',
-                'quotations.send' => 'إرسال عرض سعر',
-                'quotations.accept' => 'قبول عرض سعر',
-                'quotations.reject' => 'رفض عرض سعر',
-                'quotations.cancel' => 'إلغاء عرض سعر',
-                'quotations.convert' => 'تحويل عرض سعر إلى فاتورة',
-                'quotations.print' => 'طباعة عرض السعر',
-            ]],
+            // NOTE: the "quotations" module was retired — invoices are created
+            // directly from the customer. Its permissions were removed from the
+            // catalogue; the tables/models remain for historical data only.
             'invoices' => ['financial' => true, 'permissions' => [
                 'invoices.view' => 'عرض الفواتير',
                 'invoices.manage' => 'إدارة الفواتير',
@@ -355,14 +340,11 @@ final class Permissions
                 'journals.view', 'journals.create', 'journals.post', 'journals.reverse', 'journals.manual',
                 'reports.gl', 'reports.trial_balance', 'reports.profit_loss',
                 'reports.balance_sheet', 'reports.reconciliation',
-                // Exchange rates + full quotation & invoice lifecycle (Sprint 3).
+                // Exchange rates + full invoice lifecycle (Sprint 3).
                 'exchange_rates.view', 'exchange_rates.manage',
-                'quotations.view', 'quotations.manage', 'quotations.create', 'quotations.edit',
-                'quotations.send', 'quotations.accept', 'quotations.reject', 'quotations.cancel',
-                'quotations.convert', 'quotations.print',
                 'invoices.view', 'invoices.manage', 'invoices.create', 'invoices.edit',
                 'invoices.issue', 'invoices.send', 'invoices.cancel', 'invoices.print',
-                // Service catalog incl. pricing (needed for quotations/invoices).
+                // Service catalog incl. pricing (needed for invoices).
                 'services.view', 'services.view_financial', 'services.create', 'services.edit', 'services.manage',
             ], self::selfService()),
 
@@ -389,14 +371,12 @@ final class Permissions
                 // Operational visibility of subscriptions only — prices stay hidden
                 // (SubscriptionPolicy::viewPrices), even for a project member.
                 'subscriptions.view',
-                // Full project & task management (no finance; service prices hidden).
-                'projects.view', 'projects.view_assigned', 'projects.create', 'projects.edit',
-                'projects.manage', 'projects.members', 'projects.attachments',
+                // Full task management (no finance; service prices hidden).
                 'tasks.view', 'tasks.view_own', 'tasks.create', 'tasks.edit', 'tasks.assign',
                 'tasks.manage', 'tasks.review', 'tasks.comment', 'tasks.attachments', 'tasks.checklist',
                 'services.view', // NOTE: no services.view_financial — PM cannot see prices/costs.
                 // Sprint 8 — operational reports (no finance).
-                'reports.projects', 'reports.tasks', 'reports.customers',
+                'reports.tasks', 'reports.customers',
             ], self::selfService()),
 
             // Team Leader stays in the operational experience (per Sprint 0/1
@@ -404,13 +384,16 @@ final class Permissions
             // collaborate, but team-wide assignment/review belongs to PM/GM.
             RoleName::TeamLeader->value => array_merge([
                 'dashboard.view', 'notifications.view',
-                'projects.view_assigned', 'tasks.view_own', 'tasks.create',
+                'tasks.view_own', 'tasks.create',
                 'tasks.comment', 'tasks.attachments', 'tasks.checklist',
             ], self::selfService()),
 
+            // Employees now own the operational unit: they can create their own
+            // tasks (assigned to themselves — no tasks.assign, so they cannot
+            // hand work to others), but gain NO financial visibility.
             RoleName::Employee->value => array_merge([
                 'dashboard.view', 'notifications.view',
-                'projects.view_assigned', 'tasks.view_own',
+                'tasks.view_own', 'tasks.create',
                 'tasks.comment', 'tasks.attachments', 'tasks.checklist',
             ], self::selfService()),
         ];

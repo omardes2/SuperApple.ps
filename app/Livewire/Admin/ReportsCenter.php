@@ -59,9 +59,6 @@ class ReportsCenter extends Component
             ['label' => 'تقارير العملاء', 'items' => [
                 ['label' => 'العملاء والأرصدة', 'route' => 'admin.reports.customers', 'permission' => 'reports.customers'],
             ]],
-            ['label' => 'تقارير المشاريع والمهام', 'items' => [
-                ['label' => 'المشاريع والمهام', 'route' => 'admin.reports.projects', 'permission' => 'reports.projects'],
-            ]],
             ['label' => 'تقارير الموظفين', 'items' => [
                 ['label' => 'الدوام والحضور', 'route' => 'admin.attendance', 'permission' => 'reports.attendance_report'],
             ]],

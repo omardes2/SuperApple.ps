@@ -177,7 +177,7 @@ class CustomersIndex extends Component
     {
         $customers = Customer::query()
             ->with('category')
-            ->withCount('projects')
+            ->withCount('tasks')
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'like', "%{$this->search}%")
                 ->orWhere('customer_number', 'like', "%{$this->search}%")

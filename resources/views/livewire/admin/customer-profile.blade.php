@@ -14,8 +14,7 @@
     </div>
 
     @php
-        $tabs = ['overview' => 'نظرة عامة', 'projects' => 'المشاريع', 'tasks' => 'المهام'];
-        if ($canQuotations) $tabs['quotations'] = 'عروض الأسعار';
+        $tabs = ['overview' => 'نظرة عامة', 'tasks' => 'المهام'];
         if ($canInvoices) $tabs['invoices'] = 'الفواتير';
         if ($canPayments) $tabs['payments'] = 'الدفعات';
         if ($canSubscriptions) $tabs['subscriptions'] = 'الاشتراكات';
@@ -69,29 +68,6 @@
         </div>
     @endif
 
-    @if ($tab === 'projects')
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500">
-                    <tr><th class="px-4 py-3">الرقم</th><th class="px-4 py-3">المشروع</th><th class="px-4 py-3">الحالة</th><th class="px-4 py-3">المهام</th><th class="px-4 py-3">التسليم</th></tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($projects as $project)
-                        <tr>
-                            <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $project->project_number }}</td>
-                            <td class="px-4 py-3 font-medium text-slate-800"><a href="{{ route('admin.projects.show', $project) }}" class="hover:text-brand-600 hover:underline">{{ $project->name }}</a></td>
-                            <td class="px-4 py-3"><x-badge :class="$project->status->badgeClass()">{{ $project->status->label() }}</x-badge></td>
-                            <td class="px-4 py-3 text-slate-600">{{ $project->tasks_count }}</td>
-                            <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $project->due_date?->format('Y-m-d') ?? '—' }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">لا مشاريع.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    @endif
-
     @if ($tab === 'tasks')
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
@@ -115,25 +91,6 @@
         </div>
     @endif
 
-    @if ($tab === 'quotations' && $canQuotations)
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">الرقم</th><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الإجمالي USD</th><th class="px-4 py-3">الحالة</th></tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($quotations as $q)
-                        <tr>
-                            <td class="px-4 py-3 font-mono text-slate-500" dir="ltr"><a href="{{ route('admin.quotations.show', $q) }}" class="hover:text-brand-600 hover:underline">{{ $q->quotation_number }}</a></td>
-                            <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $q->quotation_date->format('Y-m-d') }}</td>
-                            <td class="px-4 py-3"><x-money :usd="$q->total_usd" :useLatest="true" class="font-semibold text-slate-800" dir="ltr" /></td>
-                            <td class="px-4 py-3"><x-badge :class="$q->effectiveStatus()->badgeClass()">{{ $q->effectiveStatus()->label() }}</x-badge></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">لا عروض أسعار.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    @endif
 
     @if ($tab === 'invoices' && $canInvoices)
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">

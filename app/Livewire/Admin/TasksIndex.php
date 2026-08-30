@@ -7,7 +7,6 @@ use App\Enums\TaskStatus;
 use App\Models\Customer;
 use App\Models\Department;
 use App\Models\Employee;
-use App\Models\Project;
 use App\Models\Task;
 use App\Services\TaskService;
 use Illuminate\Validation\Rule;
@@ -30,9 +29,6 @@ class TasksIndex extends Component
     public string $assignee = '';
 
     #[Url]
-    public string $project = '';
-
-    #[Url]
     public string $customer = '';
 
     #[Url]
@@ -49,8 +45,6 @@ class TasksIndex extends Component
     public string $title = '';
 
     public string $description = '';
-
-    public ?int $project_id = null;
 
     public ?int $customer_id = null;
 
@@ -73,7 +67,7 @@ class TasksIndex extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'assignee', 'project', 'customer', 'department', 'status', 'priority'], true)) {
+        if (in_array($name, ['search', 'assignee', 'customer', 'department', 'status', 'priority'], true)) {
             $this->resetPage();
         }
     }
@@ -81,7 +75,7 @@ class TasksIndex extends Component
     public function create(): void
     {
         $this->authorize('tasks.create');
-        $this->reset(['title', 'description', 'project_id', 'customer_id', 'department_id', 'primary_assignee_id', 'start_date', 'due_date', 'estimated_minutes']);
+        $this->reset(['title', 'description', 'customer_id', 'department_id', 'primary_assignee_id', 'start_date', 'due_date', 'estimated_minutes']);
         $this->task_priority = 'normal';
         $this->resetErrorBag();
         $this->showForm = true;
@@ -94,7 +88,6 @@ class TasksIndex extends Component
         $validated = $this->validate([
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:5000',
-            'project_id' => 'nullable|integer|exists:projects,id',
             'customer_id' => 'nullable|integer|exists:customers,id',
             'department_id' => 'nullable|integer|exists:departments,id',
             'primary_assignee_id' => 'nullable|integer|exists:employees,id',
@@ -108,7 +101,6 @@ class TasksIndex extends Component
             $service->create([
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
-                'project_id' => $validated['project_id'] ?? null,
                 'customer_id' => $validated['customer_id'] ?? null,
                 'department_id' => $validated['department_id'] ?? null,
                 'primary_assignee_id' => $validated['primary_assignee_id'] ?? null,
@@ -130,12 +122,11 @@ class TasksIndex extends Component
     public function render()
     {
         $tasks = Task::query()
-            ->with(['customer', 'project', 'primaryAssignee'])
+            ->with(['customer', 'primaryAssignee'])
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('title', 'like', "%{$this->search}%")
                 ->orWhere('task_number', 'like', "%{$this->search}%")))
             ->when($this->assignee !== '', fn ($q) => $q->where('primary_assignee_id', $this->assignee))
-            ->when($this->project !== '', fn ($q) => $q->where('project_id', $this->project))
             ->when($this->customer !== '', fn ($q) => $q->where('customer_id', $this->customer))
             ->when($this->department !== '', fn ($q) => $q->where('department_id', $this->department))
             ->when($this->status !== '', fn ($q) => $q->where('status', $this->status))
@@ -155,7 +146,6 @@ class TasksIndex extends Component
             'tasks' => $tasks,
             'stats' => $stats,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
-            'projects' => Project::orderBy('name')->get(['id', 'name', 'customer_id']),
             'employees' => Employee::active()->orderBy('full_name')->get(['id', 'full_name']),
             'departments' => Department::orderBy('name')->get(['id', 'name']),
             'statusOptions' => TaskStatus::options(),

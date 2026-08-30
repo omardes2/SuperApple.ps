@@ -115,23 +115,7 @@
         </div>
     @endif
 
-    {{-- Operational KPI placeholders --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @can('projects.view')
-            <x-stat-card label="المشاريع النشطة" value="—" icon="folder" tone="brand" />
-        @endcan
-        @can('tasks.view')
-            <x-stat-card label="مهام متأخرة" value="—" icon="check" tone="red" />
-        @endcan
-        @can('customers.view')
-            <x-stat-card label="العملاء النشطون" value="—" icon="users" tone="slate" />
-        @endcan
-        @can('attendance.view')
-            <x-stat-card label="حضور اليوم" value="—" icon="clock" tone="emerald" />
-        @endcan
-    </div>
-
-    {{-- Operational overview (customers / projects / tasks) --}}
+    {{-- Operational overview (customers / tasks) --}}
     @if ($ops)
         <div>
             <h3 class="mb-3 text-sm font-semibold text-slate-500">النشاط التشغيلي</h3>
@@ -139,13 +123,11 @@
                 @can('customers.view')
                     <a href="{{ route('admin.customers') }}" class="block"><x-stat-card label="عملاء نشطون" :value="$ops['active_customers']" icon="users" tone="brand" /></a>
                 @endcan
-                @can('projects.view')
-                    <a href="{{ route('admin.projects') }}" class="block"><x-stat-card label="مشاريع نشطة" :value="$ops['active_projects']" icon="folder" tone="emerald" /></a>
-                @endcan
                 @can('tasks.view')
                     <a href="{{ route('admin.tasks') }}" class="block"><x-stat-card label="مهام اليوم" :value="$ops['tasks_today']" icon="check" tone="violet" /></a>
                     <a href="{{ route('admin.tasks', ['status' => 'waiting_review']) }}" class="block"><x-stat-card label="بانتظار المراجعة" :value="$ops['waiting_review']" icon="doc" tone="amber" /></a>
                     <a href="{{ route('admin.tasks') }}" class="block"><x-stat-card label="مهام متأخرة" :value="$ops['late_tasks']" icon="minus" tone="red" /></a>
+                    <a href="{{ route('admin.tasks') }}" class="block"><x-stat-card label="مكتملة هذا الشهر" :value="$ops['completed_month']" icon="check" tone="emerald" /></a>
                 @endcan
             </div>
         </div>

@@ -6,7 +6,6 @@ use App\Livewire\Concerns\ManagesDocumentLines;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\Project;
 use App\Models\Service;
 use App\Services\ExchangeRateService;
 use App\Services\InvoiceService;
@@ -24,8 +23,6 @@ class InvoiceShow extends Component
     public Invoice $invoice;
 
     public ?int $customer_id = null;
-
-    public ?int $project_id = null;
 
     public string $invoice_date = '';
 
@@ -53,7 +50,6 @@ class InvoiceShow extends Component
     {
         $this->invoice->loadMissing('items');
         $this->customer_id = $this->invoice->customer_id;
-        $this->project_id = $this->invoice->project_id;
         $this->invoice_date = $this->invoice->invoice_date->toDateString();
         $this->due_date = $this->invoice->due_date?->toDateString();
         $this->exchange_rate = $this->invoice->exchange_rate;
@@ -74,7 +70,6 @@ class InvoiceShow extends Component
 
         $this->validate(array_merge($this->lineRules(), [
             'customer_id' => 'required|integer|exists:customers,id',
-            'project_id' => 'nullable|integer|exists:projects,id',
             'invoice_date' => 'required|date',
             'due_date' => 'nullable|date|after_or_equal:invoice_date',
             'exchange_rate' => 'nullable|numeric|gt:0',
@@ -82,7 +77,6 @@ class InvoiceShow extends Component
 
         $service->updateDraft($this->invoice, [
             'customer_id' => $this->customer_id,
-            'project_id' => $this->project_id,
             'invoice_date' => $this->invoice_date,
             'due_date' => $this->due_date,
             'exchange_rate' => $this->exchange_rate,
@@ -103,7 +97,6 @@ class InvoiceShow extends Component
             // Persist current draft edits first so issue uses fresh values.
             $service->updateDraft($this->invoice, [
                 'customer_id' => $this->customer_id,
-                'project_id' => $this->project_id,
                 'invoice_date' => $this->invoice_date,
                 'due_date' => $this->due_date,
                 'exchange_rate' => $this->exchange_rate,
@@ -190,14 +183,13 @@ class InvoiceShow extends Component
 
     public function render()
     {
-        $this->invoice->loadMissing(['customer', 'project', 'items.service', 'quotation', 'subscription']);
+        $this->invoice->loadMissing(['customer', 'items.service', 'subscription']);
 
         $canPayments = auth()->user()->can('payments.view');
         $canWhatsapp = auth()->user()->can('whatsapp.view');
 
         return view('livewire.admin.invoice-show', [
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
             'services' => Service::active()->orderBy('name')->get(['id', 'name']),
             'preview' => $this->preview(),
             'canEdit' => $this->invoice->isDraft() && auth()->user()->can('invoices.edit'),

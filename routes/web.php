@@ -38,11 +38,6 @@ use App\Livewire\Admin\PayrollReports;
 use App\Livewire\Admin\PayrollShow;
 use App\Livewire\Admin\ProductionReadiness;
 use App\Livewire\Admin\ProfitLossReport;
-use App\Livewire\Admin\ProjectShow as AdminProjectShow;
-use App\Livewire\Admin\ProjectsIndex;
-use App\Livewire\Admin\ProjectsReport;
-use App\Livewire\Admin\QuotationShow;
-use App\Livewire\Admin\QuotationsIndex;
 use App\Livewire\Admin\ReconciliationReport;
 use App\Livewire\Admin\ReminderRulesIndex;
 use App\Livewire\Admin\ReportsCenter;
@@ -68,9 +63,7 @@ use App\Livewire\Employee\Dashboard as EmployeeDashboard;
 use App\Livewire\Employee\MyAttendance;
 use App\Livewire\Employee\MyLeaves;
 use App\Livewire\Employee\MyPayslips;
-use App\Livewire\Employee\MyProjects;
 use App\Livewire\Employee\MyTasks;
-use App\Livewire\Employee\ProjectShow as EmployeeProjectShow;
 use App\Livewire\Employee\TaskShow as EmployeeTaskShow;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
@@ -117,19 +110,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/customers', CustomersIndex::class)->middleware('can:customers.view')->name('customers');
         Route::get('/customers/{customer}', CustomerProfile::class)->middleware('can:customers.view')->name('customers.show');
         Route::get('/services', ServicesIndex::class)->middleware('can:services.view')->name('services');
-        Route::get('/projects', ProjectsIndex::class)->middleware('can:projects.view')->name('projects');
-        Route::get('/projects/{project}', AdminProjectShow::class)->middleware('can:projects.view')->name('projects.show');
         Route::get('/tasks', TasksIndex::class)->middleware('can:tasks.view')->name('tasks');
         Route::get('/tasks/{task}', AdminTaskShow::class)->middleware('can:tasks.view')->name('tasks.show');
 
         // Billing — Sprint 3
         Route::get('/exchange-rates', ExchangeRatesIndex::class)->middleware('can:exchange_rates.view')->name('exchange-rates');
-        Route::get('/quotations', QuotationsIndex::class)->middleware('can:quotations.view')->name('quotations');
-        Route::get('/quotations/{quotation}', QuotationShow::class)->middleware('can:quotations.view')->name('quotations.show');
         Route::get('/invoices', InvoicesIndex::class)->middleware('can:invoices.view')->name('invoices');
         Route::get('/invoices/{invoice}', InvoiceShow::class)->middleware('can:invoices.view')->name('invoices.show');
         Route::get('/invoices/{invoice}/print', [InvoicePrintController::class, 'invoice'])->middleware('can:invoices.print')->name('invoices.print');
-        Route::get('/quotations/{quotation}/print', [InvoicePrintController::class, 'quotation'])->middleware('can:quotations.print')->name('quotations.print');
 
         // Payments & collection — Sprint 4
         Route::get('/payments', PaymentsIndex::class)->middleware('can:payments.view')->name('payments');
@@ -166,7 +154,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', ReportsCenter::class)->name('reports');
         Route::get('/reports/ar-aging', ArAgingReport::class)->middleware('can:reports.ar_aging')->name('reports.ar-aging');
         Route::get('/reports/customers', CustomersReport::class)->middleware('can:reports.customers')->name('reports.customers');
-        Route::get('/reports/projects', ProjectsReport::class)->middleware('can:reports.projects')->name('reports.projects');
         Route::get('/reports/subscriptions', SubscriptionsReport::class)->middleware('can:reports.subscriptions')->name('reports.subscriptions');
         Route::get('/reports/whatsapp', WhatsAppReport::class)->middleware('can:reports.whatsapp')->name('reports.whatsapp');
 
@@ -199,8 +186,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/leaves', MyLeaves::class)->middleware('can:leaves.view_own')->name('leaves');
         Route::get('/tasks', MyTasks::class)->middleware('can:tasks.view_own')->name('tasks');
         Route::get('/tasks/{task}', EmployeeTaskShow::class)->middleware('can:tasks.view_own')->name('tasks.show');
-        Route::get('/projects', MyProjects::class)->middleware('can:projects.view_assigned')->name('projects');
-        Route::get('/projects/{project}', EmployeeProjectShow::class)->middleware('can:projects.view_assigned')->name('projects.show');
         Route::get('/payslips', MyPayslips::class)->middleware('can:payslips.view_own')->name('payslips');
     });
 

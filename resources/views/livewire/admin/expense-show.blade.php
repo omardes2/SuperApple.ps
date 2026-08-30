@@ -37,9 +37,6 @@
             <div><label class="mb-1 block text-sm text-slate-600">المورد (اختياري)</label>
                 <select wire:model="supplier_id" @disabled(!$canEdit) class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"><option value="">—</option>@foreach ($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select>
             </div>
-            <div><label class="mb-1 block text-sm text-slate-600">المشروع (اختياري)</label>
-                <select wire:model="project_id" @disabled(!$canEdit) class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"><option value="">—</option>@foreach ($projects as $p)<option value="{{ $p->id }}">{{ $p->name }}</option>@endforeach</select>
-            </div>
         </div>
 
         @if ($canEdit || $canPost)

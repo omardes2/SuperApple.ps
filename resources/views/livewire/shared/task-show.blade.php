@@ -108,7 +108,6 @@
                 <h3 class="mb-3 font-semibold text-slate-800">التفاصيل</h3>
                 <dl class="space-y-2">
                     <div class="flex justify-between"><dt class="text-slate-500">العميل</dt><dd class="text-slate-700">{{ $task->customer?->name ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">المشروع</dt><dd class="text-slate-700">{{ $task->project?->name ?? '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">المسؤول</dt><dd class="text-slate-700">{{ $task->primaryAssignee?->full_name ?? '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">التسليم</dt><dd class="text-slate-700" dir="ltr">{{ $task->due_date?->format('Y-m-d') ?? '—' }}</dd></div>
                 </dl>

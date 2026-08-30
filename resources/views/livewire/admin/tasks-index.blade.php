@@ -21,10 +21,6 @@
             <option value="">كل الموظفين</option>
             @foreach ($employees as $e)<option value="{{ $e->id }}">{{ $e->full_name }}</option>@endforeach
         </select>
-        <select wire:model.live="project" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <option value="">كل المشاريع</option>
-            @foreach ($projects as $p)<option value="{{ $p->id }}">{{ $p->name }}</option>@endforeach
-        </select>
         <select wire:model.live="status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <option value="">كل الحالات</option>
             @foreach ($statusOptions as $val => $label)<option value="{{ $val }}">{{ $label }}</option>@endforeach
@@ -40,7 +36,7 @@
             <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500">
                 <tr>
                     <th class="px-4 py-3">الرقم</th><th class="px-4 py-3">المهمة</th>
-                    <th class="px-4 py-3">العميل</th><th class="px-4 py-3">المشروع</th>
+                    <th class="px-4 py-3">العميل</th>
                     <th class="px-4 py-3">المسؤول</th><th class="px-4 py-3">التسليم</th>
                     <th class="px-4 py-3">الأولوية</th><th class="px-4 py-3">الحالة</th>
                 </tr>
@@ -54,14 +50,13 @@
                             @if ($task->isLate())<span class="mr-1 text-xs text-red-600">(متأخرة)</span>@endif
                         </td>
                         <td class="px-4 py-3 text-slate-600">{{ $task->customer?->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ $task->project?->name ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $task->primaryAssignee?->full_name ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $task->due_date?->format('Y-m-d') ?? '—' }}</td>
                         <td class="px-4 py-3"><x-badge :class="$task->priority->badgeClass()">{{ $task->priority->label() }}</x-badge></td>
                         <td class="px-4 py-3"><x-badge :class="$task->status->badgeClass()">{{ $task->status->label() }}</x-badge></td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">لا مهام.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">لا مهام.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -78,15 +73,7 @@
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">المشروع</label>
-                    <select wire:model="project_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="">— بدون —</option>
-                        @foreach ($projects as $p)<option value="{{ $p->id }}">{{ $p->name }}</option>@endforeach
-                    </select>
-                    <p class="mt-1 text-xs text-slate-400">عند اختيار مشروع يُضبط العميل تلقائياً من المشروع.</p>
-                </div>
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">العميل</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">العميل (اختياري)</label>
                     <select wire:model="customer_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">— بدون —</option>
                         @foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach

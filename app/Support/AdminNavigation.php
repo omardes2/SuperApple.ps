@@ -26,7 +26,6 @@ final class AdminNavigation
                 'items' => [
                     ['route' => 'admin.customers', 'label' => 'العملاء', 'icon' => 'users', 'permission' => 'customers.view'],
                     ['route' => 'admin.services', 'label' => 'الخدمات', 'icon' => 'grid', 'permission' => 'services.view'],
-                    ['route' => 'admin.quotations', 'label' => 'عروض الأسعار', 'icon' => 'doc', 'permission' => 'quotations.view'],
                     ['route' => 'admin.invoices', 'label' => 'الفواتير', 'icon' => 'invoice', 'permission' => 'invoices.view'],
                     ['route' => 'admin.payments', 'label' => 'الدفعات والتحصيل', 'icon' => 'cash', 'permission' => 'payments.view'],
                     ['route' => 'admin.subscriptions', 'label' => 'الاشتراكات', 'icon' => 'repeat', 'permission' => 'subscriptions.view'],
@@ -35,9 +34,8 @@ final class AdminNavigation
                 ],
             ],
             [
-                'label' => 'المشاريع',
+                'label' => 'العمل',
                 'items' => [
-                    ['route' => 'admin.projects', 'label' => 'المشاريع', 'icon' => 'folder', 'permission' => 'projects.view'],
                     ['route' => 'admin.tasks', 'label' => 'المهام', 'icon' => 'check', 'permission' => 'tasks.view'],
                 ],
             ],

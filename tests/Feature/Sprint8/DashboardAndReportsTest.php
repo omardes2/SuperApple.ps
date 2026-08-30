@@ -63,7 +63,7 @@ class DashboardAndReportsTest extends TestCase
         Livewire::actingAs($pm)->test(ReportsCenter::class)
             ->assertOk()
             ->assertDontSee('دفتر الأستاذ')
-            ->assertSee('المشاريع والمهام');
+            ->assertSee('تقارير العملاء');
     }
 
     public function test_employee_cannot_open_reports_or_users(): void

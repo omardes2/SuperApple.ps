@@ -43,8 +43,10 @@ class SettingsSeeder extends Seeder
             'work_start' => ['value' => '09:00', 'type' => 'string'],
             'work_end' => ['value' => '17:00', 'type' => 'string'],
             'grace_minutes' => ['value' => '15', 'type' => 'int'],
-            'work_days' => ['value' => ['sun', 'mon', 'tue', 'wed', 'thu'], 'type' => 'json'],
-            'weekend' => ['value' => ['fri', 'sat'], 'type' => 'json'],
+            // Company default: Saturday–Thursday are working days; Friday is the
+            // weekly day off. `weekend` is derived from work_days for display.
+            'work_days' => ['value' => ['sat', 'sun', 'mon', 'tue', 'wed', 'thu'], 'type' => 'json'],
+            'weekend' => ['value' => ['fri'], 'type' => 'json'],
             'default_working_hours' => ['value' => '8', 'type' => 'int'],
         ]);
 

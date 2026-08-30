@@ -95,12 +95,17 @@ final class DocumentCalculator
 
         foreach ($lines as $row) {
             $type = $this->resolveType($row['discount_type'] ?? null);
+            // These rows come straight from the untrusted line editor, where a
+            // field can arrive as null, "" (a cleared input, or a nullable
+            // service price/tax snapshot) or other non-numeric text. Coerce to a
+            // safe number here so the live preview never throws; the authoritative
+            // amounts are still recomputed and validated on save.
             $line = $this->line(
-                $row['quantity'] ?? 0,
-                $row['unit_price_usd'] ?? 0,
+                $this->numeric($row['quantity'] ?? 0),
+                $this->numeric($row['unit_price_usd'] ?? 0),
                 $type,
-                $row['discount_value'] ?? null,
-                $row['tax_rate'] ?? 0,
+                $this->numericOrNull($row['discount_value'] ?? null),
+                $this->numeric($row['tax_rate'] ?? 0),
             );
 
             $computed[] = array_merge($row, $line);
@@ -127,5 +132,17 @@ final class DocumentCalculator
         }
 
         return $type ? DiscountType::tryFrom((string) $type) : null;
+    }
+
+    /** A numeric line value, or 0 when blank/absent/non-numeric. */
+    private function numeric(mixed $value): string
+    {
+        return is_numeric($value) ? (string) $value : '0';
+    }
+
+    /** A numeric discount value, or null (no discount) when blank/non-numeric. */
+    private function numericOrNull(mixed $value): ?string
+    {
+        return is_numeric($value) ? (string) $value : null;
     }
 }

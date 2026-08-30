@@ -57,9 +57,12 @@ trait ManagesDocumentLines
         if (! empty($this->lines[$index]['service_id'])) {
             $service = Service::find($this->lines[$index]['service_id']);
             if ($service) {
+                // A service's price and tax_rate are nullable — snapshot them as
+                // "0" rather than "" so the inputs and the live preview stay
+                // numeric (an empty string would otherwise reach the calculator).
                 $this->lines[$index]['item_name'] = $service->name;
-                $this->lines[$index]['unit_price_usd'] = (string) $service->default_price_usd;
-                $this->lines[$index]['tax_rate'] = (string) $service->tax_rate;
+                $this->lines[$index]['unit_price_usd'] = (string) ($service->default_price_usd ?? 0);
+                $this->lines[$index]['tax_rate'] = (string) ($service->tax_rate ?? 0);
             }
         }
     }

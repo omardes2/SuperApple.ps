@@ -24,8 +24,16 @@ final class Money
 
     public const PRICE_SCALE = 4;
 
-    public static function of(int|string|float $value): BigDecimal
+    public static function of(int|string|float|null $value): BigDecimal
     {
+        // A blank or absent decimal — a nullable DB column (nullable price/tax on
+        // a service), or a cleared form field synced as "" by Livewire — is zero.
+        // A genuinely non-numeric string is still a programming error and is left
+        // to throw, so real bugs are not masked.
+        if ($value === null || (is_string($value) && trim($value) === '')) {
+            return BigDecimal::zero();
+        }
+
         // Cast float to string first to avoid binary float noise.
         return BigDecimal::of(is_float($value) ? sprintf('%.8F', $value) : (string) $value);
     }

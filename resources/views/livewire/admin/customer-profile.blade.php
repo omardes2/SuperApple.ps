@@ -48,13 +48,9 @@
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">بيانات التواصل</h3>
                 <dl class="space-y-2 text-sm">
-                    <div class="flex justify-between"><dt class="text-slate-500">الشخص المسؤول</dt><dd class="text-slate-700">{{ $customer->contact_person ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">الهاتف</dt><dd class="text-slate-700" dir="ltr">{{ $customer->phone ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">واتساب</dt><dd class="text-slate-700" dir="ltr">{{ $customer->whatsapp_number ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">المدينة</dt><dd class="text-slate-700">{{ $customer->city ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">العنوان</dt><dd class="text-slate-700">{{ $customer->address ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">الرقم الضريبي</dt><dd class="text-slate-700" dir="ltr">{{ $customer->tax_number ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">المصدر</dt><dd class="text-slate-700">{{ $customer->source?->label() ?? '—' }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">الاسم</dt><dd class="text-slate-700">{{ $customer->name }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">رقم العميل</dt><dd class="text-slate-700" dir="ltr">{{ $customer->customer_number }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">واتساب</dt><dd class="text-slate-700" dir="ltr">{{ $customer->whatsapp_number ?: '—' }}</dd></div>
                 </dl>
             </div>
             <div class="rounded-xl border border-slate-200 bg-white p-5">

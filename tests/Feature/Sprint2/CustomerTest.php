@@ -41,16 +41,16 @@ class CustomerTest extends TestCase
         $this->assertNotContains('email', (new Customer)->getFillable());
     }
 
-    public function test_customer_phone_is_required(): void
+    public function test_customer_whatsapp_is_required(): void
     {
         $manager = $this->makeUser(RoleName::GeneralManager);
 
         Livewire::actingAs($manager)->test(CustomersIndex::class)
             ->call('create')
-            ->set('name', 'بلا هاتف')
-            ->set('phone', '')
+            ->set('name', 'بلا واتساب')
+            ->set('whatsapp_number', '')
             ->call('save')
-            ->assertHasErrors(['phone' => 'required']);
+            ->assertHasErrors(['whatsapp_number' => 'required']);
     }
 
     public function test_employee_cannot_access_customer_management(): void

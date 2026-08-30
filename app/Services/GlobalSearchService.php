@@ -36,7 +36,7 @@ class GlobalSearchService
 
         if ($user->can('customers.view')) {
             $groups[] = $this->group('customers', 'العملاء', 'admin.customers.show',
-                Customer::query()->where(fn ($q) => $q->where('name', 'like', $like)->orWhere('customer_number', 'like', $like)->orWhere('phone', 'like', $like))
+                Customer::query()->where(fn ($q) => $q->where('name', 'like', $like)->orWhere('customer_number', 'like', $like)->orWhere('whatsapp_number', 'like', $like))
                     ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->name, $m->customer_number]));
         }
 

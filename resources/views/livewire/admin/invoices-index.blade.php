@@ -33,7 +33,7 @@
                 <tr>
                     <th class="px-4 py-3">الرقم</th><th class="px-4 py-3">العميل</th>
                     <th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الاستحقاق</th>
-                    <th class="px-4 py-3">الإجمالي USD</th><th class="px-4 py-3">سعر الصرف</th>
+                    <th class="px-4 py-3">الإجمالي USD</th><th class="px-4 py-3">المبلغ المتبقي USD</th>
                     <th class="px-4 py-3">ما يعادله ILS</th><th class="px-4 py-3">الحالة</th>
                 </tr>
             </thead>
@@ -46,7 +46,7 @@
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->due_date?->format('Y-m-d') ?? '—' }}</td>
                         <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $invoice->total_usd, 2) }}</td>
-                        <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $invoice->exchange_rate ? $invoice->exchange_rate : '—' }}</td>
+                        <td class="px-4 py-3 font-semibold {{ (float) $invoice->remaining_usd > 0 ? 'text-amber-700' : 'text-emerald-700' }}" dir="ltr">${{ number_format((float) $invoice->remaining_usd, 2) }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->total_ils_at_issue ? number_format((float) $invoice->total_ils_at_issue, 2).' ₪' : '—' }}</td>
                         <td class="px-4 py-3"><x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge></td>
                     </tr>

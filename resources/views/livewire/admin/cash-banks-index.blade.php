@@ -9,19 +9,40 @@
     </x-page-header>
 
     @if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>@endif
+    @error('lifecycle')<div class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div>@enderror
 
     <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @foreach ($rows as $r)
-            <div class="rounded-xl border border-slate-200 bg-white p-5">
+            <div class="rounded-xl border border-slate-200 bg-white p-5 {{ $r['account']->is_active ? '' : 'opacity-70' }}">
                 <div class="flex items-start justify-between">
                     <div>
                         <p class="text-sm text-slate-500">{{ $r['account']->name }}</p>
                         <p class="mt-1 text-2xl font-bold text-slate-800" dir="ltr">{{ number_format((float) $r['balance_original'], 2) }} {{ $r['account']->currency }}</p>
                         @if ($r['account']->currency !== 'ILS')<p class="text-xs text-slate-400" dir="ltr">≈ {{ number_format((float) $r['balance_ils'], 2) }} ₪</p>@endif
                     </div>
-                    <x-badge class="bg-slate-100 text-slate-600">{{ $r['account']->type->label() }}</x-badge>
+                    <div class="flex flex-col items-end gap-1">
+                        <x-badge class="bg-slate-100 text-slate-600">{{ $r['account']->type->label() }}</x-badge>
+                        @if ($r['account']->is_active)
+                            <x-badge class="bg-emerald-50 text-emerald-700">نشط</x-badge>
+                        @else
+                            <x-badge class="bg-red-50 text-red-700">معطّل</x-badge>
+                        @endif
+                        @if ($r['is_default'])<x-badge class="bg-amber-50 text-amber-700">افتراضي</x-badge>@endif
+                    </div>
                 </div>
-                <button wire:click="showStatement({{ $r['account']->id }})" class="mt-3 text-xs font-medium text-brand-600 hover:underline">كشف الحساب ←</button>
+                <div class="mt-3 flex flex-wrap items-center gap-3 text-xs font-medium">
+                    <button wire:click="showStatement({{ $r['account']->id }})" class="text-brand-600 hover:underline">كشف الحساب ←</button>
+                    @can('financial_accounts.manage')
+                        @if ($r['account']->is_active)
+                            <button wire:click="confirm('deactivate', {{ $r['account']->id }})" class="text-amber-700 hover:underline">تعطيل</button>
+                        @else
+                            <button wire:click="confirm('activate', {{ $r['account']->id }})" class="text-emerald-700 hover:underline">تفعيل</button>
+                        @endif
+                        @if ($r['can_delete'])
+                            <button wire:click="confirm('delete', {{ $r['account']->id }})" class="text-red-600 hover:underline">حذف</button>
+                        @endif
+                    @endcan
+                </div>
             </div>
         @endforeach
     </div>
@@ -65,5 +86,21 @@
             <div><label class="mb-1 block text-sm text-slate-600">المبلغ</label><input type="number" step="0.01" wire:model="transfer_amount" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">@error('transfer_amount')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
         </div>
         <div class="mt-4 flex justify-end gap-2"><button type="button" @click="$wire.showTransfer = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600">تراجع</button><button wire:click="saveTransfer" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white">تحويل</button></div>
+    </x-modal>
+
+    <x-modal show="showConfirm" title="تأكيد الإجراء">
+        <p class="text-sm text-slate-600">
+            @if ($confirmAction === 'delete')
+                سيتم حذف الحساب <span class="font-semibold">{{ $confirmName }}</span> نهائياً. هذا الإجراء متاح فقط لأنه لا حركات مالية مرتبطة به.
+            @elseif ($confirmAction === 'deactivate')
+                سيتم تعطيل الحساب <span class="font-semibold">{{ $confirmName }}</span>. لن يظهر في قوائم الإيداع والتحويلات الجديدة، لكن تبقى حركاته وكشوفه وتقاريره كما هي.
+            @else
+                سيتم تفعيل الحساب <span class="font-semibold">{{ $confirmName }}</span> وإعادته إلى قوائم الحركات المالية.
+            @endif
+        </p>
+        <div class="mt-4 flex justify-end gap-2">
+            <button type="button" @click="$wire.showConfirm = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600">تراجع</button>
+            <button wire:click="runConfirm" class="rounded-lg px-4 py-2 text-sm font-semibold text-white {{ $confirmAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-brand-600 hover:bg-brand-700' }}">تأكيد</button>
+        </div>
     </x-modal>
 </div>

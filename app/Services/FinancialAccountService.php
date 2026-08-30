@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\AccountTransfer;
 use App\Models\FinancialAccount;
 use App\Models\JournalEntryLine;
+use App\Models\Payment;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Cash/bank accounts. The live balance is always DERIVED from posted journal
@@ -15,9 +18,17 @@ use Illuminate\Support\Facades\DB;
  */
 class FinancialAccountService
 {
+    /**
+     * Settings key (finance group) that may pin a system-default deposit account.
+     * When set to an account's id, that account cannot be deactivated or deleted
+     * until a replacement is chosen — so a default is never left dangling.
+     */
+    public const DEFAULT_ACCOUNT_SETTING = 'default_deposit_account_id';
+
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly LedgerPostingService $ledger,
+        private readonly Settings $settings,
     ) {}
 
     /**
@@ -110,5 +121,88 @@ class FinancialAccountService
     public function hasActivity(FinancialAccount $account): bool
     {
         return JournalEntryLine::where('financial_account_id', $account->id)->exists();
+    }
+
+    /** Is this account pinned as a system-default in settings? */
+    public function isSystemDefault(FinancialAccount $account): bool
+    {
+        $default = $this->settings->get('finance', self::DEFAULT_ACCOUNT_SETTING);
+
+        return $default !== null && (int) $default === (int) $account->id;
+    }
+
+    /**
+     * Every reason this account cannot be hard-deleted (empty = deletable).
+     * Covers real financial references only — historical data is never lost.
+     *
+     * @return list<string>
+     */
+    public function deleteBlockReasons(FinancialAccount $account): array
+    {
+        $reasons = [];
+
+        if ($this->hasActivity($account)) {
+            $reasons[] = 'حركات في الأستاذ العام';
+        }
+        if (Money::isPositive($account->opening_balance)) {
+            $reasons[] = 'رصيد افتتاحي';
+        }
+        if (Payment::where('account_id', $account->id)->exists()) {
+            $reasons[] = 'دفعات مرتبطة';
+        }
+        if (AccountTransfer::where('from_account_id', $account->id)
+            ->orWhere('to_account_id', $account->id)->exists()) {
+            $reasons[] = 'تحويلات مرتبطة';
+        }
+        if ($this->isSystemDefault($account)) {
+            $reasons[] = 'حساب افتراضي في الإعدادات';
+        }
+
+        return $reasons;
+    }
+
+    public function canDelete(FinancialAccount $account): bool
+    {
+        return $this->deleteBlockReasons($account) === [];
+    }
+
+    /**
+     * Deactivate an account: it disappears from pickers for NEW movements
+     * (deposits, transfers) but keeps all history, statements and reports.
+     * A system-default account must be replaced first.
+     */
+    public function deactivate(FinancialAccount $account): FinancialAccount
+    {
+        if ($this->isSystemDefault($account)) {
+            throw new RuntimeException('لا يمكن تعطيل هذا الحساب لأنه معيّن كحساب افتراضي في النظام. عيّن حساباً بديلاً أولاً.');
+        }
+
+        $account->update(['is_active' => false, 'updated_by' => Auth::id()]);
+        $this->audit->log('financial_account_deactivated', $account, 'Accounting', description: 'تعطيل حساب نقدي/بنكي');
+
+        return $account;
+    }
+
+    public function activate(FinancialAccount $account): FinancialAccount
+    {
+        $account->update(['is_active' => true, 'updated_by' => Auth::id()]);
+        $this->audit->log('financial_account_activated', $account, 'Accounting', description: 'تفعيل حساب نقدي/بنكي');
+
+        return $account;
+    }
+
+    /**
+     * Hard-delete an account — allowed ONLY when it has never been used in any
+     * financial movement (no journal lines, opening balance, payments, transfers)
+     * and is not a system default. Otherwise deactivate instead.
+     */
+    public function delete(FinancialAccount $account): void
+    {
+        if (! $this->canDelete($account)) {
+            throw new RuntimeException('لا يمكن حذف هذا الحساب لوجود حركات مالية مرتبطة به. يمكنك تعطيله بدلاً من ذلك.');
+        }
+
+        $this->audit->log('financial_account_deleted', $account, 'Accounting', description: 'حذف حساب نقدي/بنكي غير مستخدم');
+        $account->delete();
     }
 }

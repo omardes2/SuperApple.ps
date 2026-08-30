@@ -45,6 +45,15 @@ class PaymentShow extends Component
      */
     public array $allocations = [];
 
+    /**
+     * True while the current allocation rows were produced automatically (deep
+     * link prefill or the "auto allocate" button) and the accountant has not
+     * hand-edited them. In that mode the rows are re-derived from the live USD
+     * equivalent whenever the amount/currency/rate changes; a manual edit turns
+     * it off so we never overwrite the accountant's own numbers.
+     */
+    public bool $autoMode = false;
+
     // ---- Cancel modal ----
     public bool $showCancel = false;
 
@@ -62,10 +71,16 @@ class PaymentShow extends Component
             $invoice = Invoice::find($invoiceId);
             if ($invoice && $invoice->acceptsAllocation()) {
                 $this->customer_id = $invoice->customer_id;
+                // Prefill one row for this invoice, but never blindly allocate
+                // its full remaining — cap at the payment's available USD. On a
+                // fresh draft (amount not yet entered) this is 0, and it grows
+                // as the accountant enters the amount/rate (see recalcAuto()).
                 $this->allocations = [[
                     'invoice_id' => $invoice->id,
-                    'allocated_usd' => Money::money($invoice->remaining_usd),
+                    'allocated_usd' => '0.00',
                 ]];
+                $this->autoMode = true;
+                $this->recalcAutoAllocations();
             }
         }
     }
@@ -86,23 +101,85 @@ class PaymentShow extends Component
         }
     }
 
+    /**
+     * Livewire lifecycle: keep an auto allocation in sync with the amount, and
+     * drop out of auto mode the moment the accountant edits a row by hand.
+     */
+    public function updated(string $name): void
+    {
+        if (str_starts_with($name, 'allocations.')) {
+            $this->autoMode = false;
+
+            return;
+        }
+
+        // Changing the customer invalidates any rows (they may point at another
+        // customer's invoices) — clear them.
+        if ($name === 'customer_id') {
+            $this->allocations = [];
+            $this->autoMode = false;
+
+            return;
+        }
+
+        if (in_array($name, ['payment_amount', 'payment_currency', 'exchange_rate'], true) && $this->autoMode) {
+            $this->recalcAutoAllocations();
+        }
+    }
+
     // ---- Draft actions ----
 
     public function suggestRate(ExchangeRateService $service): void
     {
         $this->authorize('update', $this->payment);
         $this->exchange_rate = $service->suggestedRate($this->payment_date ?: now()->toDateString());
+
+        if ($this->autoMode) {
+            $this->recalcAutoAllocations();
+        }
     }
 
     public function addAllocationRow(): void
     {
+        // A hand-added row means the accountant is composing manually.
+        $this->autoMode = false;
         $this->allocations[] = ['invoice_id' => null, 'allocated_usd' => ''];
     }
 
     public function removeAllocationRow(int $index): void
     {
+        $this->autoMode = false;
         unset($this->allocations[$index]);
         $this->allocations = array_values($this->allocations);
+    }
+
+    /**
+     * Re-derive the auto allocation rows from the live USD equivalent, oldest
+     * row first: each invoice takes min(its remaining, the running available).
+     * Never exceeds the payment's USD equivalent nor an invoice's remaining.
+     * In-memory only — nothing is persisted until the draft is saved/posted.
+     */
+    private function recalcAutoAllocations(): void
+    {
+        $available = $this->usdPreview; // live USD equivalent of the amount entered
+
+        foreach ($this->allocations as $i => $row) {
+            $invoiceId = $row['invoice_id'] ?? null;
+            $invoice = $invoiceId ? Invoice::find($invoiceId) : null;
+
+            if (! $invoice || Money::isZeroOrNegative($available)) {
+                $this->allocations[$i]['allocated_usd'] = '0.00';
+
+                continue;
+            }
+
+            $take = Money::isGreaterThan($invoice->remaining_usd, $available)
+                ? Money::money($available)
+                : Money::money($invoice->remaining_usd);
+
+            $this->allocations[$i]['allocated_usd'] = $take;
+            $available = Money::subtract($available, $take);
+        }
     }
 
     public function autoAllocate(PaymentService $service): void
@@ -115,6 +192,8 @@ class PaymentShow extends Component
             'invoice_id' => $row['invoice_id'],
             'allocated_usd' => $row['allocated_usd'],
         ], $plan);
+        // These rows are auto-derived — keep them in sync if the amount changes.
+        $this->autoMode = true;
 
         if ($this->allocations === []) {
             session()->flash('status', 'لا توجد فواتير مفتوحة قابلة للتخصيص لهذا العميل.');

@@ -30,7 +30,7 @@ class InvoicesListColumnsTest extends TestCase
 
         $this->get(route('admin.invoices'))
             ->assertOk()
-            ->assertSee('المبلغ المتبقي USD')
+            ->assertSee('المبلغ المتبقي')
             ->assertDontSee('سعر الصرف')
             ->assertSee('$10.00'); // the remaining balance shown
     }

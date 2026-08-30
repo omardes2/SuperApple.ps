@@ -8,6 +8,7 @@ use App\Services\Settings;
 use App\Services\WhatsApp\FakeWhatsAppProvider;
 use App\Services\WhatsApp\LogWhatsAppProvider;
 use App\Services\WhatsApp\NullWhatsAppProvider;
+use App\Support\CurrencyDisplay;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Settings is a cached, app-wide singleton.
         $this->app->singleton(Settings::class);
+
+        // Display-only currency helper: resolves the latest/default estimate
+        // rate once per request so money tables never fan out into N+1 queries.
+        $this->app->singleton(CurrencyDisplay::class);
 
         // The fake provider is a singleton so tests observe the same instance
         // that the service and job send through.

@@ -76,6 +76,30 @@ class CustomerBalanceService
     }
 
     /**
+     * Accounting-correct ILS equivalent of the outstanding balance: the sum of
+     * each open invoice's remaining × ITS OWN locked rate — never the total USD
+     * times one blind rate (invoices may carry different issue rates). Display
+     * estimate only; the official balance is still USD.
+     */
+    public function outstandingIlsByDocument(Customer $customer): string
+    {
+        $rows = $customer->invoices()
+            ->where('status', '!=', InvoiceStatus::Cancelled->value)
+            ->where('status', '!=', InvoiceStatus::Draft->value)
+            ->where('remaining_usd', '>', 0)
+            ->get(['remaining_usd', 'exchange_rate']);
+
+        $total = '0.00';
+        foreach ($rows as $row) {
+            if ($row->exchange_rate !== null && Money::isPositive($row->exchange_rate)) {
+                $total = Money::add($total, Money::convertUsdToIls($row->remaining_usd, $row->exchange_rate));
+            }
+        }
+
+        return $total;
+    }
+
+    /**
      * @return array<string,mixed>
      */
     public function summary(Customer $customer): array
@@ -87,6 +111,7 @@ class CustomerBalanceService
             'net_balance_usd' => $this->netBalanceUsd($customer),
             'total_payments_usd' => $this->totalPaymentsUsd($customer),
             'estimated_outstanding_ils' => $this->estimatedOutstandingIls($customer),
+            'outstanding_ils_by_document' => $this->outstandingIlsByDocument($customer),
         ];
     }
 }

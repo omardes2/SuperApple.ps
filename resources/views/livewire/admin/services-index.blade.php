@@ -36,7 +36,7 @@
                         <td class="px-4 py-3 text-slate-600">{{ $service->category ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $service->service_type->label() }}</td>
                         @if ($canViewFinancial)
-                            <td class="px-4 py-3 text-slate-700" dir="ltr">{{ $service->default_price_usd !== null ? '$'.number_format((float) $service->default_price_usd, 2) : '—' }}</td>
+                            <td class="px-4 py-3 text-slate-700" dir="ltr">@if ($service->default_price_usd !== null)<x-money :usd="$service->default_price_usd" :useLatest="true" />@else—@endif</td>
                             <td class="px-4 py-3 text-slate-700" dir="ltr">{{ $service->estimated_cost_ils !== null ? number_format((float) $service->estimated_cost_ils, 2).' ₪' : '—' }}</td>
                             <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $service->tax_rate !== null ? $service->tax_rate.'%' : '—' }}</td>
                         @endif

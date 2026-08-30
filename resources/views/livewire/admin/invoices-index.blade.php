@@ -33,8 +33,8 @@
                 <tr>
                     <th class="px-4 py-3">الرقم</th><th class="px-4 py-3">العميل</th>
                     <th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الاستحقاق</th>
-                    <th class="px-4 py-3">الإجمالي USD</th><th class="px-4 py-3">المبلغ المتبقي USD</th>
-                    <th class="px-4 py-3">ما يعادله ILS</th><th class="px-4 py-3">الحالة</th>
+                    <th class="px-4 py-3">الإجمالي</th><th class="px-4 py-3">المبلغ المتبقي</th>
+                    <th class="px-4 py-3">الحالة</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -45,13 +45,12 @@
                         <td class="px-4 py-3 font-medium text-slate-800"><a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->customer->name }}</a></td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->due_date?->format('Y-m-d') ?? '—' }}</td>
-                        <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $invoice->total_usd, 2) }}</td>
-                        <td class="px-4 py-3 font-semibold {{ (float) $invoice->remaining_usd > 0 ? 'text-amber-700' : 'text-emerald-700' }}" dir="ltr">${{ number_format((float) $invoice->remaining_usd, 2) }}</td>
-                        <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->total_ils_at_issue ? number_format((float) $invoice->total_ils_at_issue, 2).' ₪' : '—' }}</td>
+                        <td class="px-4 py-3"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>
+                        <td class="px-4 py-3"><x-money :usd="$invoice->remaining_usd" :rate="$invoice->exchange_rate" :class="(float) $invoice->remaining_usd > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-700'" dir="ltr" /></td>
                         <td class="px-4 py-3"><x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge></td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">لا فواتير.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">لا فواتير.</td></tr>
                 @endforelse
             </tbody>
         </table>

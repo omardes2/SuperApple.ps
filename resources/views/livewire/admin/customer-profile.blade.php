@@ -35,7 +35,7 @@
     @if ($tab === 'overview')
         @isset($balance)
             <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $balance['outstanding_usd'], 2)" hint="USD — رصيد رسمي" icon="invoice" tone="amber" />
+                <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $balance['outstanding_usd'], 2)" :hint="'≈ '.number_format((float) $balance['outstanding_ils_by_document'], 2).' ₪ (رصيد رسمي بالدولار)'" icon="invoice" tone="amber" />
                 <x-stat-card label="رصيد دائن غير مخصص" :value="'$'.number_format((float) $balance['unallocated_credit_usd'], 2)" hint="USD" icon="wallet" tone="emerald" />
                 <x-stat-card label="صافي الرصيد (Net)" :value="'$'.number_format((float) $balance['net_balance_usd'], 2)" hint="مستحق − دائن" icon="cash" tone="brand" />
             </div>
@@ -123,7 +123,7 @@
                         <tr>
                             <td class="px-4 py-3 font-mono text-slate-500" dir="ltr"><a href="{{ route('admin.quotations.show', $q) }}" class="hover:text-brand-600 hover:underline">{{ $q->quotation_number }}</a></td>
                             <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $q->quotation_date->format('Y-m-d') }}</td>
-                            <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $q->total_usd, 2) }}</td>
+                            <td class="px-4 py-3"><x-money :usd="$q->total_usd" :useLatest="true" class="font-semibold text-slate-800" dir="ltr" /></td>
                             <td class="px-4 py-3"><x-badge :class="$q->effectiveStatus()->badgeClass()">{{ $q->effectiveStatus()->label() }}</x-badge></td>
                         </tr>
                     @empty
@@ -143,8 +143,8 @@
                         <tr>
                             <td class="px-4 py-3 font-mono text-slate-500" dir="ltr"><a href="{{ route('admin.invoices.show', $inv) }}" class="hover:text-brand-600 hover:underline">{{ $inv->invoice_number }}</a></td>
                             <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $inv->invoice_date->format('Y-m-d') }}</td>
-                            <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $inv->total_usd, 2) }}</td>
-                            <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $inv->remaining_usd, 2) }}</td>
+                            <td class="px-4 py-3"><x-money :usd="$inv->total_usd" :ils="$inv->total_ils_at_issue" :rate="$inv->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>
+                            <td class="px-4 py-3"><x-money :usd="$inv->remaining_usd" :rate="$inv->exchange_rate" class="text-slate-600" dir="ltr" /></td>
                             <td class="px-4 py-3"><x-badge :class="$inv->effectiveStatus()->badgeClass()">{{ $inv->effectiveStatus()->label() }}</x-badge></td>
                         </tr>
                     @empty

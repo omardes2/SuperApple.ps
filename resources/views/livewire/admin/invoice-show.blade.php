@@ -116,9 +116,9 @@
                 <div class="rounded-xl border border-slate-200 bg-white p-5 text-sm">
                     <h3 class="mb-3 font-semibold text-slate-800">الدفعات والتحصيل</h3>
                     <dl class="space-y-2 text-slate-600">
-                        <div class="flex justify-between"><dt>الإجمالي</dt><dd class="font-semibold text-slate-800" dir="ltr">${{ number_format((float) $invoice->total_usd, 2) }}</dd></div>
-                        <div class="flex justify-between"><dt>المدفوع</dt><dd class="text-emerald-700" dir="ltr">${{ number_format((float) $invoice->paid_usd_equivalent, 2) }}</dd></div>
-                        <div class="flex justify-between border-t border-slate-100 pt-2"><dt>المتبقي</dt><dd class="font-bold text-slate-900" dir="ltr">${{ number_format((float) $invoice->remaining_usd, 2) }}</dd></div>
+                        <div class="flex justify-between"><dt>الإجمالي</dt><dd class="text-left"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></dd></div>
+                        <div class="flex justify-between"><dt>المدفوع</dt><dd class="text-left"><x-money :usd="$invoice->paid_usd_equivalent" :rate="$invoice->exchange_rate" class="text-emerald-700" dir="ltr" /></dd></div>
+                        <div class="flex justify-between border-t border-slate-100 pt-2"><dt>المتبقي</dt><dd class="text-left"><x-money :usd="$invoice->remaining_usd" :rate="$invoice->exchange_rate" class="font-bold text-slate-900" dir="ltr" /></dd></div>
                     </dl>
                     @if ($allocations->isNotEmpty())
                         <ul class="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs">

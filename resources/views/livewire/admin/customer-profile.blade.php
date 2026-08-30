@@ -37,7 +37,8 @@
             <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $balance['outstanding_usd'], 2)" :hint="'≈ '.number_format((float) $balance['outstanding_ils_by_document'], 2).' ₪ (رصيد رسمي بالدولار)'" icon="invoice" tone="amber" />
                 <x-stat-card label="رصيد دائن غير مخصص" :value="'$'.number_format((float) $balance['unallocated_credit_usd'], 2)" hint="USD" icon="wallet" tone="emerald" />
-                <x-stat-card label="صافي الرصيد (Net)" :value="'$'.number_format((float) $balance['net_balance_usd'], 2)" hint="مستحق − دائن" icon="cash" tone="brand" />
+                @php $netIls = app(\App\Support\CurrencyDisplay::class)->estimatedIls($balance['net_balance_usd']); @endphp
+                <x-stat-card label="صافي الرصيد (Net)" :value="'$'.number_format((float) $balance['net_balance_usd'], 2)" :hint="$netIls !== null ? '≈ '.number_format((float) $netIls, 2).' ₪ (تقديري)' : 'مستحق − دائن'" icon="cash" tone="brand" />
             </div>
             @if ($canStatement)
                 <div class="mb-4">
@@ -239,7 +240,7 @@
                             <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $sub->subscription_number }}</td>
                             <td class="px-4 py-3 text-slate-800">{{ $sub->name }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $sub->billing_cycle->label() }}</td>
-                            @if ($canSubscriptionPrices ?? false)<td class="px-4 py-3 text-slate-700" dir="ltr">{{ number_format((float) $sub->total_usd, 2) }} $</td>@endif
+                            @if ($canSubscriptionPrices ?? false)<td class="px-4 py-3"><x-money :usd="$sub->total_usd" :useLatest="true" class="text-slate-700" dir="ltr" /></td>@endif
                             <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $sub->next_billing_date?->toDateString() ?? '—' }}</td>
                             <td class="px-4 py-3"><x-badge :class="$sub->status->badgeClass()">{{ $sub->status->label() }}</x-badge></td>
                             <td class="px-4 py-3"><a href="{{ route('admin.subscriptions.show', $sub) }}" class="text-brand-600 hover:underline">تفاصيل</a></td>

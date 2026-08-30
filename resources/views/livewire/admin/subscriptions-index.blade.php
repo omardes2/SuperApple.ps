@@ -8,8 +8,9 @@
 
     @if ($canReports)
         <div class="mb-5 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <x-stat-card label="الإيراد المتكرر الشهري (MRR)" :value="number_format((float) $summary['mrr_usd'], 2).' $'" hint="قيمة تعاقدية — ليست إيراداً محاسبياً" icon="repeat" tone="brand" />
-            <x-stat-card label="الإيراد المتكرر السنوي (ARR)" :value="number_format((float) $summary['arr_usd'], 2).' $'" hint="MRR × 12" icon="chart" tone="emerald" />
+            @php $mrrIls = app(\App\Support\CurrencyDisplay::class)->estimatedIls($summary['mrr_usd']); $arrIls = app(\App\Support\CurrencyDisplay::class)->estimatedIls($summary['arr_usd']); @endphp
+            <x-stat-card label="الإيراد المتكرر الشهري (MRR)" :value="'$'.number_format((float) $summary['mrr_usd'], 2)" :hint="$mrrIls !== null ? '≈ '.number_format((float) $mrrIls, 2).' ₪ (قيمة تعاقدية)' : 'قيمة تعاقدية — ليست إيراداً محاسبياً'" icon="repeat" tone="brand" />
+            <x-stat-card label="الإيراد المتكرر السنوي (ARR)" :value="'$'.number_format((float) $summary['arr_usd'], 2)" :hint="$arrIls !== null ? '≈ '.number_format((float) $arrIls, 2).' ₪ (MRR × 12)' : 'MRR × 12'" icon="chart" tone="emerald" />
             <x-stat-card label="اشتراكات نشطة" :value="$summary['active']" icon="check" tone="teal" />
             <x-stat-card label="إجمالي الاشتراكات" :value="array_sum($summary['counts'])" icon="grid" tone="slate" />
         </div>
@@ -39,7 +40,7 @@
                         <td class="px-4 py-3 font-medium text-slate-800">{{ $sub->name }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $sub->customer?->name }}</td>
                         <td class="px-4 py-3 text-slate-600">{{ $sub->billing_cycle->label() }}{{ $sub->billing_interval > 1 ? ' ×'.$sub->billing_interval : '' }}</td>
-                        @if ($canPrices)<td class="px-4 py-3 text-slate-700" dir="ltr">{{ number_format((float) $sub->total_usd, 2) }} $</td>@endif
+                        @if ($canPrices)<td class="px-4 py-3"><x-money :usd="$sub->total_usd" :useLatest="true" class="text-slate-700" dir="ltr" /></td>@endif
                         <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $sub->next_billing_date?->toDateString() ?? '—' }}</td>
                         <td class="px-4 py-3"><x-badge :class="$sub->status->badgeClass()">{{ $sub->status->label() }}</x-badge></td>
                         <td class="px-4 py-3"><a href="{{ route('admin.subscriptions.show', $sub) }}" class="text-brand-600 hover:underline">تفاصيل</a></td>

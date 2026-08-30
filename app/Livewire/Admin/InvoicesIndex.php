@@ -6,6 +6,7 @@ use App\Enums\InvoiceStatus;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
+use App\Services\ReportsService;
 use App\Support\Money;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -72,6 +73,10 @@ class InvoicesIndex extends Component
         $invoicedThisMonth = Invoice::issued()
             ->whereMonth('issued_at', now()->month)->whereYear('issued_at', now()->year)
             ->sum('total_usd');
+        // Invoiced-this-month ILS = sum of each invoice's stored accounting value.
+        $invoicedThisMonthIls = Invoice::issued()
+            ->whereMonth('issued_at', now()->month)->whereYear('issued_at', now()->year)
+            ->sum('total_ils_at_issue');
 
         $overdue = Invoice::issued()
             ->whereNotNull('due_date')->whereDate('due_date', '<', now()->toDateString())
@@ -81,7 +86,9 @@ class InvoicesIndex extends Component
             'draft' => Invoice::where('status', InvoiceStatus::Draft)->count(),
             'issued_month' => Invoice::issued()->whereMonth('issued_at', now()->month)->whereYear('issued_at', now()->year)->count(),
             'invoiced_month' => Money::money($invoicedThisMonth),
+            'invoiced_month_ils' => Money::money($invoicedThisMonthIls),
             'outstanding' => Money::money($outstanding),
+            'outstanding_ils' => app(ReportsService::class)->receivablesIlsByDocument(),
             'overdue' => $overdue,
         ];
 

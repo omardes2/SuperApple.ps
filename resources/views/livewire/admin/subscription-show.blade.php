@@ -17,7 +17,7 @@
         <x-stat-card label="الحالة" :value="$sub->status->label()" icon="dot" tone="slate" />
         <x-stat-card label="الدورة" :value="$sub->billing_cycle->label().($sub->billing_interval > 1 ? ' ×'.$sub->billing_interval : '')" icon="repeat" tone="brand" />
         <x-stat-card label="الفوترة القادمة" :value="$sub->next_billing_date?->toDateString() ?? '—'" icon="calendar" tone="violet" />
-        @if ($canPrices)<x-stat-card label="القيمة لكل فترة" :value="number_format((float) $sub->total_usd, 2).' $'" :hint="$mrr ? 'MRR ≈ '.number_format((float)$mrr,2).' $' : null" icon="cash" tone="emerald" />@endif
+        @if ($canPrices)@php $periodIls = app(\App\Support\CurrencyDisplay::class)->estimatedIls($sub->total_usd); @endphp<x-stat-card label="القيمة لكل فترة" :value="'$'.number_format((float) $sub->total_usd, 2)" :hint="$periodIls !== null ? '≈ '.number_format((float) $periodIls, 2).' ₪'.($mrr ? ' · MRR ≈ $'.number_format((float) $mrr, 2) : '') : ($mrr ? 'MRR ≈ $'.number_format((float) $mrr, 2) : null)" icon="cash" tone="emerald" />@endif
     </div>
 
     <div class="grid gap-5 lg:grid-cols-3">
@@ -28,7 +28,7 @@
                     <thead class="text-right text-xs text-slate-500"><tr><th class="py-2">البند</th><th class="py-2">الكمية</th>@if ($canPrices)<th class="py-2">السعر</th><th class="py-2">الضريبة</th>@endif</tr></thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach ($sub->items as $item)
-                            <tr><td class="py-2 text-slate-800">{{ $item->item_name }}</td><td class="py-2 text-slate-600" dir="ltr">{{ number_format((float) $item->quantity, 2) }}</td>@if ($canPrices)<td class="py-2 text-slate-600" dir="ltr">{{ number_format((float) $item->unit_price_usd, 2) }} $</td><td class="py-2 text-slate-500" dir="ltr">{{ number_format((float) $item->tax_rate, 2) }}%</td>@endif</tr>
+                            <tr><td class="py-2 text-slate-800">{{ $item->item_name }}</td><td class="py-2 text-slate-600" dir="ltr">{{ number_format((float) $item->quantity, 2) }}</td>@if ($canPrices)<td class="py-2"><x-money :usd="$item->unit_price_usd" :useLatest="true" class="text-slate-600" dir="ltr" /></td><td class="py-2 text-slate-500" dir="ltr">{{ number_format((float) $item->tax_rate, 2) }}%</td>@endif</tr>
                         @endforeach
                     </tbody>
                 </table>

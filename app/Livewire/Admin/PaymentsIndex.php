@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Services\PaymentService;
+use App\Services\ReportsService;
 use App\Support\Money;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -105,6 +106,7 @@ class PaymentsIndex extends Component
         return [
             'collected_month_usd' => Money::money($collectedUsd),
             'collected_month_ils_original' => Money::money($ilsOriginal),
+            'collected_month_ils' => app(ReportsService::class)->collectedThisMonthIls(),
             'unallocated_credit_usd' => Money::subtract($postedUsd, $allocatedUsd),
             'posted_count' => Payment::posted()->count(),
             'cancelled_count' => Payment::where('status', PaymentStatus::Cancelled)->count(),

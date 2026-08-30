@@ -96,9 +96,12 @@ class Dashboard extends Component
                 ->whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year))
                 ->sum('exchange_difference_ils');
 
+            $reportsSvc = app(ReportsService::class);
             $finance = [
                 'collected_month_usd' => Money::money($collected),
+                'collected_month_ils' => $reportsSvc->collectedThisMonthIls(),
                 'outstanding_usd' => Money::money($outstanding),
+                'outstanding_ils' => $reportsSvc->receivablesIlsByDocument(),
                 'unallocated_credit_usd' => Money::subtract($postedUsd, $allocatedUsd),
                 'exchange_net_ils' => Money::money($exchangeNet),
             ];

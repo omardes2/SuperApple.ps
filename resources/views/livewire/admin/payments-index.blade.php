@@ -8,7 +8,7 @@
     </x-page-header>
 
     <div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <x-stat-card label="محصّل هذا الشهر" :value="'$'.number_format((float) $stats['collected_month_usd'], 2)" hint="USD (ما يعادله)" icon="cash" tone="emerald" />
+        <x-stat-card label="محصّل هذا الشهر" :value="'$'.number_format((float) $stats['collected_month_usd'], 2)" :hint="'≈ '.number_format((float) $stats['collected_month_ils'], 2).' ₪'" icon="cash" tone="emerald" />
         <x-stat-card label="شيكل مستلم هذا الشهر" :value="number_format((float) $stats['collected_month_ils_original'], 2).' ₪'" hint="القيمة الأصلية بالشيكل" icon="repeat" tone="brand" />
         <x-stat-card label="أرصدة غير مخصصة" :value="'$'.number_format((float) $stats['unallocated_credit_usd'], 2)" hint="رصيد دائن للعملاء" icon="wallet" tone="amber" />
         <x-stat-card label="دفعات مُرحّلة" :value="$stats['posted_count']" icon="invoice" tone="slate" />

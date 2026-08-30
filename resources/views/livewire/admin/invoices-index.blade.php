@@ -10,8 +10,8 @@
     <div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <x-stat-card label="مسودات" :value="$stats['draft']" icon="doc" tone="slate" />
         <x-stat-card label="صادرة هذا الشهر" :value="$stats['issued_month']" icon="invoice" tone="brand" />
-        <x-stat-card label="مفوتر هذا الشهر" :value="'$'.number_format((float) $stats['invoiced_month'], 2)" hint="USD" icon="cash" tone="emerald" />
-        <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $stats['outstanding'], 2)" hint="USD" icon="wallet" tone="amber" />
+        <x-stat-card label="مفوتر هذا الشهر" :value="'$'.number_format((float) $stats['invoiced_month'], 2)" :hint="'≈ '.number_format((float) $stats['invoiced_month_ils'], 2).' ₪'" icon="cash" tone="emerald" />
+        <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $stats['outstanding'], 2)" :hint="'≈ '.number_format((float) $stats['outstanding_ils'], 2).' ₪'" icon="wallet" tone="amber" />
         <x-stat-card label="متأخرة" :value="$stats['overdue']" icon="minus" tone="red" />
     </div>
 

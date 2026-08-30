@@ -44,7 +44,7 @@
                         <td class="px-4 py-3 text-slate-600">{{ $q->project?->name ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $q->quotation_date->format('Y-m-d') }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $q->valid_until?->format('Y-m-d') ?? '—' }}</td>
-                        <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $q->total_usd, 2) }}</td>
+                        <td class="px-4 py-3"><x-money :usd="$q->total_usd" :useLatest="true" class="font-semibold text-slate-800" dir="ltr" /></td>
                         <td class="px-4 py-3"><x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge></td>
                     </tr>
                 @empty

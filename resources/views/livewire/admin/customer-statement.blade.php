@@ -7,9 +7,10 @@
     </x-page-header>
 
     <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <x-stat-card label="إجمالي المستحق (Outstanding)" :value="'$'.number_format((float) $balance['outstanding_usd'], 2)" hint="USD" icon="invoice" tone="amber" />
+        @php $netIls = app(\App\Support\CurrencyDisplay::class)->estimatedIls($balance['net_balance_usd']); @endphp
+        <x-stat-card label="إجمالي المستحق (Outstanding)" :value="'$'.number_format((float) $balance['outstanding_usd'], 2)" :hint="isset($balance['outstanding_ils_by_document']) ? '≈ '.number_format((float) $balance['outstanding_ils_by_document'], 2).' ₪' : 'USD'" icon="invoice" tone="amber" />
         <x-stat-card label="رصيد دائن غير مخصص" :value="'$'.number_format((float) $balance['unallocated_credit_usd'], 2)" hint="USD" icon="wallet" tone="emerald" />
-        <x-stat-card label="صافي الرصيد (Net)" :value="'$'.number_format((float) $balance['net_balance_usd'], 2)" hint="مستحق − دائن" icon="cash" tone="brand" />
+        <x-stat-card label="صافي الرصيد (Net)" :value="'$'.number_format((float) $balance['net_balance_usd'], 2)" :hint="$netIls !== null ? '≈ '.number_format((float) $netIls, 2).' ₪ (تقديري)' : 'مستحق − دائن'" icon="cash" tone="brand" />
     </div>
 
     @if ($balance['estimated_outstanding_ils'] !== null)
@@ -33,7 +34,7 @@
                         <td class="px-4 py-3 text-slate-700">{{ $row['description'] }}</td>
                         <td class="px-4 py-3 text-slate-800" dir="ltr">{{ (float) $row['debit_usd'] > 0 ? '$'.number_format((float) $row['debit_usd'], 2) : '—' }}</td>
                         <td class="px-4 py-3 text-emerald-700" dir="ltr">{{ (float) $row['credit_usd'] > 0 ? '$'.number_format((float) $row['credit_usd'], 2) : '—' }}</td>
-                        <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $row['balance_usd'], 2) }}</td>
+                        <td class="px-4 py-3"><x-money :usd="$row['balance_usd']" :useLatest="true" class="font-semibold text-slate-800" dir="ltr" /></td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">لا حركات على الحساب.</td></tr>
@@ -42,7 +43,7 @@
             <tfoot class="bg-slate-50 text-sm font-semibold">
                 <tr>
                     <td colspan="5" class="px-4 py-3 text-left text-slate-600">الرصيد الختامي (USD)</td>
-                    <td class="px-4 py-3 text-slate-900" dir="ltr">${{ number_format((float) $statement['closing_balance_usd'], 2) }}</td>
+                    <td class="px-4 py-3"><x-money :usd="$statement['closing_balance_usd']" :useLatest="true" class="text-slate-900" dir="ltr" /></td>
                 </tr>
             </tfoot>
         </table>

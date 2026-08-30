@@ -80,6 +80,53 @@ class ReportsService
         return Money::convertUsdToIls($this->outstandingReceivablesUsd(), $rate);
     }
 
+    /**
+     * Accounting-correct ILS of outstanding receivables: each invoice's remaining
+     * × ITS OWN locked rate, summed — never total USD × one latest rate. Display
+     * only; the official figure stays USD.
+     */
+    public function receivablesIlsByDocument(): string
+    {
+        $total = '0.00';
+        Invoice::issued()->where('remaining_usd', '>', 0)
+            ->select('remaining_usd', 'exchange_rate')
+            ->chunk(500, function ($rows) use (&$total) {
+                foreach ($rows as $inv) {
+                    if ($inv->exchange_rate !== null && Money::isPositive($inv->exchange_rate)) {
+                        $total = Money::add($total, Money::convertUsdToIls($inv->remaining_usd, $inv->exchange_rate));
+                    }
+                }
+            });
+
+        return $total;
+    }
+
+    /**
+     * ILS actually collected this month, per payment: an ILS payment contributes
+     * its own amount; a USD payment its USD × its own payment rate. Never one rate
+     * across all. Display only.
+     */
+    public function collectedThisMonthIls(): string
+    {
+        $total = '0.00';
+        Payment::posted()
+            ->whereMonth('payment_date', now()->month)
+            ->whereYear('payment_date', now()->year)
+            ->select('payment_currency', 'payment_amount', 'usd_equivalent', 'exchange_rate')
+            ->chunk(500, function ($rows) use (&$total) {
+                foreach ($rows as $p) {
+                    $ils = $p->payment_currency->value === 'ILS'
+                        ? Money::money($p->payment_amount)
+                        : ($p->exchange_rate !== null && Money::isPositive($p->exchange_rate)
+                            ? Money::convertUsdToIls($p->usd_equivalent, $p->exchange_rate)
+                            : '0.00');
+                    $total = Money::add($total, $ils);
+                }
+            });
+
+        return $total;
+    }
+
     // ------------------------------------------------------------------- Charts
 
     /**
@@ -143,6 +190,7 @@ class ReportsService
     {
         $asOf = Carbon::parse($asOf ?? now()->toDateString())->startOfDay();
         $buckets = ['current' => '0.00', '1_30' => '0.00', '31_60' => '0.00', '61_90' => '0.00', '90_plus' => '0.00'];
+        $bucketsIls = $buckets;
 
         $invoices = Invoice::query()
             ->whereIn('status', [
@@ -155,14 +203,21 @@ class ReportsService
 
         $byCustomer = [];
         $total = '0.00';
+        $totalIls = '0.00';
 
         foreach ($invoices as $inv) {
             $remaining = Money::money($inv->remaining_usd);
+            // ILS at THIS invoice's own locked rate — never a single blended rate.
+            $remainingIls = $inv->exchange_rate !== null && Money::isPositive($inv->exchange_rate)
+                ? Money::convertUsdToIls($remaining, $inv->exchange_rate)
+                : '0.00';
             $total = Money::add($total, $remaining);
+            $totalIls = Money::add($totalIls, $remainingIls);
             $due = $inv->due_date ? Carbon::parse($inv->due_date)->startOfDay() : null;
             $daysOverdue = $due && $due->lt($asOf) ? $due->diffInDays($asOf) : 0;
             $bucket = $this->bucketFor($daysOverdue);
             $buckets[$bucket] = Money::add($buckets[$bucket], $remaining);
+            $bucketsIls[$bucket] = Money::add($bucketsIls[$bucket], $remainingIls);
 
             $cid = $inv->customer_id;
             if (! isset($byCustomer[$cid])) {
@@ -170,12 +225,14 @@ class ReportsService
                     'customer' => $inv->customer,
                     'invoices' => 0,
                     'remaining_usd' => '0.00',
+                    'remaining_ils' => '0.00',
                     'oldest_due' => $due?->toDateString(),
                     'max_days_overdue' => 0,
                 ];
             }
             $byCustomer[$cid]['invoices']++;
             $byCustomer[$cid]['remaining_usd'] = Money::add($byCustomer[$cid]['remaining_usd'], $remaining);
+            $byCustomer[$cid]['remaining_ils'] = Money::add($byCustomer[$cid]['remaining_ils'], $remainingIls);
             if ($due && ($byCustomer[$cid]['oldest_due'] === null || $due->toDateString() < $byCustomer[$cid]['oldest_due'])) {
                 $byCustomer[$cid]['oldest_due'] = $due->toDateString();
             }
@@ -184,7 +241,7 @@ class ReportsService
 
         usort($byCustomer, fn ($a, $b) => (float) $b['remaining_usd'] <=> (float) $a['remaining_usd']);
 
-        return ['buckets' => $buckets, 'rows' => array_values($byCustomer), 'total' => $total];
+        return ['buckets' => $buckets, 'buckets_ils' => $bucketsIls, 'rows' => array_values($byCustomer), 'total' => $total, 'total_ils' => $totalIls];
     }
 
     private function bucketFor(int $daysOverdue): string
@@ -223,11 +280,13 @@ class ReportsService
         ])->all();
     }
 
-    /** @return list<array{customer:Customer,amount:string}> */
+    /** @return list<array{customer:Customer,amount:string,amount_ils:string}> */
     public function topCustomersByOutstanding(int $limit = 10): array
     {
+        $statuses = [InvoiceStatus::Issued->value, InvoiceStatus::Sent->value, InvoiceStatus::PartiallyPaid->value, InvoiceStatus::Overdue->value];
+
         $rows = Invoice::query()
-            ->whereIn('status', [InvoiceStatus::Issued->value, InvoiceStatus::Sent->value, InvoiceStatus::PartiallyPaid->value, InvoiceStatus::Overdue->value])
+            ->whereIn('status', $statuses)
             ->where('remaining_usd', '>', 0)
             ->groupBy('customer_id')
             ->selectRaw('customer_id, COALESCE(SUM(remaining_usd),0) as amount')
@@ -235,11 +294,27 @@ class ReportsService
             ->limit($limit)
             ->get();
 
-        return $rows->map(fn ($r) => ['customer' => Customer::find($r->customer_id), 'amount' => Money::money($r->amount)])
-            ->filter(fn ($r) => $r['customer'] !== null)->values()->all();
+        // For the few top customers, sum each one's ILS at their invoices' own
+        // rates (per-document) — a bounded, non-N+1 follow-up over $limit rows.
+        return $rows->map(function ($r) use ($statuses) {
+            $customer = Customer::find($r->customer_id);
+            if ($customer === null) {
+                return null;
+            }
+            $ils = '0.00';
+            Invoice::where('customer_id', $r->customer_id)->whereIn('status', $statuses)
+                ->where('remaining_usd', '>', 0)->select('remaining_usd', 'exchange_rate')
+                ->each(function ($inv) use (&$ils) {
+                    if ($inv->exchange_rate !== null && Money::isPositive($inv->exchange_rate)) {
+                        $ils = Money::add($ils, Money::convertUsdToIls($inv->remaining_usd, $inv->exchange_rate));
+                    }
+                });
+
+            return ['customer' => $customer, 'amount' => Money::money($r->amount), 'amount_ils' => $ils];
+        })->filter()->values()->all();
     }
 
-    /** @return list<array{customer:Customer,amount:string}> */
+    /** @return list<array{customer:Customer,amount:string,amount_ils:string}> */
     public function topCustomersByPayments(int $limit = 10): array
     {
         $rows = Payment::posted()
@@ -249,8 +324,24 @@ class ReportsService
             ->limit($limit)
             ->get();
 
-        return $rows->map(fn ($r) => ['customer' => Customer::find($r->customer_id), 'amount' => Money::money($r->amount)])
-            ->filter(fn ($r) => $r['customer'] !== null)->values()->all();
+        return $rows->map(function ($r) {
+            $customer = Customer::find($r->customer_id);
+            if ($customer === null) {
+                return null;
+            }
+            // Each customer's collected ILS at each payment's own rate (per-document).
+            $ils = '0.00';
+            Payment::posted()->where('customer_id', $r->customer_id)
+                ->select('payment_currency', 'payment_amount', 'usd_equivalent', 'exchange_rate')
+                ->each(function ($p) use (&$ils) {
+                    $ils = Money::add($ils, $p->payment_currency->value === 'ILS'
+                        ? Money::money($p->payment_amount)
+                        : ($p->exchange_rate !== null && Money::isPositive($p->exchange_rate)
+                            ? Money::convertUsdToIls($p->usd_equivalent, $p->exchange_rate) : '0.00'));
+                });
+
+            return ['customer' => $customer, 'amount' => Money::money($r->amount), 'amount_ils' => $ils];
+        })->filter()->values()->all();
     }
 
     /** @return list<array{customer:Customer,count:int}> */

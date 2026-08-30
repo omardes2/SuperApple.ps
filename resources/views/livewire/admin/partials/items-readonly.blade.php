@@ -19,7 +19,7 @@
                     <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $item->unit_price_usd, 2) }}</td>
                     <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $item->discount_usd, 2) }}</td>
                     <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $item->tax_usd, 2) }}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $item->line_total_usd, 2) }}</td>
+                    <td class="px-4 py-3"><x-money :usd="$item->line_total_usd" :rate="$document->exchange_rate ?? null" :useLatest="true" class="font-semibold text-slate-800" dir="ltr" /></td>
                 </tr>
             @endforeach
         </tbody>

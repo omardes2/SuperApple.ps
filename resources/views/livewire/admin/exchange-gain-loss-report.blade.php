@@ -48,7 +48,7 @@
                         </td>
                         <td class="px-4 py-3 text-slate-700">{{ $row->payment->customer->name }}</td>
                         <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $row->invoice?->invoice_number ?? '—' }}</td>
-                        <td class="px-4 py-3 text-slate-700" dir="ltr">${{ number_format((float) $row->allocated_usd, 2) }}</td>
+                        <td class="px-4 py-3"><x-money :usd="$row->allocated_usd" :rate="$row->payment_exchange_rate" class="text-slate-700" dir="ltr" /></td>
                         <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $row->invoice_exchange_rate }}</td>
                         <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $row->payment_exchange_rate }}</td>
                         <td class="px-4 py-3 font-semibold {{ (float) $row->exchange_difference_ils > 0 ? 'text-emerald-700' : ((float) $row->exchange_difference_ils < 0 ? 'text-red-600' : 'text-slate-500') }}" dir="ltr">

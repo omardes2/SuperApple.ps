@@ -7,10 +7,17 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="mb-5 grid grid-cols-3 gap-4">
+    <div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <x-stat-card label="إجمالي العملاء" :value="$stats['total']" icon="users" tone="brand" />
-        <x-stat-card label="النشطون" :value="$stats['active']" icon="users" tone="emerald" />
+        <x-stat-card label="العملاء النشطون" :value="$stats['active']" icon="users" tone="emerald" />
         <x-stat-card label="غير النشطين" :value="$stats['inactive']" icon="minus" tone="slate" />
+        @if ($canViewBalance)
+            <x-stat-card
+                label="إجمالي المستحقات"
+                :value="'$'.number_format((float) $stats['outstanding_usd'], 2)"
+                :hint="'≈ '.number_format((float) $stats['outstanding_ils'], 2).' ₪'"
+                icon="invoice" tone="amber" />
+        @endif
     </div>
 
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
@@ -20,48 +27,86 @@
             <option value="1">نشط</option>
             <option value="0">غير نشط</option>
         </select>
+        @if ($canViewBalance)
+            <select wire:model.live="balance" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">كل الأرصدة</option>
+                <option value="due">عليه رصيد</option>
+                <option value="zero">بدون رصيد</option>
+            </select>
+        @endif
     </div>
 
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">الرقم</th>
+                    <th class="hidden px-4 py-3 sm:table-cell">الرقم</th>
                     <th class="px-4 py-3">الاسم</th>
                     <th class="px-4 py-3">واتساب</th>
-                    <th class="px-4 py-3">المهام</th>
                     <th class="px-4 py-3">الحالة</th>
-                    <th class="px-4 py-3">إجراءات</th>
+                    <th class="hidden px-4 py-3 md:table-cell">المهام</th>
+                    @if ($canViewBalance)<th class="px-4 py-3">الرصيد المتبقي</th>@endif
+                    <th class="px-4 py-3">الإجراءات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($customers as $customer)
+                    @php $bal = $balanceMap[$customer->id] ?? ['usd' => '0.00', 'ils' => '0.00']; @endphp
                     <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $customer->customer_number }}</td>
-                        <td class="px-4 py-3 font-medium text-slate-800">
+                        <td class="hidden px-4 py-3 font-mono text-slate-500 sm:table-cell" dir="ltr">
+                            <a href="{{ route('admin.customers.show', $customer) }}" class="hover:text-brand-600 hover:underline">{{ $customer->customer_number }}</a>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-slate-800">
                             <a href="{{ route('admin.customers.show', $customer) }}" class="hover:text-brand-600 hover:underline">{{ $customer->name }}</a>
                         </td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $customer->whatsapp_number ?: '—' }}</td>
-                        <td class="px-4 py-3 text-slate-600">{{ $customer->tasks_count }}</td>
                         <td class="px-4 py-3">
                             @if ($customer->is_active)
                                 <x-badge class="bg-emerald-50 text-emerald-700">نشط</x-badge>
                             @else
-                                <x-badge class="bg-slate-100 text-slate-600">غير نشط</x-badge>
+                                <x-badge class="bg-slate-100 text-slate-500">غير نشط</x-badge>
                             @endif
                         </td>
+                        <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ $customer->tasks_count }}</td>
+                        @if ($canViewBalance)
+                            <td class="px-4 py-3">
+                                <x-money :usd="$bal['usd']" :ils="$bal['ils']" class="font-medium text-slate-800" dir="ltr" />
+                            </td>
+                        @endif
                         <td class="px-4 py-3">
-                            <div class="flex items-center gap-2">
-                                <a href="{{ route('admin.customers.show', $customer) }}" class="text-brand-600 hover:underline">عرض</a>
-                                @can('customers.edit')<button wire:click="edit({{ $customer->id }})" class="text-slate-500 hover:underline">تعديل</button>@endcan
+                            <div class="flex items-center gap-1">
+                                <a href="{{ route('admin.customers.show', $customer) }}"
+                                   class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600"
+                                   title="عرض العميل" aria-label="عرض العميل">
+                                    <x-icon name="eye" class="h-4 w-4" />
+                                </a>
+                                @can('customers.edit')
+                                    <button wire:click="edit({{ $customer->id }})"
+                                            class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600"
+                                            title="تعديل العميل" aria-label="تعديل العميل">
+                                        <x-icon name="pencil" class="h-4 w-4" />
+                                    </button>
+                                @endcan
                                 @can('customers.archive')
-                                    <button wire:click="archive({{ $customer->id }})" wire:confirm="أرشفة هذا العميل؟" class="text-amber-600 hover:underline">أرشفة</button>
+                                    @if ($customer->is_active)
+                                        <button wire:click="archive({{ $customer->id }})" wire:confirm="تعطيل هذا العميل؟"
+                                                class="rounded-lg p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600"
+                                                title="تعطيل العميل" aria-label="تعطيل العميل">
+                                            <x-icon name="archive" class="h-4 w-4" />
+                                        </button>
+                                    @else
+                                        <button wire:click="restore({{ $customer->id }})"
+                                                class="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600"
+                                                title="تفعيل العميل" aria-label="تفعيل العميل">
+                                            <x-icon name="power" class="h-4 w-4" />
+                                        </button>
+                                    @endif
                                 @endcan
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">لا يوجد عملاء مطابقون.</td></tr>
+                    <tr><td colspan="{{ $canViewBalance ? 7 : 6 }}" class="px-4 py-10 text-center text-slate-400">لا يوجد عملاء مطابقون.</td></tr>
                 @endforelse
             </tbody>
         </table>

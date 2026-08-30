@@ -4,7 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Enums\CustomerStatus;
 use App\Models\Customer;
+use App\Services\CustomerBalanceService;
 use App\Services\CustomerService;
+use App\Services\ReportsService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -23,6 +25,10 @@ class CustomersIndex extends Component
     /** Active filter: '' = all, '1' = active, '0' = inactive. */
     #[Url]
     public string $active = '';
+
+    /** Balance filter: '' = all, 'due' = outstanding > 0, 'zero' = no outstanding. */
+    #[Url]
+    public string $balance = '';
 
     public bool $showForm = false;
 
@@ -47,9 +53,15 @@ class CustomersIndex extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'active'], true)) {
+        if (in_array($name, ['search', 'active', 'balance'], true)) {
             $this->resetPage();
         }
+    }
+
+    /** Whether the current user may see any financial (outstanding) figures. */
+    private function canViewBalance(): bool
+    {
+        return auth()->user()->can('payments.view');
     }
 
     public function create(): void
@@ -118,7 +130,16 @@ class CustomersIndex extends Component
     {
         $this->authorize('customers.archive');
         $service->archive(Customer::findOrFail($id));
-        session()->flash('status', 'تمت أرشفة العميل.');
+        session()->flash('status', 'تم تعطيل العميل.');
+    }
+
+    public function restore(int $id, CustomerService $service): void
+    {
+        // Re-activate a disabled customer. Uses the existing service method; the
+        // customer lifecycle itself is unchanged.
+        $this->authorize('customers.archive');
+        $service->restore(Customer::findOrFail($id));
+        session()->flash('status', 'تم تفعيل العميل.');
     }
 
     private function resetForm(): void
@@ -129,6 +150,16 @@ class CustomersIndex extends Component
 
     public function render()
     {
+        $canViewBalance = $this->canViewBalance();
+
+        // "Has a balance" = at least one issued (not draft/cancelled) invoice
+        // with remaining_usd > 0. Because remaining_usd is never negative, this
+        // is equivalent to outstanding_usd > 0 and runs as a single EXISTS
+        // sub-query (no per-row PHP queries). The balance filter is only honoured
+        // for finance users, so it can never leak financial state.
+        $hasOutstanding = fn ($q) => $q->whereHas('invoices',
+            fn ($i) => $i->issued()->where('remaining_usd', '>', 0));
+
         $customers = Customer::query()
             ->withCount('tasks')
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
@@ -136,18 +167,34 @@ class CustomersIndex extends Component
                 ->orWhere('customer_number', 'like', "%{$this->search}%")
                 ->orWhere('whatsapp_number', 'like', "%{$this->search}%")))
             ->when($this->active !== '', fn ($q) => $q->where('is_active', $this->active === '1'))
+            ->when($canViewBalance && $this->balance === 'due', $hasOutstanding)
+            ->when($canViewBalance && $this->balance === 'zero',
+                fn ($q) => $q->whereDoesntHave('invoices',
+                    fn ($i) => $i->issued()->where('remaining_usd', '>', 0)))
             ->latest()
             ->paginate(15);
+
+        // Outstanding balances for the current page only — one batched query.
+        $balanceMap = $canViewBalance
+            ? app(CustomerBalanceService::class)->outstandingMapForList($customers->pluck('id')->all())
+            : [];
 
         $stats = [
             'total' => Customer::count(),
             'active' => Customer::where('is_active', true)->count(),
             'inactive' => Customer::where('is_active', false)->count(),
         ];
+        if ($canViewBalance) {
+            $reports = app(ReportsService::class);
+            $stats['outstanding_usd'] = $reports->outstandingReceivablesUsd();
+            $stats['outstanding_ils'] = $reports->receivablesIlsByDocument();
+        }
 
         return view('livewire.admin.customers-index', [
             'customers' => $customers,
             'stats' => $stats,
+            'balanceMap' => $balanceMap,
+            'canViewBalance' => $canViewBalance,
         ]);
     }
 }

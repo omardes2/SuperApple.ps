@@ -22,11 +22,10 @@ class Sprint7SmokeRenderTest extends TestCase
         $this->actingAs($this->makeUser(RoleName::GeneralManager));
     }
 
-    public function test_subscription_pages_render(): void
+    public function test_subscription_pages_are_gone(): void
     {
-        $sub = $this->makeActiveSubscription();
-        $this->get('/admin/subscriptions')->assertOk()->assertSee('الاشتراكات');
-        $this->get(route('admin.subscriptions.show', $sub))->assertOk()->assertSee($sub->subscription_number);
+        // The subscriptions module was retired — its routes no longer exist.
+        $this->get('/admin/subscriptions')->assertNotFound();
     }
 
     public function test_whatsapp_pages_render(): void
@@ -36,34 +35,27 @@ class Sprint7SmokeRenderTest extends TestCase
         $this->get('/admin/whatsapp/reminders')->assertOk();
     }
 
-    public function test_customer_profile_subscriptions_and_communications_tabs_render(): void
+    public function test_customer_profile_with_legacy_subscription_renders(): void
     {
+        // A customer that carries legacy subscription data still opens cleanly,
+        // even though the profile no longer shows a subscriptions tab.
         $customer = $this->makeCustomer();
         $this->makeActiveSubscription($customer);
-        $this->get(route('admin.customers.show', $customer))->assertOk();
+        $this->get(route('admin.customers.show', $customer))
+            ->assertOk()
+            ->assertDontSee('الاشتراكات');
     }
 
-    public function test_recurring_invoice_shows_subscription_link(): void
+    public function test_invoice_with_legacy_subscription_id_renders_without_error(): void
     {
+        // Legacy recurring invoices (subscription_id set) must still render; the
+        // subscription name is shown as an archival note, never a broken link.
         $this->seedExchangeRate('2026-08-01', '3.60');
         $sub = $this->makeActiveSubscription(null, ['auto_issue_invoice' => true, 'start_date' => '2026-08-01']);
         app(SubscriptionBillingService::class)->billOne($sub->id, '2026-08-01');
         $invoice = Invoice::where('subscription_id', $sub->id)->first();
 
         $this->get(route('admin.invoices.show', $invoice))->assertOk()->assertSee($sub->subscription_number);
-    }
-
-    public function test_dashboard_shows_subscription_cards_for_gm(): void
-    {
-        $this->makeActiveSubscription();
-        $this->get('/admin')->assertOk()->assertSee('MRR');
-    }
-
-    public function test_billing_command_runs(): void
-    {
-        $this->makeActiveSubscription(null, ['auto_issue_invoice' => false, 'start_date' => now()->toDateString()]);
-        $this->artisan('subscriptions:bill --dry-run')->assertExitCode(0);
-        $this->artisan('subscriptions:bill')->assertExitCode(0);
     }
 
     public function test_reminders_command_runs(): void

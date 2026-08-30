@@ -39,23 +39,24 @@ class PaymentReminderService
     public function manualContext(Customer $customer): array
     {
         $invoices = $this->outstandingInvoices($customer);
-        $latestRate = $this->rates->suggestedRate(now()->toDateString());
         $netUsd = $this->balances->netBalanceUsd($customer);
 
+        // The standalone exchange-rate module was retired: there is no central /
+        // latest rate to estimate an ILS figure from, so reminders quote USD only.
         return [
             'outstanding_invoices' => $invoices,
             'outstanding_usd' => $this->balances->outstandingUsd($customer),
             'unallocated_credit_usd' => $this->balances->unallocatedCreditUsd($customer),
             'net_balance_usd' => $netUsd,
-            'estimated_ils' => $latestRate ? Money::convertUsdToIls($netUsd, $latestRate) : null,
-            'latest_rate' => $latestRate,
+            'estimated_ils' => null,
+            'latest_rate' => null,
             'invoice_list' => $this->invoiceListText($invoices),
         ];
     }
 
     /**
-     * Balance-oriented template variables for a manual reminder. ILS is an
-     * estimate at today's rate.
+     * Balance-oriented template variables for a manual reminder. The official
+     * figure is USD; no ILS estimate is produced since the central rate is gone.
      *
      * @return array<string,string>
      */

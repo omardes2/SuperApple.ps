@@ -58,14 +58,9 @@
                         @error('payment_amount')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm text-slate-600">سعر الصرف (1 USD = ? ILS)</label>
-                        <div class="flex gap-2">
-                            <input type="number" step="0.000001" min="0" wire:model.live="exchange_rate" @disabled(! $canEdit) dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
-                            @if ($canEdit)
-                                <button type="button" wire:click="suggestRate" class="whitespace-nowrap rounded-lg border border-slate-300 px-3 text-xs text-slate-600 hover:bg-slate-50">اقتراح</button>
-                            @endif
-                        </div>
-                        <p class="mt-1 text-xs text-slate-400">لكل دفعة سعر صرف مستقل — لا يُستخدم سعر صرف الفاتورة.</p>
+                        <label class="mb-1 block text-sm text-slate-600">سعر صرف الدفعة (1 USD = ? ILS)</label>
+                        <input type="number" step="0.000001" min="0" wire:model.live="exchange_rate" @disabled(! $canEdit) placeholder="مثال: 3.05" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
+                        <p class="mt-1 text-xs text-slate-400">يُدخل يدوياً لكل دفعة، ومستقل تماماً عن سعر صرف الفاتورة.</p>
                         @error('exchange_rate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>

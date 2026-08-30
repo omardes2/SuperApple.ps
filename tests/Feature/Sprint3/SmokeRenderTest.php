@@ -28,9 +28,9 @@ class SmokeRenderTest extends TestCase
             ['customer_id' => $customer->id, 'exchange_rate' => '3.28'],
             [['item_name' => 'خدمة', 'quantity' => 2, 'unit_price_usd' => 1000]]);
 
-        foreach (['/admin/exchange-rates', '/admin/invoices'] as $url) {
-            $this->get($url)->assertOk();
-        }
+        // Exchange-rates module was retired; the standalone page no longer exists.
+        $this->get('/admin/exchange-rates')->assertNotFound();
+        $this->get('/admin/invoices')->assertOk();
 
         $this->get(route('admin.invoices.show', $invoice))->assertOk()->assertSee($invoice->invoice_number);
     }

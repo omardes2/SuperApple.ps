@@ -60,11 +60,8 @@
                             @error('due_date') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="sm:col-span-2">
-                            <label class="mb-1 block text-sm font-medium text-slate-700">سعر الصرف (1 USD = ? ILS) — يُقفل عند الإصدار</label>
-                            <div class="flex gap-2">
-                                <input type="number" step="0.000001" wire:model="exchange_rate" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                                <button type="button" wire:click="suggestRate" class="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50">اقتراح آخر سعر</button>
-                            </div>
+                            <label class="mb-1 block text-sm font-medium text-slate-700">سعر صرف الفاتورة (1 USD = ? ILS) — يُدخل يدوياً، ويُقفل عند الإصدار</label>
+                            <input type="number" step="0.000001" wire:model="exchange_rate" placeholder="مثال: 3.08" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                             @error('exchange_rate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -128,9 +125,10 @@
     </div>
 
     @if ($invoice->subscription)
-        <div class="mt-5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
-            فاتورة اشتراك متكررة —
-            <a href="{{ route('admin.subscriptions.show', $invoice->subscription) }}" class="font-semibold underline">{{ $invoice->subscription->name }} ({{ $invoice->subscription->subscription_number }})</a>
+        {{-- Subscriptions module retired: legacy link kept as plain text only. --}}
+        <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            فاتورة مرتبطة باشتراك قديم (سجل أرشيفي) —
+            <span class="font-semibold">{{ $invoice->subscription->name }} ({{ $invoice->subscription->subscription_number }})</span>
         </div>
     @endif
 

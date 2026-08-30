@@ -20,7 +20,7 @@
             <div><label class="mb-1 block text-sm text-slate-600">المبلغ</label><input type="number" step="0.01" wire:model.live="amount" @disabled(!$canEdit) dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">@error('amount')<p class="text-xs text-red-600">{{ $message }}</p>@enderror</div>
             @if ($currency === 'USD')
                 <div><label class="mb-1 block text-sm text-slate-600">سعر الصرف</label>
-                    <div class="flex gap-2"><input type="number" step="0.000001" wire:model="exchange_rate" @disabled(!$canEdit) dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">@if($canEdit)<button wire:click="suggestRate" class="rounded-lg border border-slate-300 px-3 text-xs text-slate-600">اقتراح</button>@endif</div>
+                    <div class="flex gap-2"><input type="number" step="0.000001" wire:model="exchange_rate" @disabled(!$canEdit) dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"></div>
                 </div>
             @endif
             <div><label class="mb-1 block text-sm text-slate-600">الحساب النقدي/البنكي</label>

@@ -20,7 +20,7 @@ class ActivityFeed extends Component
     private const ACTIONS = [
         'invoice_issued', 'invoice_cancelled', 'payment_posted', 'payment_cancelled',
         'journal_reversed', 'task_completed', 'leave_approved', 'payroll_posted',
-        'subscription_created', 'subscription_cancelled', 'advance_paid', 'expense_posted',
+        'advance_paid', 'expense_posted',
         'supplier_bill_posted', 'whatsapp_send_failed',
     ];
 
@@ -32,7 +32,6 @@ class ActivityFeed extends Component
         'Expenses' => 'expenses.view',
         'Suppliers' => 'suppliers.view',
         'Payroll' => 'payroll.view',
-        'Subscriptions' => 'subscriptions.view',
         'WhatsApp' => 'whatsapp.view',
         'Tasks' => 'tasks.view',
         'Leaves' => 'leaves.view',

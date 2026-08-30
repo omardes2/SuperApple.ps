@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\FinancialAccount;
 use App\Models\SupplierBill;
 use App\Models\SupplierPayment;
-use App\Services\ExchangeRateService;
 use App\Services\SupplierPaymentService;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
@@ -60,11 +59,6 @@ class SupplierPaymentShow extends Component
         if ($this->payment->isDraft()) {
             $this->allocations = [];
         }
-    }
-
-    public function suggestRate(ExchangeRateService $service): void
-    {
-        $this->exchange_rate = $service->suggestedRate($this->payment_date ?: now()->toDateString());
     }
 
     public function addAllocation(): void

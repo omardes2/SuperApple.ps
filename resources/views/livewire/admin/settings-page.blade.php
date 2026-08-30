@@ -29,13 +29,8 @@
 
         <section class="rounded-xl border border-slate-200 bg-white p-6">
             <h3 class="mb-1 font-semibold text-slate-800">الإعدادات المالية</h3>
-            <p class="mb-4 text-xs text-slate-500">العملة المحاسبية: <b>ILS</b> · عملة الفواتير: <b>USD</b> (قواعد ثابتة).</p>
+            <p class="mb-4 text-xs text-slate-500">العملة المحاسبية: <b>ILS</b> · عملة الفواتير: <b>USD</b> (قواعد ثابتة). سعر الصرف يُدخل يدوياً داخل كل فاتورة ودفعة — لا يوجد سعر افتراضي مركزي.</p>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">سعر الصرف الافتراضي (1 USD = ? ILS)</label>
-                    <input type="text" wire:model="defaultExchangeRate" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none">
-                    @error('defaultExchangeRate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                </div>
                 <div class="sm:col-span-2">
                     <label class="mb-1 block text-sm font-medium text-slate-700">شروط الفاتورة</label>
                     <textarea wire:model="invoiceTerms" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none"></textarea>

@@ -23,7 +23,6 @@ class InvoiceService
 
     public function __construct(
         private readonly DocumentNumberService $numbers,
-        private readonly ExchangeRateService $rates,
         private readonly AuditLogger $audit,
         private readonly Settings $settings,
         private readonly LedgerPostingService $ledger,
@@ -40,7 +39,9 @@ class InvoiceService
             $invoiceDate = $data['invoice_date'] ?? now()->toDateString();
 
             $dueDate = $data['due_date'] ?? $this->defaultDueDate($invoiceDate);
-            $rate = $data['exchange_rate'] ?? $this->rates->suggestedRate($invoiceDate);
+            // The invoice exchange rate is entered MANUALLY per invoice — never
+            // auto-fetched from a central/latest rate. A draft may start blank.
+            $rate = $data['exchange_rate'] ?? null;
 
             $invoice = Invoice::create([
                 'invoice_number' => $data['invoice_number'] ?? $this->numbers->next('invoice'),

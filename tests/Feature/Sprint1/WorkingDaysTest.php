@@ -177,7 +177,6 @@ class WorkingDaysTest extends TestCase
 
         Livewire::actingAs($gm)->test(SettingsPage::class)
             ->set('companyName', 'شركة')
-            ->set('defaultExchangeRate', '3.30')
             ->set('workStart', '09:00')
             ->set('workEnd', '17:00')
             ->set('graceMinutes', 15)
@@ -197,7 +196,6 @@ class WorkingDaysTest extends TestCase
 
         Livewire::actingAs($gm)->test(SettingsPage::class)
             ->set('companyName', 'شركة')
-            ->set('defaultExchangeRate', '3.30')
             ->set('workStart', '09:00')
             ->set('workEnd', '17:00')
             ->set('graceMinutes', 15)

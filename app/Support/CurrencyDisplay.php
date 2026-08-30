@@ -2,52 +2,23 @@
 
 namespace App\Support;
 
-use App\Services\ExchangeRateService;
-use App\Services\Settings;
-
 /**
- * Display-only currency helper: resolves the estimate rate used to show a
- * secondary "≈ X ₪" under a USD amount when the amount has no document rate of
- * its own (services, draft quotations, etc.).
+ * Display-only currency helper.
  *
- * Registered as a singleton so the latest/default rate is resolved ONCE per
- * request — a table of 100 rows never triggers 100 rate queries. Documents that
- * carry their own exchange_rate pass it explicitly and never touch this.
+ * Since the standalone exchange-rate module was retired, there is NO central /
+ * latest / default rate anymore: a USD amount only shows a secondary "≈ X ₪"
+ * line when it carries its OWN document exchange rate (an invoice or a payment).
+ * An amount with no contextual rate — a service catalogue price, a running
+ * balance — is shown as USD only, never an invented estimate.
  *
- * This changes nothing about accounting: the official value stays USD; the ILS
- * line is a presentation estimate only.
+ * `estimatedIls()` therefore always returns null now (it makes no query), and
+ * `<x-money :useLatest>` degrades to USD-only. `ilsFor()` stays for callers that
+ * pass an explicit, real document rate. Accounting is untouched — this is
+ * presentation only.
  */
 class CurrencyDisplay
 {
-    private bool $resolved = false;
-
-    private ?string $latestRate = null;
-
-    public function __construct(
-        private readonly ExchangeRateService $rates,
-        private readonly Settings $settings,
-    ) {}
-
-    /**
-     * The best available USD→ILS rate for an amount with no rate of its own:
-     * the latest published rate, else the configured default, else null.
-     */
-    public function latestOrDefaultRate(): ?string
-    {
-        if ($this->resolved) {
-            return $this->latestRate;
-        }
-        $this->resolved = true;
-
-        $rate = $this->rates->suggestedRate(now()->toDateString());
-        if ($rate === null || $rate === '') {
-            $rate = $this->settings->get('finance', 'default_exchange_rate');
-        }
-
-        return $this->latestRate = ($rate !== null && $rate !== '' ? (string) $rate : null);
-    }
-
-    /** ILS equivalent of a USD amount at a given rate, or null when no valid rate. */
+    /** ILS equivalent of a USD amount at a given (real, document) rate, or null. */
     public function ilsFor(int|string|float|null $usd, int|string|float|null $rate): ?string
     {
         if ($rate === null || $rate === '' || ! Money::isPositive($rate)) {
@@ -57,9 +28,18 @@ class CurrencyDisplay
         return Money::convertUsdToIls($usd ?? 0, $rate);
     }
 
-    /** ILS equivalent using the latest/default estimate rate (or null). */
+    /**
+     * No central rate exists anymore, so there is no estimate to show. Kept for
+     * backward-compatible call sites; always returns null (never queries).
+     */
     public function estimatedIls(int|string|float|null $usd): ?string
     {
-        return $this->ilsFor($usd, $this->latestOrDefaultRate());
+        return null;
+    }
+
+    /** No central/latest/default rate exists — always null. */
+    public function latestOrDefaultRate(): ?string
+    {
+        return null;
     }
 }

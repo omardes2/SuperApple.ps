@@ -9,7 +9,6 @@ use App\Models\Customer;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Services\ExchangeRateService;
 use App\Services\PaymentService;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
@@ -140,16 +139,6 @@ class PaymentShow extends Component
     }
 
     // ---- Draft actions ----
-
-    public function suggestRate(ExchangeRateService $service): void
-    {
-        $this->authorize('update', $this->payment);
-        $this->exchange_rate = $service->suggestedRate($this->payment_date ?: now()->toDateString());
-
-        if ($this->autoMode) {
-            $this->recalcAutoAllocations();
-        }
-    }
 
     public function addAllocationRow(): void
     {

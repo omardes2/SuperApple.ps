@@ -55,22 +55,19 @@ class GlobalSearchSecurityTest extends TestCase
         $this->assertSame([], $groups);
     }
 
-    public function test_project_manager_cannot_find_payments_or_subscriptions(): void
+    public function test_project_manager_cannot_find_invoices_or_payments(): void
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
         $this->actingAs($gm);
         $customer = $this->makeCustomer();
         $invoice = $this->makeIssuedInvoice($customer, '500');
-        $sub = $this->makeActiveSubscription($customer, ['name' => 'باقة بحث فريدة']);
         auth()->logout();
 
+        // Subscriptions module was retired — it is no longer a global-search group.
         $pm = $this->makeUser(RoleName::ProjectManager);
-        $keys = array_column($this->search()->search($pm, 'باقة بحث فريدة'), 'key');
-        // PM has subscriptions.view (operational) so may find the subscription…
-        $this->assertContains('subscriptions', $keys);
-        // …but never payments/invoices.
         $payKeys = array_column($this->search()->search($pm, $invoice->invoice_number), 'key');
         $this->assertNotContains('invoices', $payKeys);
         $this->assertNotContains('payments', $payKeys);
+        $this->assertNotContains('subscriptions', $payKeys);
     }
 }

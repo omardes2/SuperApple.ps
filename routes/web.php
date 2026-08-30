@@ -21,7 +21,6 @@ use App\Livewire\Admin\EmployeePayroll;
 use App\Livewire\Admin\EmployeeProfile;
 use App\Livewire\Admin\EmployeesIndex;
 use App\Livewire\Admin\ExchangeGainLossReport;
-use App\Livewire\Admin\ExchangeRatesIndex;
 use App\Livewire\Admin\ExpenseShow;
 use App\Livewire\Admin\ExpensesIndex;
 use App\Livewire\Admin\GeneralLedgerReport;
@@ -44,9 +43,6 @@ use App\Livewire\Admin\ReportsCenter;
 use App\Livewire\Admin\RolesPermissions;
 use App\Livewire\Admin\ServicesIndex;
 use App\Livewire\Admin\SettingsPage;
-use App\Livewire\Admin\SubscriptionShow;
-use App\Livewire\Admin\SubscriptionsIndex;
-use App\Livewire\Admin\SubscriptionsReport;
 use App\Livewire\Admin\SupplierBillShow;
 use App\Livewire\Admin\SupplierPaymentShow;
 use App\Livewire\Admin\SupplierProfile;
@@ -114,7 +110,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/tasks/{task}', AdminTaskShow::class)->middleware('can:tasks.view')->name('tasks.show');
 
         // Billing — Sprint 3
-        Route::get('/exchange-rates', ExchangeRatesIndex::class)->middleware('can:exchange_rates.view')->name('exchange-rates');
         Route::get('/invoices', InvoicesIndex::class)->middleware('can:invoices.view')->name('invoices');
         Route::get('/invoices/{invoice}', InvoiceShow::class)->middleware('can:invoices.view')->name('invoices.show');
         Route::get('/invoices/{invoice}/print', [InvoicePrintController::class, 'invoice'])->middleware('can:invoices.print')->name('invoices.print');
@@ -154,12 +149,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', ReportsCenter::class)->name('reports');
         Route::get('/reports/ar-aging', ArAgingReport::class)->middleware('can:reports.ar_aging')->name('reports.ar-aging');
         Route::get('/reports/customers', CustomersReport::class)->middleware('can:reports.customers')->name('reports.customers');
-        Route::get('/reports/subscriptions', SubscriptionsReport::class)->middleware('can:reports.subscriptions')->name('reports.subscriptions');
         Route::get('/reports/whatsapp', WhatsAppReport::class)->middleware('can:reports.whatsapp')->name('reports.whatsapp');
 
         // Subscriptions & recurring invoices — Sprint 7
-        Route::get('/subscriptions', SubscriptionsIndex::class)->middleware('can:subscriptions.view')->name('subscriptions');
-        Route::get('/subscriptions/{subscription}', SubscriptionShow::class)->middleware('can:subscriptions.view')->name('subscriptions.show');
 
         // WhatsApp — Sprint 7
         Route::get('/whatsapp', WhatsAppDashboard::class)->middleware('can:whatsapp.view')->name('whatsapp');

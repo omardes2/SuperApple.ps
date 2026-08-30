@@ -28,9 +28,7 @@ final class AdminNavigation
                     ['route' => 'admin.services', 'label' => 'الخدمات', 'icon' => 'grid', 'permission' => 'services.view'],
                     ['route' => 'admin.invoices', 'label' => 'الفواتير', 'icon' => 'invoice', 'permission' => 'invoices.view'],
                     ['route' => 'admin.payments', 'label' => 'الدفعات والتحصيل', 'icon' => 'cash', 'permission' => 'payments.view'],
-                    ['route' => 'admin.subscriptions', 'label' => 'الاشتراكات', 'icon' => 'repeat', 'permission' => 'subscriptions.view'],
                     ['route' => 'admin.whatsapp', 'label' => 'واتساب', 'icon' => 'chat', 'permission' => 'whatsapp.view'],
-                    ['route' => 'admin.exchange-rates', 'label' => 'أسعار الصرف', 'icon' => 'repeat', 'permission' => 'exchange_rates.view'],
                 ],
             ],
             [

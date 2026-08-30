@@ -3,7 +3,6 @@
 namespace Tests\Feature\Sprint3;
 
 use App\Enums\RoleName;
-use App\Livewire\Admin\ExchangeRatesIndex;
 use App\Livewire\Admin\InvoicesIndex;
 use App\Models\Invoice;
 use App\Models\Service;
@@ -38,9 +37,7 @@ class FinancialSecurityTest extends TestCase
     {
         [$user] = $this->makeStaff();
 
-        foreach (['/admin/invoices', '/admin/exchange-rates'] as $url) {
-            $this->actingAs($user)->get($url)->assertRedirect(route('employee.dashboard'));
-        }
+        $this->actingAs($user)->get('/admin/invoices')->assertRedirect(route('employee.dashboard'));
     }
 
     public function test_employee_cannot_open_financial_detail_or_print(): void
@@ -57,14 +54,13 @@ class FinancialSecurityTest extends TestCase
         [$user] = $this->makeStaff();
 
         Livewire::actingAs($user)->test(InvoicesIndex::class)->assertForbidden();
-        Livewire::actingAs($user)->test(ExchangeRatesIndex::class)->assertForbidden();
     }
 
     public function test_project_manager_does_not_get_financial_documents(): void
     {
         $pm = $this->makeUser(RoleName::ProjectManager);
 
-        foreach (['invoices.view', 'exchange_rates.view', 'invoices.issue'] as $perm) {
+        foreach (['invoices.view', 'invoices.issue'] as $perm) {
             $this->assertFalse($pm->can($perm), "PM must not have [{$perm}]");
         }
         $this->actingAs($pm)->get('/admin/invoices')->assertForbidden();
@@ -75,7 +71,6 @@ class FinancialSecurityTest extends TestCase
         $hr = $this->makeUser(RoleName::HrManager);
 
         $this->assertFalse($hr->can('invoices.view'));
-        $this->assertFalse($hr->can('exchange_rates.view'));
     }
 
     public function test_accountant_can_access_financial_area(): void
@@ -83,10 +78,10 @@ class FinancialSecurityTest extends TestCase
         $accountant = $this->makeUser(RoleName::Accountant);
 
         $this->assertTrue($accountant->can('invoices.issue'));
-        $this->assertTrue($accountant->can('exchange_rates.manage'));
 
         $this->actingAs($accountant)->get('/admin/invoices')->assertOk();
-        $this->actingAs($accountant)->get('/admin/exchange-rates')->assertOk();
+        // Exchange-rates module was retired — the route no longer exists for anyone.
+        $this->actingAs($accountant)->get('/admin/exchange-rates')->assertNotFound();
     }
 
     public function test_service_financial_protection_still_holds(): void

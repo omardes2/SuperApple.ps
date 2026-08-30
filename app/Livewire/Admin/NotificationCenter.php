@@ -15,7 +15,7 @@ class NotificationCenter extends Component
 {
     use WithPagination;
 
-    public string $tab = 'all'; // all|unread|tasks|hr|finance|subscriptions|whatsapp
+    public string $tab = 'all'; // all|unread|tasks|hr|finance|whatsapp
 
     public bool $showPrefs = false;
 
@@ -63,6 +63,7 @@ class NotificationCenter extends Component
             str_starts_with($type, 'task') => 'tasks',
             str_starts_with($type, 'leave'), str_starts_with($type, 'attendance'), str_starts_with($type, 'payroll'), str_starts_with($type, 'advance') => 'hr',
             str_starts_with($type, 'invoice'), str_starts_with($type, 'payment'), str_starts_with($type, 'expense'), str_starts_with($type, 'supplier') => 'finance',
+            // Subscriptions module retired; legacy subscription notifications fold here and stay hidden.
             str_starts_with($type, 'subscription') => 'subscriptions',
             str_starts_with($type, 'whatsapp') => 'whatsapp',
             default => 'other',
@@ -77,7 +78,7 @@ class NotificationCenter extends Component
         return match ($category) {
             'finance' => $u->canAny(['payments.view', 'invoices.view', 'accounting.view', 'expenses.view', 'suppliers.view']),
             'hr' => $u->canAny(['employees.view', 'payroll.view', 'leaves.view', 'attendance.view']),
-            'subscriptions' => $u->can('subscriptions.view'),
+            'subscriptions' => false, // module retired — legacy notifications stay hidden
             'whatsapp' => $u->can('whatsapp.view'),
             'tasks' => $u->canAny(['tasks.view', 'tasks.view_own']),
             default => true,
@@ -97,7 +98,7 @@ class NotificationCenter extends Component
             if (! $this->canSeeCategory($cat)) {
                 return false; // never show data the user is no longer allowed to see
             }
-            if (in_array($this->tab, ['tasks', 'hr', 'finance', 'subscriptions', 'whatsapp'], true)) {
+            if (in_array($this->tab, ['tasks', 'hr', 'finance', 'whatsapp'], true)) {
                 return $cat === $this->tab;
             }
 

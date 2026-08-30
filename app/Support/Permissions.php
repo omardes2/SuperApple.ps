@@ -100,18 +100,9 @@ final class Permissions
                 'supplier_payments.post' => 'ترحيل دفعة مورد',
                 'supplier_payments.cancel' => 'إلغاء دفعة مورد',
             ]],
-            'subscriptions' => ['financial' => false, 'permissions' => [
-                'subscriptions.view' => 'عرض الاشتراكات',
-                'subscriptions.create' => 'إنشاء اشتراك',
-                'subscriptions.edit' => 'تعديل اشتراك',
-                'subscriptions.activate' => 'تفعيل اشتراك',
-                'subscriptions.pause' => 'إيقاف اشتراك مؤقتاً',
-                'subscriptions.resume' => 'استئناف اشتراك',
-                'subscriptions.cancel' => 'إلغاء اشتراك',
-                'subscriptions.bill' => 'فوترة الاشتراكات',
-                'subscriptions.manage' => 'إدارة الاشتراكات',
-                'subscriptions.reports' => 'تقارير الاشتراكات (MRR/ARR)',
-            ]],
+            // NOTE: the "subscriptions" module was retired — invoices are created
+            // manually. Its permissions were removed from the catalogue; the
+            // tables/models remain for historical data only.
             'whatsapp' => ['financial' => false, 'permissions' => [
                 'whatsapp.view' => 'عرض واتساب',
                 'whatsapp.send' => 'إرسال رسائل واتساب',
@@ -151,7 +142,6 @@ final class Permissions
                 'reports.customers' => 'تقارير العملاء',
                 'reports.tasks' => 'تقارير المهام',
                 'reports.attendance_report' => 'تقارير الدوام',
-                'reports.subscriptions' => 'تقارير الاشتراكات',
                 'reports.whatsapp' => 'تقارير المراسلات',
                 'reports.export' => 'تصدير التقارير',
             ]],
@@ -160,10 +150,10 @@ final class Permissions
             'finance' => ['financial' => true, 'permissions' => [
                 'finance.view' => 'الوصول للقسم المالي',
             ]],
-            'exchange_rates' => ['financial' => true, 'permissions' => [
-                'exchange_rates.view' => 'عرض أسعار الصرف',
-                'exchange_rates.manage' => 'إدارة أسعار الصرف',
-            ]],
+            // NOTE: the standalone "exchange rates" module was retired — invoice
+            // and payment exchange rates are entered manually per document, with
+            // no central rate table driving the UI. Its permissions were removed
+            // from the catalogue.
             // NOTE: the "quotations" module was retired — invoices are created
             // directly from the customer. Its permissions were removed from the
             // catalogue; the tables/models remain for historical data only.
@@ -305,10 +295,6 @@ final class Permissions
 
             RoleName::Accountant->value => array_merge([
                 'dashboard.view', 'customers.view', 'suppliers.view', 'suppliers.manage',
-                // Subscriptions: view + generate invoices + management reports (not full config).
-                'subscriptions.view', 'subscriptions.create', 'subscriptions.edit',
-                'subscriptions.activate', 'subscriptions.pause', 'subscriptions.resume',
-                'subscriptions.cancel', 'subscriptions.bill', 'subscriptions.reports',
                 // WhatsApp: send invoice messages + payment reminders, retry, view history.
                 'whatsapp.view', 'whatsapp.send', 'whatsapp.retry', 'whatsapp.history.view',
                 'whatsapp.templates.view', 'whatsapp.reminders.view', 'whatsapp.reminders.manage',
@@ -326,7 +312,7 @@ final class Permissions
                 'reports.financial', 'reports.operational', 'audit.view',
                 // Sprint 8 — reports centre + executive analytics.
                 'reports.executive', 'reports.ar_aging', 'reports.customers',
-                'reports.subscriptions', 'reports.whatsapp', 'reports.export',
+                'reports.whatsapp', 'reports.export',
                 // Sprint 5 — accounting, expenses, suppliers, cash/banks.
                 'suppliers.create', 'suppliers.edit',
                 'supplier_bills.view', 'supplier_bills.create', 'supplier_bills.edit',
@@ -340,8 +326,7 @@ final class Permissions
                 'journals.view', 'journals.create', 'journals.post', 'journals.reverse', 'journals.manual',
                 'reports.gl', 'reports.trial_balance', 'reports.profit_loss',
                 'reports.balance_sheet', 'reports.reconciliation',
-                // Exchange rates + full invoice lifecycle (Sprint 3).
-                'exchange_rates.view', 'exchange_rates.manage',
+                // Full invoice lifecycle (Sprint 3) — rates entered manually.
                 'invoices.view', 'invoices.manage', 'invoices.create', 'invoices.edit',
                 'invoices.issue', 'invoices.send', 'invoices.cancel', 'invoices.print',
                 // Service catalog incl. pricing (needed for invoices).
@@ -368,9 +353,6 @@ final class Permissions
             RoleName::ProjectManager->value => array_merge([
                 'dashboard.view', 'customers.view', 'reports.operational', 'notifications.view',
                 'departments.view', 'employees.view', 'attendance.view',
-                // Operational visibility of subscriptions only — prices stay hidden
-                // (SubscriptionPolicy::viewPrices), even for a project member.
-                'subscriptions.view',
                 // Full task management (no finance; service prices hidden).
                 'tasks.view', 'tasks.view_own', 'tasks.create', 'tasks.edit', 'tasks.assign',
                 'tasks.manage', 'tasks.review', 'tasks.comment', 'tasks.attachments', 'tasks.checklist',

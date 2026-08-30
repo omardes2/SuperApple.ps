@@ -23,7 +23,6 @@ class PaymentService
 {
     public function __construct(
         private readonly DocumentNumberService $numbers,
-        private readonly ExchangeRateService $rates,
         private readonly PaymentAllocationService $allocator,
         private readonly AuditLogger $audit,
         private readonly LedgerPostingService $ledger,
@@ -231,11 +230,6 @@ class PaymentService
         }
 
         return $plan;
-    }
-
-    public function suggestedRate(string $date): ?string
-    {
-        return $this->rates->suggestedRate($date);
     }
 
     /**

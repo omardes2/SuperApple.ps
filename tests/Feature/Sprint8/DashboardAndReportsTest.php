@@ -50,7 +50,6 @@ class DashboardAndReportsTest extends TestCase
     public function test_dashboard_renders_for_gm_with_executive_widgets(): void
     {
         $gm = $this->makeUser(RoleName::GeneralManager);
-        $this->makeActiveSubscription();
         Livewire::actingAs($gm)->test(Dashboard::class)
             ->assertOk()
             ->assertViewHas('aging')

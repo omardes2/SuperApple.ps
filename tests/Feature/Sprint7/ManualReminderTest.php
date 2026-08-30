@@ -39,17 +39,18 @@ class ManualReminderTest extends TestCase
         $this->assertStringContainsString('USD', $ctx['invoice_list']);
     }
 
-    public function test_estimated_ils_uses_latest_rate_not_invoice_rate(): void
+    public function test_no_central_rate_means_no_ils_estimate_in_reminders(): void
     {
         $customer = $this->makeCustomer(['whatsapp_number' => '0591234567']);
-        // Invoice frozen at 3.20 …
         $this->makeIssuedInvoice($customer, '500', '3.20');
-        // … but the latest market rate is 4.00.
+        // Even if a legacy exchange-rate row exists, reminders never read a central rate.
         $this->seedExchangeRate(now()->toDateString(), '4.00');
 
         $ctx = $this->service()->manualContext($customer);
-        // 500 × 4.00 = 2000, NOT 500 × 3.20.
-        $this->assertSame('2000.00', $ctx['estimated_ils']);
+        // The standalone exchange-rate module was retired: USD is the only figure.
+        $this->assertNull($ctx['estimated_ils']);
+        $this->assertNull($ctx['latest_rate']);
+        $this->assertSame('500.00', $ctx['net_balance_usd']);
     }
 
     public function test_balance_variables_include_required_keys(): void

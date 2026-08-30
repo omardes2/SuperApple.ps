@@ -282,8 +282,8 @@ class RuntimeStabilityTest extends TestCase
     {
         return [
             '/admin', '/admin/customers', '/admin/services',
-            '/admin/invoices', '/admin/payments', '/admin/subscriptions', '/admin/whatsapp',
-            '/admin/whatsapp/templates', '/admin/whatsapp/reminders', '/admin/exchange-rates',
+            '/admin/invoices', '/admin/payments', '/admin/whatsapp',
+            '/admin/whatsapp/templates', '/admin/whatsapp/reminders',
             '/admin/tasks', '/admin/departments', '/admin/employees',
             '/admin/attendance', '/admin/leaves', '/admin/payroll', '/admin/payroll/reports',
             '/admin/advances', '/admin/expenses', '/admin/suppliers', '/admin/cash-banks',
@@ -291,7 +291,7 @@ class RuntimeStabilityTest extends TestCase
             '/admin/accounting/general-ledger', '/admin/accounting/profit-loss',
             '/admin/accounting/balance-sheet', '/admin/accounting/reconciliation',
             '/admin/reports', '/admin/reports/ar-aging', '/admin/reports/customers',
-            '/admin/reports/subscriptions', '/admin/reports/whatsapp',
+            '/admin/reports/whatsapp',
             '/admin/reports/exchange-gain-loss', '/admin/settings', '/admin/users', '/admin/roles',
             '/admin/notifications', '/admin/activity', '/admin/audit-log', '/admin/production-readiness',
         ];

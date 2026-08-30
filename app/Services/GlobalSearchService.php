@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\Subscription;
 use App\Models\Supplier;
 use App\Models\SupplierBill;
 use App\Models\Task;
@@ -17,8 +16,8 @@ use Illuminate\Support\Collection;
 /**
  * Server-side global search. Every category is gated by the same permission that
  * guards its module, so results never leak a record the user cannot already
- * open — searching an exact invoice/payment/subscription number as an
- * unauthorised user returns nothing. Queries are limited per category and never
+ * open — searching an exact invoice/payment number as an unauthorised user
+ * returns nothing. Queries are limited per category and never
  * load whole tables.
  */
 class GlobalSearchService
@@ -72,12 +71,6 @@ class GlobalSearchService
             $groups[] = $this->group('supplier_bills', 'فواتير الموردين', 'admin.supplier-bills.show',
                 SupplierBill::query()->where('bill_number', 'like', $like)
                     ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->bill_number, $m->supplier?->name]));
-        }
-
-        if ($user->can('subscriptions.view')) {
-            $groups[] = $this->group('subscriptions', 'الاشتراكات', 'admin.subscriptions.show',
-                Subscription::query()->where(fn ($q) => $q->where('name', 'like', $like)->orWhere('subscription_number', 'like', $like))
-                    ->limit($perCategory)->get()->map(fn ($m) => [$m->id, $m->name, $m->subscription_number]));
         }
 
         if ($user->can('expenses.view')) {

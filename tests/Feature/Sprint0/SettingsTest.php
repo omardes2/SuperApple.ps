@@ -41,7 +41,6 @@ class SettingsTest extends TestCase
         Livewire::actingAs($manager)
             ->test(SettingsPage::class)
             ->set('companyName', 'وكالة سوبر آبل')
-            ->set('defaultExchangeRate', '3.31')
             ->set('workStart', '08:30')
             ->set('workEnd', '16:30')
             ->set('graceMinutes', 10)
@@ -51,7 +50,7 @@ class SettingsTest extends TestCase
         $settings = app(Settings::class);
         $settings->flush();
         $this->assertSame('وكالة سوبر آبل', $settings->get('company', 'name'));
-        $this->assertSame(3.31, $settings->get('finance', 'default_exchange_rate'));
+        $this->assertSame('08:30', $settings->get('attendance', 'work_start'));
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'settings_updated', 'module' => 'Settings']);
     }

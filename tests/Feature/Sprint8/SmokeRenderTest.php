@@ -22,17 +22,18 @@ class SmokeRenderTest extends TestCase
     public function test_sprint8_pages_render_for_super_admin(): void
     {
         $this->actingAs($this->makeUser(RoleName::SuperAdmin));
-        // Some data so widgets have content.
-        $this->makeActiveSubscription();
 
         foreach ([
             '/admin', '/admin/reports', '/admin/reports/ar-aging', '/admin/reports/customers',
-            '/admin/reports/subscriptions', '/admin/reports/whatsapp',
+            '/admin/reports/whatsapp',
             '/admin/notifications', '/admin/activity', '/admin/users', '/admin/roles',
             '/admin/production-readiness', '/admin/audit-log',
         ] as $url) {
             $this->get($url)->assertOk();
         }
+
+        // Subscriptions module was retired — its report route no longer exists.
+        $this->get('/admin/reports/subscriptions')->assertNotFound();
     }
 
     public function test_error_pages_exist(): void

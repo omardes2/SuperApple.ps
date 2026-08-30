@@ -76,22 +76,25 @@ class IlsSecondaryDisplayTest extends TestCase
         $this->assertStringContainsString('0.00 ₪', $html);
     }
 
-    public function test_latest_rate_is_resolved_and_memoised(): void
+    public function test_no_central_rate_after_retirement(): void
     {
+        // A legacy exchange-rate row may still exist, but the retired module is
+        // never consulted for display: no central/latest/default rate, no estimate.
         $this->seedExchangeRate(now()->toDateString(), '3.50');
 
         $resolver = app(CurrencyDisplay::class);
-        $this->assertSame('3.500000', $resolver->latestOrDefaultRate());
-        $this->assertSame('35.00', $resolver->estimatedIls('10'));
+        $this->assertNull($resolver->latestOrDefaultRate());
+        $this->assertNull($resolver->estimatedIls('10'));
     }
 
-    public function test_service_price_uses_latest_estimate_rate(): void
+    public function test_service_price_without_context_rate_shows_usd_only(): void
     {
+        // No contextual document rate + retired central rate ⇒ USD only, no ≈ILS.
         $this->seedExchangeRate(now()->toDateString(), '3.20');
 
         $html = $this->renderMoney(['usd' => '350.00', 'useLatest' => true]);
         $this->assertStringContainsString('$350.00', $html);
-        $this->assertStringContainsString('1,120.00 ₪', $html); // 350 × 3.20
+        $this->assertStringNotContainsString('₪', $html);
     }
 
     public function test_invoice_list_uses_locked_invoice_rate_not_latest(): void

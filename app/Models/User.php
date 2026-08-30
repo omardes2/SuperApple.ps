@@ -18,7 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** Notification categories a user may toggle in their preferences. */
-    public const NOTIFICATION_CATEGORIES = ['tasks', 'hr', 'finance', 'subscriptions', 'whatsapp'];
+    public const NOTIFICATION_CATEGORIES = ['tasks', 'hr', 'finance', 'whatsapp'];
 
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;

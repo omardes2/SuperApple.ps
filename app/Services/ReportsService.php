@@ -3,15 +3,12 @@
 namespace App\Services;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\SubscriptionStatus;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\JournalEntryLine;
 use App\Models\Payment;
 use App\Models\PaymentReminderLog;
 use App\Models\Project;
-use App\Models\Subscription;
-use App\Models\SubscriptionBilling;
 use App\Models\WhatsAppMessage;
 use App\Support\Money;
 use Illuminate\Support\Carbon;
@@ -26,7 +23,6 @@ class ReportsService
 {
     public function __construct(
         private readonly AccountingReportService $accounting,
-        private readonly ExchangeRateService $rates,
     ) {}
 
     // ---------------------------------------------------------------- Executive
@@ -67,17 +63,6 @@ class ReportsService
     public function outstandingReceivablesUsd(): string
     {
         return Money::money(Invoice::issued()->sum('remaining_usd'));
-    }
-
-    /** Informational ILS estimate of receivables at the LATEST rate (never issue rates). */
-    public function estimatedReceivablesIls(): ?string
-    {
-        $rate = $this->rates->suggestedRate(now()->toDateString());
-        if ($rate === null) {
-            return null;
-        }
-
-        return Money::convertUsdToIls($this->outstandingReceivablesUsd(), $rate);
     }
 
     /**
@@ -357,31 +342,6 @@ class ReportsService
 
         return $rows->map(fn ($r) => ['customer' => Customer::find($r->customer_id), 'count' => (int) $r->cnt])
             ->filter(fn ($r) => $r['customer'] !== null)->values()->all();
-    }
-
-    // --------------------------------------------------------- Subscriptions
-
-    /** @return array<string,mixed> */
-    public function subscriptionAnalytics(): array
-    {
-        $metrics = app(SubscriptionMetricsService::class);
-        $invoicesThisMonth = Invoice::whereNotNull('subscription_id')
-            ->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
-        $autoIssueFailures = SubscriptionBilling::whereNotNull('error_message')->count();
-
-        return [
-            'active' => Subscription::where('status', SubscriptionStatus::Active->value)->count(),
-            'paused' => Subscription::where('status', SubscriptionStatus::Paused->value)->count(),
-            'mrr_usd' => $metrics->mrr(),
-            'arr_usd' => $metrics->arr(),
-            'upcoming' => $metrics->upcomingBillings(30)->count(),
-            'expiring_soon' => Subscription::where('status', SubscriptionStatus::Active->value)
-                ->whereNotNull('end_date')
-                ->whereDate('end_date', '<=', now()->addDays((int) app(Settings::class)->get('subscriptions', 'expiry_warning_days', 14))->toDateString())
-                ->count(),
-            'invoices_this_month' => $invoicesThisMonth,
-            'auto_issue_failures' => $autoIssueFailures,
-        ];
     }
 
     // ------------------------------------------------------------- WhatsApp

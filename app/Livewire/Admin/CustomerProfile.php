@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\Subscription;
 use App\Services\CustomerBalanceService;
 use App\Services\PaymentReminderService;
 use App\Support\TemplateRenderer;
@@ -136,15 +135,9 @@ class CustomerProfile extends Component
             $data['payments'] = $this->customer->payments()->with('receivedBy')->latest('payment_date')->latest('id')->get();
         }
 
-        // Subscriptions & WhatsApp (Sprint 7).
-        $data['canSubscriptions'] = auth()->user()->can('subscriptions.view');
+        // WhatsApp (Sprint 7). Subscriptions module retired.
         $data['canWhatsapp'] = auth()->user()->can('whatsapp.view');
         $data['canSendWhatsapp'] = auth()->user()->can('whatsapp.send');
-        $data['canSubscriptionPrices'] = auth()->user()->can('viewPrices', Subscription::class);
-
-        if ($this->tab === 'subscriptions' && $data['canSubscriptions']) {
-            $data['subscriptions'] = $this->customer->subscriptions()->latest('id')->get();
-        }
 
         if ($this->tab === 'communications' && $data['canWhatsapp']) {
             $data['messages'] = $this->customer->whatsappMessages()->with('invoice')->limit(50)->get();

@@ -62,9 +62,6 @@ class ReportsCenter extends Component
             ['label' => 'تقارير الموظفين', 'items' => [
                 ['label' => 'الدوام والحضور', 'route' => 'admin.attendance', 'permission' => 'reports.attendance_report'],
             ]],
-            ['label' => 'تقارير الاشتراكات', 'items' => [
-                ['label' => 'الاشتراكات وMRR/ARR', 'route' => 'admin.reports.subscriptions', 'permission' => 'reports.subscriptions'],
-            ]],
             ['label' => 'تقارير المراسلات', 'items' => [
                 ['label' => 'واتساب والتذكيرات', 'route' => 'admin.reports.whatsapp', 'permission' => 'reports.whatsapp'],
             ]],

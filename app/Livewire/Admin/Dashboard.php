@@ -16,8 +16,6 @@ use App\Models\JournalEntryLine;
 use App\Models\LeaveRequest;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
-use App\Models\Subscription;
-use App\Models\SubscriptionBilling;
 use App\Models\Task;
 use App\Models\WhatsAppMessage;
 use App\Services\AccountingReportService;
@@ -25,7 +23,6 @@ use App\Services\FinancialAccountService;
 use App\Services\ReconciliationService;
 use App\Services\ReportsService;
 use App\Services\Settings;
-use App\Services\SubscriptionMetricsService;
 use App\Support\Format;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
@@ -129,17 +126,7 @@ class Dashboard extends Component
             ];
         }
 
-        // Subscriptions (MRR/ARR are contracted value, NOT accounting revenue).
-        $subscriptions = null;
-        if ($user->can('subscriptions.reports')) {
-            $metrics = app(SubscriptionMetricsService::class);
-            $subscriptions = [
-                'mrr_usd' => $metrics->mrr(),
-                'arr_usd' => $metrics->arr(),
-                'active' => Subscription::active()->count(),
-                'due_soon' => $metrics->upcomingBillings(7)->count(),
-            ];
-        }
+        // Subscriptions module retired — no MRR/ARR cards.
 
         // ---- Executive analytics (finance/accounting users only) ----
         $reports = app(ReportsService::class);
@@ -149,7 +136,6 @@ class Dashboard extends Component
 
         if ($user->can('payments.view')) {
             $finance['revenue_month_ils'] = $reports->revenueThisMonthIls();
-            $finance['estimated_outstanding_ils'] = $reports->estimatedReceivablesIls();
             $aging = $reports->arAging();
             $topCustomers = [
                 'revenue' => $reports->topCustomersByRevenue(5),
@@ -168,7 +154,7 @@ class Dashboard extends Component
 
         return view('livewire.admin.dashboard', [
             'hr' => $hr, 'ops' => $ops, 'finance' => $finance, 'accounting' => $accounting,
-            'subscriptions' => $subscriptions, 'charts' => $charts, 'aging' => $aging,
+            'charts' => $charts, 'aging' => $aging,
             'topCustomers' => $topCustomers, 'alerts' => $alerts,
         ]);
     }
@@ -196,13 +182,6 @@ class Dashboard extends Component
             $big = collect($reports->topCustomersByOutstanding(1))->first();
             if ($big && (float) $big['amount'] > (float) $largeUsd) {
                 $alerts[] = ['level' => 'amber', 'text' => "رصيد كبير مستحق على {$big['customer']->name}: ".Format::usd($big['amount'])];
-            }
-        }
-
-        if ($user->can('subscriptions.reports')) {
-            $failures = SubscriptionBilling::whereNotNull('error_message')->count();
-            if ($failures > 0) {
-                $alerts[] = ['level' => 'red', 'text' => "فشل الإصدار التلقائي لـ {$failures} فاتورة اشتراك", 'route' => 'admin.subscriptions'];
             }
         }
 

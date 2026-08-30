@@ -63,16 +63,14 @@ class CustomerBalanceService
     }
 
     /**
-     * Informational only — clearly not the official balance.
+     * Retired: there is no central/latest rate anymore, so no blind-rate estimate
+     * is produced. The accounting-correct per-document figure is
+     * {@see outstandingIlsByDocument()}; the official balance is always USD.
+     * Kept returning null for backward-compatible call sites (never queries).
      */
     public function estimatedOutstandingIls(Customer $customer): ?string
     {
-        $rate = $this->rates->suggestedRate(now()->toDateString());
-        if ($rate === null) {
-            return null;
-        }
-
-        return Money::convertUsdToIls($this->netBalanceUsd($customer), $rate);
+        return null;
     }
 
     /**

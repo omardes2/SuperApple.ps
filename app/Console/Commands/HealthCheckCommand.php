@@ -159,7 +159,7 @@ class HealthCheckCommand extends Command
     private function schedulerCheck(): void
     {
         $registered = array_keys(Artisan::all());
-        foreach (['subscriptions:bill', 'payments:send-reminders'] as $command) {
+        foreach (['payments:send-reminders'] as $command) {
             in_array($command, $registered, true)
                 ? $this->record('PASS', "scheduler.{$command}", "الأمر المجدول {$command} مُسجّل.")
                 : $this->record('FAIL', "scheduler.{$command}", "الأمر المجدول {$command} غير مُسجّل.");

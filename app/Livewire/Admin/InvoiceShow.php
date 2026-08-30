@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Service;
-use App\Services\ExchangeRateService;
 use App\Services\InvoiceService;
 use App\Services\PaymentService;
 use Livewire\Attributes\Layout;
@@ -56,12 +55,6 @@ class InvoiceShow extends Component
         $this->notes = (string) $this->invoice->notes;
         $this->terms = (string) $this->invoice->terms;
         $this->loadLinesFrom($this->invoice->items);
-    }
-
-    public function suggestRate(ExchangeRateService $service): void
-    {
-        $this->authorize('update', $this->invoice);
-        $this->exchange_rate = $service->suggestedRate($this->invoice_date ?: now()->toDateString());
     }
 
     public function save(InvoiceService $service): void
@@ -183,7 +176,7 @@ class InvoiceShow extends Component
 
     public function render()
     {
-        $this->invoice->loadMissing(['customer', 'items.service', 'subscription']);
+        $this->invoice->loadMissing(['customer', 'items.service']);
 
         $canPayments = auth()->user()->can('payments.view');
         $canWhatsapp = auth()->user()->can('whatsapp.view');

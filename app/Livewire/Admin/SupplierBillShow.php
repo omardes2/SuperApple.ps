@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\Account;
 use App\Models\Project;
 use App\Models\SupplierBill;
-use App\Services\ExchangeRateService;
 use App\Services\SupplierBillService;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
@@ -80,11 +79,6 @@ class SupplierBillShow extends Component
     {
         unset($this->items[$i]);
         $this->items = array_values($this->items);
-    }
-
-    public function suggestRate(ExchangeRateService $service): void
-    {
-        $this->exchange_rate = $service->suggestedRate($this->bill_date ?: now()->toDateString());
     }
 
     private function payload(): array

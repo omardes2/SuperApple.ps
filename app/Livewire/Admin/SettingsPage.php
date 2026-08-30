@@ -22,8 +22,6 @@ class SettingsPage extends Component
 
     public string $taxNumber = '';
 
-    public string $defaultExchangeRate = '';
-
     public string $invoiceTerms = '';
 
     public string $invoiceFooter = '';
@@ -57,7 +55,6 @@ class SettingsPage extends Component
         $this->companyWhatsapp = (string) $settings->get('company', 'whatsapp', '');
         $this->companyAddress = (string) $settings->get('company', 'address', '');
         $this->taxNumber = (string) $settings->get('company', 'tax_number', '');
-        $this->defaultExchangeRate = (string) $settings->get('finance', 'default_exchange_rate', '3.30');
         $this->invoiceTerms = (string) $settings->get('finance', 'invoice_terms', '');
         $this->invoiceFooter = (string) $settings->get('finance', 'invoice_footer', '');
         $this->workStart = (string) $settings->get('attendance', 'work_start', '09:00');
@@ -87,7 +84,6 @@ class SettingsPage extends Component
             'companyWhatsapp' => 'nullable|string|max:40',
             'companyAddress' => 'nullable|string|max:255',
             'taxNumber' => 'nullable|string|max:60',
-            'defaultExchangeRate' => 'required|numeric|min:0.000001',
             'invoiceTerms' => 'nullable|string|max:1000',
             'invoiceFooter' => 'nullable|string|max:1000',
             'workStart' => 'required|string|max:5',
@@ -108,7 +104,6 @@ class SettingsPage extends Component
             'tax_number' => $data['taxNumber'] ?? '',
         ]);
         $settings->setMany('finance', [
-            'default_exchange_rate' => ['value' => $data['defaultExchangeRate'], 'type' => 'decimal'],
             'invoice_terms' => $data['invoiceTerms'] ?? '',
             'invoice_footer' => $data['invoiceFooter'] ?? '',
         ]);

@@ -62,7 +62,7 @@ class ProductionReadiness extends Component
 
         // Scheduler
         $cmds = array_keys(Artisan::all());
-        $sched = in_array('subscriptions:bill', $cmds, true) && in_array('payments:send-reminders', $cmds, true);
+        $sched = in_array('payments:send-reminders', $cmds, true);
         $out[] = $this->row('المجدول', 'الأوامر المجدولة', $sched ? 'pass' : 'fail', $sched ? 'مسجّلة' : 'ناقصة');
 
         // WhatsApp

@@ -8,9 +8,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Recurring invoices: bill every due subscription once a day. Idempotent —
-// a period is never billed twice thanks to the subscription_billings unique key.
-Schedule::command('subscriptions:bill')->dailyAt('02:00')->withoutOverlapping();
+// Subscriptions were retired — no automatic recurring invoicing. (The
+// subscriptions:bill command and its tables remain as legacy but are no longer
+// scheduled, so no invoice is ever created automatically.)
 
 // Payment reminders: evaluate the active reminder rules once a day.
 Schedule::command('payments:send-reminders')->dailyAt('09:00')->withoutOverlapping();

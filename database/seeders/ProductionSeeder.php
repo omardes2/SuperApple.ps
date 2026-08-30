@@ -23,6 +23,7 @@ class ProductionSeeder extends Seeder
             RolePermissionSeeder::class,        // roles + permissions
             SettingsSeeder::class,              // default settings (incl. currency rules, version)
             ChartOfAccountsSeeder::class,       // chart of accounts + system account mappings
+            ExpenseCategorySeeder::class,       // expense categories mapped to GL expense accounts
             LeaveTypesProductionSeeder::class,  // core leave types (annual/sick/unpaid/emergency)
         ]);
 

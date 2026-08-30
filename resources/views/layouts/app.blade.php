@@ -101,6 +101,9 @@
                 @if (session('status'))
                     <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>
                 @endif
+                @if (session('error'))
+                    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{{ session('error') }}</div>
+                @endif
                 {{ $slot }}
             </main>
             <footer class="border-t border-slate-200 px-6 py-3 text-center text-xs text-slate-400">

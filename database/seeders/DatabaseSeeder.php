@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             SettingsSeeder::class,
             ChartOfAccountsSeeder::class,
+            ExpenseCategorySeeder::class,
         ]);
 
         // 2) Demo data — guarded in production.

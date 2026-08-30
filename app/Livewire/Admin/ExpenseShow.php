@@ -168,8 +168,14 @@ class ExpenseShow extends Component
     {
         $this->expense->loadMissing(['category', 'financialAccount', 'supplier']);
 
+        // Active categories for selection, plus this expense's own category even
+        // if it was later deactivated (so a historical expense still renders).
+        $categories = ExpenseCategory::query()
+            ->where(fn ($q) => $q->where('is_active', true)->orWhere('id', $this->expense->category_id))
+            ->orderBy('name')->get();
+
         return view('livewire.admin.expense-show', [
-            'categories' => ExpenseCategory::orderBy('name')->get(),
+            'categories' => $categories,
             'suppliers' => Supplier::active()->orderBy('name')->get(['id', 'name']),
             'accounts' => FinancialAccount::active()->orderBy('name')->get(),
             'canEdit' => ($this->expense->isDraft() || $this->expense->status === ExpenseStatus::Approved) && auth()->user()->can('expenses.edit'),

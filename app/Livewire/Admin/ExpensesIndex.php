@@ -5,8 +5,10 @@ namespace App\Livewire\Admin;
 use App\Enums\ExpenseStatus;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Services\ExpenseCategoryService;
 use App\Services\ExpenseService;
 use App\Support\Money;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -28,6 +30,17 @@ class ExpensesIndex extends Component
     #[Url]
     public string $category = '';
 
+    // ---- Category management modal ----
+    public bool $showCategories = false;
+
+    public ?int $editingCategoryId = null;
+
+    public string $categoryName = '';
+
+    public ?int $categoryAccountId = null;
+
+    public bool $categoryActive = true;
+
     public function mount(): void
     {
         $this->authorize('expenses.view');
@@ -43,8 +56,14 @@ class ExpensesIndex extends Component
     public function create(ExpenseService $service)
     {
         $this->authorize('create', Expense::class);
+
         $category = ExpenseCategory::active()->orderBy('name')->first();
-        abort_if($category === null, 422, 'لا توجد فئات مصاريف.');
+        if ($category === null) {
+            // No categories yet — never show a raw 422 error page. Guide the user.
+            session()->flash('error', 'لا توجد فئات مصاريف فعّالة. أضف فئة أولاً من «تصنيفات المصروفات».');
+
+            return null;
+        }
 
         $expense = $service->createDraft([
             'category_id' => $category->id,
@@ -57,10 +76,87 @@ class ExpensesIndex extends Component
         return redirect()->route('admin.expenses.show', $expense);
     }
 
-    public function render()
+    // ---- Category management ----
+
+    public function openCategories(): void
+    {
+        $this->authorize('expense_categories.manage');
+        $this->resetCategoryForm();
+        $this->showCategories = true;
+    }
+
+    public function newCategory(): void
+    {
+        $this->authorize('expense_categories.manage');
+        $this->resetCategoryForm();
+    }
+
+    public function editCategory(int $id): void
+    {
+        $this->authorize('expense_categories.manage');
+        $c = ExpenseCategory::findOrFail($id);
+        $this->editingCategoryId = $c->id;
+        $this->categoryName = $c->name;
+        $this->categoryAccountId = $c->default_expense_account_id;
+        $this->categoryActive = $c->is_active;
+    }
+
+    public function saveCategory(ExpenseCategoryService $service): void
+    {
+        $this->authorize('expense_categories.manage');
+
+        $validated = $this->validate([
+            'categoryName' => ['required', 'string', 'max:120',
+                Rule::unique('expense_categories', 'name')->ignore($this->editingCategoryId)],
+            'categoryAccountId' => 'required|integer|exists:chart_of_accounts,id',
+            'categoryActive' => 'boolean',
+        ], [], [
+            'categoryName' => 'اسم الفئة',
+            'categoryAccountId' => 'حساب الأستاذ',
+        ]);
+
+        $data = [
+            'name' => $validated['categoryName'],
+            'default_expense_account_id' => $validated['categoryAccountId'],
+            'is_active' => $validated['categoryActive'],
+        ];
+
+        try {
+            if ($this->editingCategoryId) {
+                $service->update(ExpenseCategory::findOrFail($this->editingCategoryId), $data);
+                session()->flash('status', 'تم تحديث الفئة.');
+            } else {
+                $service->create($data);
+                session()->flash('status', 'تم إضافة الفئة.');
+            }
+        } catch (\RuntimeException $e) {
+            $this->addError('categoryAccountId', $e->getMessage());
+
+            return;
+        }
+
+        $this->resetCategoryForm();
+    }
+
+    public function toggleCategory(int $id, ExpenseCategoryService $service): void
+    {
+        $this->authorize('expense_categories.manage');
+        $c = ExpenseCategory::findOrFail($id);
+        $service->setActive($c, ! $c->is_active);
+        session()->flash('status', $c->is_active ? 'تم تعطيل الفئة.' : 'تم تفعيل الفئة.');
+    }
+
+    private function resetCategoryForm(): void
+    {
+        $this->reset(['editingCategoryId', 'categoryName', 'categoryAccountId', 'categoryActive']);
+        $this->categoryActive = true;
+        $this->resetErrorBag();
+    }
+
+    public function render(ExpenseCategoryService $categoryService)
     {
         $expenses = Expense::query()
-            ->with(['category', 'supplier', 'project', 'financialAccount'])
+            ->with(['category', 'supplier', 'financialAccount'])
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('expense_number', 'like', "%{$this->search}%")
                 ->orWhere('description', 'like', "%{$this->search}%")))
@@ -79,11 +175,20 @@ class ExpensesIndex extends Component
             'draft' => Expense::where('status', ExpenseStatus::Draft)->count(),
         ];
 
+        $canManageCategories = auth()->user()->can('expense_categories.manage');
+
         return view('livewire.admin.expenses-index', [
             'expenses' => $expenses,
             'stats' => $stats,
-            'categories' => ExpenseCategory::orderBy('name')->get(),
+            'categories' => ExpenseCategory::active()->orderBy('name')->get(),
             'statusOptions' => ExpenseStatus::options(),
+            'canManageCategories' => $canManageCategories,
+            'manageCategories' => $canManageCategories && $this->showCategories
+                ? ExpenseCategory::with('defaultAccount')->orderBy('name')->get()
+                : collect(),
+            'eligibleAccounts' => $canManageCategories && $this->showCategories
+                ? $categoryService->eligibleAccounts()
+                : collect(),
         ]);
     }
 }

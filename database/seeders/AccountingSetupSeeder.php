@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Enums\FinancialAccountType;
 use App\Models\Account;
-use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\User;
 use App\Services\LedgerPostingService;
@@ -23,24 +22,8 @@ class AccountingSetupSeeder extends Seeder
         Auth::login(User::where('email', 'accountant@superapple.ps')->first() ?? User::first());
         $posting = app(LedgerPostingService::class);
 
-        // ---- Expense categories → default GL expense accounts ----
-        $categories = [
-            ['name' => 'إيجار', 'code' => '5100'],
-            ['name' => 'مرافق وإنترنت', 'code' => '5300'],
-            ['name' => 'اشتراكات برمجية', 'code' => '5400'],
-            ['name' => 'إعلانات وتسويق', 'code' => '5500'],
-            ['name' => 'مواصلات', 'code' => '5600'],
-            ['name' => 'طباعة', 'code' => '5700'],
-            ['name' => 'خدمات مهنية', 'code' => '5800'],
-            ['name' => 'مصاريف أخرى', 'code' => '5900'],
-        ];
-        foreach ($categories as $c) {
-            $account = Account::where('code', $c['code'])->first();
-            ExpenseCategory::firstOrCreate(
-                ['name' => $c['name']],
-                ['default_expense_account_id' => $account?->id, 'is_active' => true],
-            );
-        }
+        // Expense categories are seeded by the foundational ExpenseCategorySeeder
+        // (production-safe); this demo seeder only adds cash/bank + opening balances.
 
         // ---- Financial accounts (cash / bank) with opening balances ----
         $accounts = [

@@ -7,13 +7,14 @@
     $totalIls = isset($invoice) && $invoice->total_ils_at_issue ? $invoice->total_ils_at_issue : null;
 @endphp
 <div class="rounded-xl border border-slate-200 bg-white p-5">
+    <h3 class="mb-3 font-semibold text-slate-800">ملخص الفاتورة</h3>
     <dl class="space-y-2 text-sm">
         <div class="flex justify-between"><dt class="text-slate-500">المجموع الفرعي</dt><dd class="text-left"><x-money :usd="$totals['subtotal_usd']" :rate="$docRate" :useLatest="$docUseLatest" class="text-slate-700" dir="ltr" /></dd></div>
         <div class="flex justify-between"><dt class="text-slate-500">الخصم</dt><dd class="text-left text-slate-700" dir="ltr">-${{ number_format((float) $totals['discount_usd'], 2) }}</dd></div>
         <div class="flex justify-between"><dt class="text-slate-500">الضريبة</dt><dd class="text-left"><x-money :usd="$totals['tax_usd']" :rate="$docRate" :useLatest="$docUseLatest" class="text-slate-700" dir="ltr" /></dd></div>
-        <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
-            <dt class="text-slate-800">الإجمالي</dt>
-            <dd class="text-left"><x-money :usd="$totals['total_usd']" :ils="$totalIls" :rate="$docRate" :useLatest="$docUseLatest" class="text-slate-900" dir="ltr" /></dd>
+        <div class="flex items-baseline justify-between border-t border-slate-200 pt-3">
+            <dt class="text-sm font-semibold text-slate-800">الإجمالي</dt>
+            <dd class="text-left"><x-money :usd="$totals['total_usd']" :ils="$totalIls" :rate="$docRate" :useLatest="$docUseLatest" class="text-xl font-bold text-slate-900" dir="ltr" /></dd>
         </div>
     </dl>
 

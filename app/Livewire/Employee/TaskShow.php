@@ -124,7 +124,6 @@ class TaskShow extends SharedTaskShow
             'comments' => $this->task->comments()->with('user')->get(),
             'checklist' => $this->task->checklistItems()->get(),
             'history' => $this->task->statusHistory()->with('changedBy')->get(),
-            'attachments' => $this->task->attachments()->with('uploader')->get(),
             'team' => $this->task->activeMembers,
             'myStatus' => $myStatus,
             'isMember' => $myMember !== null,
@@ -132,7 +131,6 @@ class TaskShow extends SharedTaskShow
             'participantResults' => $participantResults,
             'canComment' => $user->can('tasks.comment'),
             'canChecklist' => $user->can('tasks.checklist'),
-            'canAttach' => $user->can('tasks.attachments'),
         ]);
     }
 }

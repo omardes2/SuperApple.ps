@@ -102,15 +102,6 @@
                 <h3 class="mb-3 font-semibold text-slate-800">التفاصيل</h3>
                 <dl class="space-y-2">
                     <div class="flex justify-between"><dt class="text-slate-500">العميل</dt><dd class="text-slate-700">{{ $task->customer?->name ?? '—' }}</dd></div>
-                    <div class="flex justify-between gap-3">
-                        <dt class="text-slate-500">الخدمات</dt>
-                        <dd class="text-left text-slate-700">
-                            @forelse ($task->services as $s)<div>{{ $s->name }}</div>@empty —@endforelse
-                        </dd>
-                    </div>
-                    @if ($task->hasAdBudgetService() && $task->ad_budget_amount !== null)
-                        <div class="flex justify-between"><dt class="text-slate-500">ميزانية الإعلانات</dt><dd class="font-medium text-slate-800" dir="ltr">{{ number_format((float) $task->ad_budget_amount, 2) }} {{ $task->ad_budget_currency }}</dd></div>
-                    @endif
                     <div class="flex justify-between"><dt class="text-slate-500">الأولوية</dt><dd class="text-slate-700">{{ $task->priority->label() }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">البداية</dt><dd class="text-slate-700" dir="ltr">{{ $task->start_date?->format('Y-m-d') ?? '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">التسليم</dt><dd class="text-slate-700" dir="ltr">{{ $task->due_date?->format('Y-m-d') ?? '—' }}</dd></div>
@@ -161,22 +152,26 @@
                 @endif
             </div>
 
-            {{-- Attachments --}}
+            {{-- Services + campaign budget (names only — never prices/costs) --}}
             <div class="rounded-xl border border-slate-200 bg-white p-5">
-                <h3 class="mb-3 font-semibold text-slate-800">المرفقات</h3>
-                <ul class="space-y-2 text-sm">
-                    @forelse ($attachments as $att)
-                        <li class="flex items-center justify-between"><span class="text-slate-700">{{ $att->title }}</span><span class="text-xs text-slate-400" dir="ltr">{{ $att->humanSize() }}</span></li>
-                    @empty
-                        <li class="text-slate-400">لا مرفقات.</li>
-                    @endforelse
-                </ul>
-                @if ($canAttach)
-                    <form wire:submit="addAttachment" class="mt-3 space-y-2">
-                        <input type="file" wire:model="attachFile" class="w-full text-sm">
-                        @error('attachFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
-                        <button type="submit" class="w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900" wire:loading.attr="disabled">رفع مرفق</button>
-                    </form>
+                <h3 class="mb-3 font-semibold text-slate-800">الخدمات وميزانية الحملة</h3>
+                <p class="mb-2 text-xs font-medium text-slate-500">الخدمات</p>
+                @if ($task->services->isNotEmpty())
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($task->services as $s)
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{{ $s->name }}</span>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-slate-400">لا خدمات.</p>
+                @endif
+
+                @if ($task->hasAdBudgetService() && $task->ad_budget_amount !== null)
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <p class="mb-1 text-xs font-medium text-slate-500">ميزانية الإعلانات الممولة</p>
+                        <p class="text-lg font-semibold text-slate-800" dir="ltr">{{ number_format((float) $task->ad_budget_amount, 2) }} {{ $task->ad_budget_currency }}</p>
+                        <p class="text-xs text-slate-400">ميزانية الحملة الإعلانية</p>
+                    </div>
                 @endif
             </div>
 

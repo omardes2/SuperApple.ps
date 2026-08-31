@@ -112,6 +112,7 @@ class MyTasks extends Component
         // stale hidden value is ever saved.
         if (! $this->adBudgetRequired()) {
             $this->ad_budget_amount = null;
+            $this->ad_budget_currency = 'ILS';
         }
     }
 

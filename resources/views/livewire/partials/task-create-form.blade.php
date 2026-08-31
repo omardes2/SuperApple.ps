@@ -5,7 +5,13 @@
     data returned by CreatesTasks::taskFormViewData().
 --}}
 <x-modal show="showForm" title="مهمة جديدة" maxWidth="max-w-xl">
-    <form wire:submit="save" class="max-h-[75vh] space-y-4 overflow-y-auto">
+    {{--
+        The modal never forces its own vertical scroll on desktop: the body flows
+        at natural height and only the long services results list scrolls. When
+        the whole modal is taller than the viewport (small/mobile screens) the
+        overlay wrapper (fixed inset-0 overflow-y-auto) scrolls it as a fallback.
+    --}}
+    <form wire:submit="save" class="space-y-4">
         {{-- Title --}}
         <div>
             <label class="mb-1 block text-sm font-medium text-slate-700">العنوان *</label>
@@ -61,7 +67,8 @@
             @endif
             <input type="text" wire:model.live.debounce.300ms="serviceSearch" placeholder="ابحث عن خدمة..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @if ($serviceResults->isNotEmpty())
-                <ul class="mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm">
+                {{-- Only the (potentially long) services list scrolls internally. --}}
+                <ul class="mt-1 max-h-[240px] overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm">
                     @foreach ($serviceResults as $s)
                         @php $isSel = in_array($s->id, $selectedServiceIds, true); @endphp
                         <li>

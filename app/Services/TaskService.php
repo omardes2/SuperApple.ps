@@ -15,28 +15,59 @@ use RuntimeException;
 
 class TaskService
 {
-    public function __construct(private readonly DocumentNumberService $numbers) {}
+    public function __construct(
+        private readonly DocumentNumberService $numbers,
+        private readonly TaskMemberService $members,
+    ) {}
 
     /**
-     * @param  array<string,mixed>  $data
+     * @param  array<string,mixed>  $data  May include `service_ids` (list<int>)
+     *                                     and ad-budget fields.
      */
     public function create(array $data): Task
     {
+        $serviceIds = $this->normalizeServiceIds($data['service_ids'] ?? []);
+        unset($data['service_ids']);
+
         $data = $this->reconcileCustomerProject($data);
         $data['task_number'] = $data['task_number'] ?? $this->numbers->next('task');
         $data['status'] = $data['status'] ?? TaskStatus::New->value;
         $data['created_by'] = Auth::id();
         $data['updated_by'] = Auth::id();
 
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $serviceIds) {
             $task = Task::create($data);
 
+            if ($serviceIds !== []) {
+                $task->services()->sync($serviceIds);
+            }
+
+            // The primary assignee is always the first active team member with
+            // their own independent execution state.
             if ($task->primary_assignee_id) {
+                $primary = Employee::find($task->primary_assignee_id);
+                if ($primary) {
+                    $this->members->ensureMember($task, $primary, 'owner', Auth::id());
+                }
                 $this->notifyAssignee($task, (int) $task->primary_assignee_id);
             }
 
-            return $task;
+            return $task->load('services', 'activeMembers');
         });
+    }
+
+    /**
+     * @param  mixed  $ids
+     * @return list<int>
+     */
+    private function normalizeServiceIds($ids): array
+    {
+        return collect(is_array($ids) ? $ids : [])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

@@ -16,12 +16,13 @@ class Service extends Model
 
     protected $fillable = [
         'service_code', 'name', 'category', 'description', 'service_type',
-        'default_price_usd', 'estimated_cost_ils', 'tax_rate', 'is_active',
-        'notes', 'created_by', 'updated_by',
+        'requires_ad_budget', 'default_price_usd', 'estimated_cost_ils',
+        'tax_rate', 'is_active', 'notes', 'created_by', 'updated_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'requires_ad_budget' => 'boolean',
         'service_type' => ServiceType::class,
         'default_price_usd' => 'decimal:2',
         'estimated_cost_ils' => 'decimal:2',
@@ -65,6 +66,6 @@ class Service extends Model
      */
     public static function pickerColumns(): array
     {
-        return ['id', 'service_code', 'name', 'service_type'];
+        return ['id', 'service_code', 'name', 'category', 'service_type', 'requires_ad_budget'];
     }
 }

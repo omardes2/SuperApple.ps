@@ -20,7 +20,7 @@ class Task extends Model
         'task_number', 'title', 'description', 'customer_id', 'project_id',
         'department_id', 'primary_assignee_id', 'priority', 'status',
         'start_date', 'due_date', 'completed_at', 'estimated_minutes', 'notes',
-        'created_by', 'updated_by',
+        'ad_budget_amount', 'ad_budget_currency', 'created_by', 'updated_by',
     ];
 
     protected $casts = [
@@ -28,6 +28,7 @@ class Task extends Model
         'due_date' => 'date',
         'completed_at' => 'datetime',
         'estimated_minutes' => 'integer',
+        'ad_budget_amount' => 'decimal:2',
         'priority' => Priority::class,
         'status' => TaskStatus::class,
     ];
@@ -55,8 +56,23 @@ class Task extends Model
     public function assignees(): BelongsToMany
     {
         return $this->belongsToMany(Employee::class, 'task_assignees')
-            ->withPivot('role', 'assigned_at')
+            ->withPivot('role', 'assigned_at', 'status', 'started_at', 'completed_at', 'added_by', 'is_active')
             ->withTimestamps();
+    }
+
+    /**
+     * The active task team: primary assignee + participants who have not been
+     * removed. This drives collaborative completion.
+     */
+    public function activeMembers(): BelongsToMany
+    {
+        return $this->assignees()->wherePivot('is_active', true);
+    }
+
+    /** Services attached to this task (operational — no pricing stored here). */
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'task_service')->withTimestamps();
     }
 
     public function comments(): HasMany
@@ -103,6 +119,28 @@ class Task extends Model
     public function isAssignedTo(?Employee $employee): bool
     {
         return $employee !== null && in_array((int) $employee->id, $this->assignedEmployeeIds(), true);
+    }
+
+    /** The active team-member pivot row for an employee, or null. */
+    public function memberFor(?Employee $employee): ?Employee
+    {
+        if ($employee === null) {
+            return null;
+        }
+
+        return $this->activeMembers->firstWhere('id', $employee->id);
+    }
+
+    /** Whether an employee is an active member of this task's team. */
+    public function isActiveMember(?Employee $employee): bool
+    {
+        return $this->memberFor($employee) !== null;
+    }
+
+    /** Whether any attached service carries a funded-ads campaign budget. */
+    public function hasAdBudgetService(): bool
+    {
+        return $this->services->contains(fn (Service $s) => (bool) $s->requires_ad_budget);
     }
 
     // ---- Scopes ----

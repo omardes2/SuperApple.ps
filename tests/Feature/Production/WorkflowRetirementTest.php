@@ -7,6 +7,7 @@ use App\Livewire\Admin\CustomerProfile;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\TasksIndex;
 use App\Livewire\Employee\MyTasks;
+use App\Models\Service;
 use App\Models\Task;
 use App\Services\GlobalSearchService;
 use App\Support\AdminNavigation;
@@ -113,6 +114,12 @@ class WorkflowRetirementTest extends TestCase
     public function test_employee_sees_create_button_and_can_create_self_assigned_task(): void
     {
         [$user, $employee] = $this->makeStaff();
+        // The collaborative form now requires an operational customer + service.
+        $customer = $this->makeCustomer();
+        $service = Service::create([
+            'service_code' => 'SRV-TST1', 'name' => 'خدمة تجريبية', 'category' => 'تصميم',
+            'service_type' => 'custom', 'default_price_usd' => '100.00', 'is_active' => true,
+        ]);
 
         Livewire::actingAs($user)->test(MyTasks::class)
             ->assertOk()
@@ -120,6 +127,8 @@ class WorkflowRetirementTest extends TestCase
             ->call('create')
             ->set('title', 'مهمتي الجديدة')
             ->set('task_priority', 'normal')
+            ->call('selectCustomer', $customer->id)
+            ->call('toggleService', $service->id)
             ->call('save')
             ->assertHasNoErrors();
 

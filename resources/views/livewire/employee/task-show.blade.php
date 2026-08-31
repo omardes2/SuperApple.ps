@@ -1,11 +1,8 @@
 <div>
-    @php
-        $isAdmin = auth()->user()->usesAdminExperience();
-        $backRoute = $isAdmin ? 'admin.tasks' : 'employee.tasks';
-    @endphp
+    @php $memberStatuses = \App\Enums\TaskMemberStatus::class; @endphp
 
     <div class="mb-5 flex flex-wrap items-center gap-4">
-        <a href="{{ route($backRoute) }}" class="rounded-lg border border-slate-300 p-2 text-slate-500 hover:bg-slate-50">
+        <a href="{{ route('employee.tasks') }}" class="rounded-lg border border-slate-300 p-2 text-slate-500 hover:bg-slate-50">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </a>
         <div>
@@ -18,29 +15,27 @@
         </div>
     </div>
 
+    @if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>@endif
     @error('workflow') <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ $message }}</div> @enderror
 
-    {{-- Workflow actions --}}
-    @if (count($actions))
-        <div class="mb-5 flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-4">
-            @foreach ($actions as $status => $label)
-                @php
-                    $tone = match ($status) {
-                        'completed' => 'bg-emerald-600 hover:bg-emerald-700',
-                        'changes_requested' => 'bg-amber-600 hover:bg-amber-700',
-                        'cancelled' => 'bg-red-600 hover:bg-red-700',
-                        default => 'bg-brand-600 hover:bg-brand-700',
-                    };
-                @endphp
-                <button wire:click="startTransition('{{ $status }}')"
-                        @if($status==='cancelled') wire:confirm="إلغاء هذه المهمة؟" @endif
-                        class="rounded-lg px-4 py-2 text-sm font-semibold text-white {{ $tone }}">{{ $label }}</button>
-            @endforeach
+    {{-- Personal execution button (current member only) --}}
+    @if ($isMember)
+        <div class="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+            @if ($myStatus === $memberStatuses::NotStarted)
+                <button wire:click="startMine" class="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">بدء المهمة</button>
+            @elseif ($myStatus === $memberStatuses::InProgress)
+                <button wire:click="completeMine" class="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700">إتمام المهمة</button>
+            @else
+                <p class="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                    تم إتمام عملك في هذه المهمة
+                </p>
+            @endif
         </div>
     @endif
 
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {{-- Left: details + tabs --}}
+        {{-- Left --}}
         <div class="space-y-5 lg:col-span-2">
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-2 font-semibold text-slate-800">الوصف</h3>
@@ -53,27 +48,25 @@
                 <ul class="space-y-2">
                     @forelse ($checklist as $item)
                         <li class="flex items-center gap-2 text-sm">
-                            @can('tasks.checklist')
+                            @if ($canChecklist)
                                 <input type="checkbox" @checked($item->is_completed) wire:click="toggleChecklistItem({{ $item->id }})" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
                             @else
                                 <input type="checkbox" @checked($item->is_completed) disabled class="rounded border-slate-300">
-                            @endcan
+                            @endif
                             <span class="{{ $item->is_completed ? 'text-slate-400 line-through' : 'text-slate-700' }}">{{ $item->title }}</span>
-                            @can('tasks.checklist')
-                                <button wire:click="deleteChecklistItem({{ $item->id }})" class="mr-auto text-xs text-red-500 hover:underline">حذف</button>
-                            @endcan
+                            @if ($canChecklist)<button wire:click="deleteChecklistItem({{ $item->id }})" class="mr-auto text-xs text-red-500 hover:underline">حذف</button>@endif
                         </li>
                     @empty
                         <li class="text-sm text-slate-400">لا عناصر.</li>
                     @endforelse
                 </ul>
-                @can('tasks.checklist')
+                @if ($canChecklist)
                     <form wire:submit="addChecklistItem" class="mt-3 flex gap-2">
                         <input type="text" wire:model="newChecklistItem" placeholder="عنصر جديد" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <button type="submit" class="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900">+</button>
                     </form>
                     @error('newChecklistItem') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                @endcan
+                @endif
             </div>
 
             {{-- Comments --}}
@@ -92,71 +85,83 @@
                         <p class="text-sm text-slate-400">لا تعليقات بعد.</p>
                     @endforelse
                 </div>
-                @can('tasks.comment')
+                @if ($canComment)
                     <form wire:submit="addComment" class="mt-3">
                         <textarea wire:model="newComment" rows="2" placeholder="أضف تعليقاً..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
                         @error('newComment') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         <div class="mt-2 flex justify-end"><button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">إرسال</button></div>
                     </form>
-                @endcan
+                @endif
             </div>
         </div>
 
-        {{-- Right: meta + assignees + attachments + history --}}
+        {{-- Right --}}
         <div class="space-y-5">
+            {{-- Details --}}
             <div class="rounded-xl border border-slate-200 bg-white p-5 text-sm">
                 <h3 class="mb-3 font-semibold text-slate-800">التفاصيل</h3>
                 <dl class="space-y-2">
                     <div class="flex justify-between"><dt class="text-slate-500">العميل</dt><dd class="text-slate-700">{{ $task->customer?->name ?? '—' }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">المسؤول</dt><dd class="text-slate-700">{{ $task->primaryAssignee?->full_name ?? '—' }}</dd></div>
-                    @if ($task->services->isNotEmpty())
-                        <div class="flex justify-between gap-3"><dt class="text-slate-500">الخدمات</dt><dd class="text-left text-slate-700">@foreach ($task->services as $s)<div>{{ $s->name }}</div>@endforeach</dd></div>
-                    @endif
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">الخدمات</dt>
+                        <dd class="text-left text-slate-700">
+                            @forelse ($task->services as $s)<div>{{ $s->name }}</div>@empty —@endforelse
+                        </dd>
+                    </div>
                     @if ($task->hasAdBudgetService() && $task->ad_budget_amount !== null)
                         <div class="flex justify-between"><dt class="text-slate-500">ميزانية الإعلانات</dt><dd class="font-medium text-slate-800" dir="ltr">{{ number_format((float) $task->ad_budget_amount, 2) }} {{ $task->ad_budget_currency }}</dd></div>
                     @endif
+                    <div class="flex justify-between"><dt class="text-slate-500">الأولوية</dt><dd class="text-slate-700">{{ $task->priority->label() }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">البداية</dt><dd class="text-slate-700" dir="ltr">{{ $task->start_date?->format('Y-m-d') ?? '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">التسليم</dt><dd class="text-slate-700" dir="ltr">{{ $task->due_date?->format('Y-m-d') ?? '—' }}</dd></div>
                 </dl>
             </div>
 
+            {{-- Task team --}}
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">فريق المهمة</h3>
-                <ul class="space-y-2 text-sm">
-                    @forelse ($task->assignees as $assignee)
+                <ul class="space-y-3 text-sm">
+                    @foreach ($team as $member)
                         @php
-                            $active = (bool) ($assignee->pivot->is_active ?? true);
-                            $mStatus = \App\Enums\TaskMemberStatus::tryFrom($assignee->pivot->status ?? 'not_started') ?? \App\Enums\TaskMemberStatus::NotStarted;
-                            $isOwner = (int) $task->primary_assignee_id === (int) $assignee->id || ($assignee->pivot->role ?? null) === 'owner';
+                            $mStatus = \App\Enums\TaskMemberStatus::from($member->pivot->status);
+                            $isOwner = (int) $task->primary_assignee_id === (int) $member->id || $member->pivot->role === 'owner';
                         @endphp
-                        <li class="flex items-center justify-between {{ $active ? '' : 'opacity-50' }}">
+                        <li class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2">
                                 <span class="inline-block h-2.5 w-2.5 rounded-full {{ $mStatus->dotClass() }}"></span>
                                 <div>
-                                    <span class="text-slate-700">{{ $assignee->full_name }}</span>
-                                    <span class="block text-xs text-slate-400">{{ $isOwner ? 'مسؤول' : 'مشارك' }} · {{ $mStatus->label() }}
-                                        @if ($assignee->pivot->started_at) · بدأ <span dir="ltr">{{ \Illuminate\Support\Carbon::parse($assignee->pivot->started_at)->format('Y-m-d') }}</span>@endif
-                                    </span>
+                                    <p class="text-slate-800">{{ $member->full_name }}</p>
+                                    <p class="text-xs text-slate-400">{{ $isOwner ? 'مسؤول' : 'مشارك' }} · {{ $mStatus->label() }}</p>
                                 </div>
                             </div>
-                            @can('tasks.assign')<button wire:click="removeAssignee({{ $assignee->id }})" class="text-xs text-red-500 hover:underline">إزالة</button>@endcan
+                            @if ($canManageTeam && ! $isOwner)
+                                <button wire:click="removeParticipant({{ $member->id }})" wire:confirm="إزالة هذا المشارك؟" class="text-xs text-red-500 hover:underline">إزالة</button>
+                            @endif
                         </li>
-                    @empty
-                        <li class="text-slate-400">لا أعضاء إضافيين.</li>
-                    @endforelse
+                    @endforeach
                 </ul>
-                @can('tasks.assign')
-                    <form wire:submit="addAssignee" class="mt-3 flex gap-2">
-                        <select wire:model="newAssigneeId" class="flex-1 rounded-lg border border-slate-300 px-2 py-2 text-sm">
-                            <option value="">— موظف —</option>
-                            @foreach ($availableEmployees as $emp)<option value="{{ $emp->id }}">{{ $emp->full_name }}</option>@endforeach
-                        </select>
-                        <button type="submit" class="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900">+</button>
-                    </form>
-                    @error('newAssigneeId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                @endcan
+
+                @if ($canManageTeam && $task->status->isOpen())
+                    <div class="mt-4 border-t border-slate-100 pt-3">
+                        <input type="text" wire:model.live.debounce.300ms="participantSearch" placeholder="+ إضافة مشارك (اسم / رقم وظيفي / مسمى)..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('participant') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @if ($participantResults->isNotEmpty())
+                            <ul class="mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm">
+                                @foreach ($participantResults as $emp)
+                                    <li>
+                                        <button type="button" wire:click="addParticipant({{ $emp->id }})" class="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-right hover:bg-slate-50">
+                                            <span class="text-slate-800">{{ $emp->full_name }}</span>
+                                            <span class="text-xs text-slate-400" dir="ltr">{{ $emp->employee_number }}@if ($emp->job_title) · {{ $emp->job_title }}@endif</span>
+                                        </button>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endif
             </div>
 
+            {{-- Attachments --}}
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">المرفقات</h3>
                 <ul class="space-y-2 text-sm">
@@ -166,15 +171,16 @@
                         <li class="text-slate-400">لا مرفقات.</li>
                     @endforelse
                 </ul>
-                @can('tasks.attachments')
+                @if ($canAttach)
                     <form wire:submit="addAttachment" class="mt-3 space-y-2">
                         <input type="file" wire:model="attachFile" class="w-full text-sm">
                         @error('attachFile') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         <button type="submit" class="w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900" wire:loading.attr="disabled">رفع مرفق</button>
                     </form>
-                @endcan
+                @endif
             </div>
 
+            {{-- Status history --}}
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">سجل الحالة</h3>
                 <ol class="space-y-2 text-sm">
@@ -191,18 +197,4 @@
             </div>
         </div>
     </div>
-
-    <x-modal show="showReason" title="سبب الإجراء">
-        <form wire:submit="confirmReason" class="space-y-4">
-            <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">السبب</label>
-                <textarea wire:model="reason" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
-                @error('workflow') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-            </div>
-            <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button type="button" @click="$wire.showReason = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">إلغاء</button>
-                <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">تأكيد</button>
-            </div>
-        </form>
-    </x-modal>
 </div>

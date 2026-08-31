@@ -33,7 +33,12 @@ class ServiceSeeder extends Seeder
             ['SEO', 'تسويق', 'monthly', 350, 500],
             ['طباعة', 'إنتاج', 'custom', 100, 180],
             ['إنتاج إعلاني', 'إنتاج', 'custom', 1200, 1800],
+            // Funded-ads: carries a campaign budget captured on the task.
+            ['إعلانات ممولة', 'إعلانات', 'custom', 0, 0],
         ];
+
+        // Services whose category is advertising carry a campaign budget.
+        $adCategories = ['إعلانات'];
 
         foreach ($rows as $i => [$name, $category, $type, $price, $cost]) {
             $code = 'SRV-'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT);
@@ -46,6 +51,7 @@ class ServiceSeeder extends Seeder
                 'name' => $name,
                 'category' => $category,
                 'service_type' => $type,
+                'requires_ad_budget' => in_array($category, $adCategories, true),
                 'default_price_usd' => $price,
                 'estimated_cost_ils' => $cost,
                 'tax_rate' => 16,

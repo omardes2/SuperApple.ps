@@ -100,6 +100,9 @@
                 <label class="flex items-center gap-2 text-sm text-slate-600">
                     <input type="checkbox" wire:model="is_active" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> خدمة نشطة
                 </label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 sm:col-span-2">
+                    <input type="checkbox" wire:model="requires_ad_budget" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> خدمة إعلانات ممولة (تتطلب إدخال ميزانية الحملة في المهمة)
+                </label>
             </div>
             <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
                 <button type="button" @click="$wire.showForm = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">إلغاء</button>

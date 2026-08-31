@@ -46,6 +46,8 @@ class ServicesIndex extends Component
 
     public bool $is_active = true;
 
+    public bool $requires_ad_budget = false;
+
     public function mount(): void
     {
         $this->authorize('services.view');
@@ -76,6 +78,7 @@ class ServicesIndex extends Component
         $this->description = (string) $s->description;
         $this->service_type = $s->service_type->value;
         $this->is_active = $s->is_active;
+        $this->requires_ad_budget = (bool) $s->requires_ad_budget;
 
         // Only preload financial fields for users allowed to see them.
         if ($this->canViewFinancial()) {
@@ -98,6 +101,7 @@ class ServicesIndex extends Component
             'description' => 'nullable|string|max:2000',
             'service_type' => ['required', Rule::enum(ServiceType::class)],
             'is_active' => 'boolean',
+            'requires_ad_budget' => 'boolean',
         ];
 
         if ($this->canViewFinancial()) {
@@ -115,6 +119,7 @@ class ServicesIndex extends Component
             'description' => $validated['description'] ?? null,
             'service_type' => $validated['service_type'],
             'is_active' => $validated['is_active'],
+            'requires_ad_budget' => $validated['requires_ad_budget'] ?? false,
         ];
 
         // Financial fields are only ever written by authorised users.
@@ -149,6 +154,7 @@ class ServicesIndex extends Component
         ]);
         $this->service_type = 'one_time';
         $this->is_active = true;
+        $this->requires_ad_budget = false;
         $this->resetErrorBag();
     }
 

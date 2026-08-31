@@ -205,7 +205,7 @@ abstract class TaskShow extends Component
 
     public function render()
     {
-        $this->task->loadMissing(['customer', 'project', 'department', 'primaryAssignee', 'assignees']);
+        $this->task->loadMissing(['customer', 'project', 'department', 'primaryAssignee', 'assignees', 'services']);
 
         return view('livewire.shared.task-show', [
             'comments' => $this->task->comments()->with('user')->get(),

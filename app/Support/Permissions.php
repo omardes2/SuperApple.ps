@@ -30,6 +30,7 @@ final class Permissions
                 'customers.manage' => 'إدارة العملاء والتصنيفات',
                 'customers.archive' => 'أرشفة العملاء',
                 'customers.attachments' => 'إدارة مرفقات العملاء',
+                'customers.opening_balance.manage' => 'إدارة الرصيد الافتتاحي للعملاء',
             ]],
             // NOTE: the "projects" module was retired (tasks are the operational
             // unit now); its permissions were removed from the catalogue so they
@@ -302,6 +303,7 @@ final class Permissions
                 'finance.view', 'payments.view', 'payments.manage',
                 'payments.create', 'payments.edit', 'payments.post', 'payments.cancel',
                 'payments.allocate', 'payments.print', 'customer_statements.view', 'exchange_gain_loss.view',
+                'customers.opening_balance.manage',
                 'expenses.view', 'expenses.manage', 'accounts.view', 'accounts.manage',
                 'accounting.view', 'accounting.manage',
                 // Payroll accounting (post/pay/reverse) — but NOT HR salary management.

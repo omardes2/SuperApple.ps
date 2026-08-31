@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\InvoiceStatus;
 use App\Models\Customer;
+use App\Models\CustomerOpeningBalance;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -29,7 +30,11 @@ class CustomerBalanceService
             ->where('status', '!=', InvoiceStatus::Draft->value)
             ->sum('remaining_usd');
 
-        return Money::money($sum);
+        // A debit opening balance is a receivable too (its remaining after any
+        // payment allocations). A credit opening balance is not outstanding.
+        $obRemaining = $customer->openingBalances()->posted()->debit()->sum('remaining_usd');
+
+        return Money::money(Money::add(Money::money($sum), Money::money($obRemaining)));
     }
 
     public function unallocatedCreditUsd(Customer $customer): string
@@ -40,7 +45,12 @@ class CustomerBalanceService
             ->whereHas('payment', fn ($q) => $q->where('customer_id', $customer->id)->posted())
             ->sum('allocated_usd');
 
-        return Money::subtract($paid, $allocated);
+        $credit = Money::subtract($paid, $allocated);
+
+        // A credit opening balance is money already in the customer's favour.
+        $obCredit = $customer->openingBalances()->posted()->credit()->sum('amount_usd');
+
+        return Money::add($credit, Money::money($obCredit));
     }
 
     public function netBalanceUsd(Customer $customer): string
@@ -95,6 +105,13 @@ class CustomerBalanceService
             }
         }
 
+        // Debit opening balances at their own historical rate.
+        foreach ($customer->openingBalances()->posted()->debit()->where('remaining_usd', '>', 0)->get(['remaining_usd', 'exchange_rate']) as $ob) {
+            if (Money::isPositive($ob->exchange_rate)) {
+                $total = Money::add($total, Money::convertUsdToIls($ob->remaining_usd, $ob->exchange_rate));
+            }
+        }
+
         return $total;
     }
 
@@ -126,6 +143,20 @@ class CustomerBalanceService
                     $cid = (int) $row->customer_id;
                     $map[$cid]['usd'] = Money::add($map[$cid]['usd'], $row->remaining_usd);
                     if ((float) $row->remaining_usd > 0 && $row->exchange_rate !== null && Money::isPositive($row->exchange_rate)) {
+                        $map[$cid]['ils'] = Money::add($map[$cid]['ils'], Money::convertUsdToIls($row->remaining_usd, $row->exchange_rate));
+                    }
+                }
+            });
+
+        // Debit opening balances add to outstanding, in one more batched query.
+        CustomerOpeningBalance::posted()->debit()
+            ->whereIn('customer_id', $customerIds)
+            ->select(['customer_id', 'remaining_usd', 'exchange_rate'])
+            ->chunk(1000, function ($rows) use (&$map) {
+                foreach ($rows as $row) {
+                    $cid = (int) $row->customer_id;
+                    $map[$cid]['usd'] = Money::add($map[$cid]['usd'], $row->remaining_usd);
+                    if ((float) $row->remaining_usd > 0 && Money::isPositive($row->exchange_rate)) {
                         $map[$cid]['ils'] = Money::add($map[$cid]['ils'], Money::convertUsdToIls($row->remaining_usd, $row->exchange_rate));
                     }
                 }

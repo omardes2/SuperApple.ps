@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\InvoiceStatus;
+use App\Models\CustomerOpeningBalance;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -74,8 +75,58 @@ class PaymentAllocationService
     }
 
     /**
-     * Reverse an active allocation: restore the invoice remaining/status and
-     * mark the allocation reversed (kept for history — never deleted).
+     * Allocate part of a payment to a customer's OPENING BALANCE — an
+     * accounts-receivable document that is not an invoice. Accounting is
+     * identical to an invoice allocation (it reduces AR and books FX at the
+     * opening balance's own historical rate); only the target document differs.
+     */
+    public function allocateOpeningBalance(Payment $payment, int $openingBalanceId, string $allocatedUsd): PaymentAllocation
+    {
+        $ob = CustomerOpeningBalance::whereKey($openingBalanceId)->lockForUpdate()->firstOrFail();
+
+        if ((int) $ob->customer_id !== (int) $payment->customer_id) {
+            throw new RuntimeException('لا يمكن تخصيص دفعة عميل لرصيد افتتاحي لعميل آخر.');
+        }
+        if (! $ob->acceptsAllocation()) {
+            throw new RuntimeException('الرصيد الافتتاحي لا يقبل تخصيص دفعة.');
+        }
+        if (Money::isZeroOrNegative($allocatedUsd)) {
+            throw new RuntimeException('قيمة التخصيص يجب أن تكون أكبر من صفر.');
+        }
+        if (Money::isGreaterThan($allocatedUsd, $ob->remaining_usd)) {
+            throw new RuntimeException('قيمة التخصيص تتجاوز المتبقي على الرصيد الافتتاحي.');
+        }
+
+        $obRate = Money::rate($ob->exchange_rate);
+        $paymentRate = Money::rate($payment->exchange_rate);
+        $obIls = Money::convertUsdToIls($allocatedUsd, $obRate);
+        $paymentIls = Money::convertUsdToIls($allocatedUsd, $paymentRate);
+        $difference = Money::subtract($paymentIls, $obIls); // + gain, − loss
+
+        $allocation = $payment->allocations()->create([
+            'opening_balance_id' => $ob->id,
+            'allocated_usd' => Money::money($allocatedUsd),
+            'invoice_exchange_rate' => $obRate,          // target-document rate
+            'payment_exchange_rate' => $paymentRate,
+            'invoice_accounting_value_ils' => $obIls,    // target-document ILS value
+            'payment_accounting_value_ils' => $paymentIls,
+            'exchange_difference_ils' => $difference,
+            'status' => PaymentAllocation::STATUS_ACTIVE,
+        ]);
+
+        $this->applyToOpeningBalance($ob, $allocatedUsd);
+
+        $this->audit->log('allocation_created', $allocation, 'Payments',
+            new: ['opening_balance_id' => $ob->id, 'allocated_usd' => $allocation->allocated_usd, 'exchange_difference_ils' => $difference],
+            description: "تخصيص {$allocation->allocated_usd} USD لرصيد افتتاحي للعميل {$ob->customer->name}");
+
+        return $allocation;
+    }
+
+    /**
+     * Reverse an active allocation: restore the target (invoice or opening
+     * balance) and mark the allocation reversed (kept for history — never
+     * deleted).
      */
     public function reverse(PaymentAllocation $allocation, User $actor, ?string $reason = null): void
     {
@@ -83,9 +134,15 @@ class PaymentAllocationService
             return;
         }
 
-        $invoice = Invoice::whereKey($allocation->invoice_id)->lockForUpdate()->firstOrFail();
-
-        $this->applyToInvoice($invoice, '-'.$allocation->allocated_usd);
+        if ($allocation->opening_balance_id !== null) {
+            $ob = CustomerOpeningBalance::whereKey($allocation->opening_balance_id)->lockForUpdate()->firstOrFail();
+            $this->applyToOpeningBalance($ob, '-'.$allocation->allocated_usd);
+            $target = 'الرصيد الافتتاحي';
+        } else {
+            $invoice = Invoice::whereKey($allocation->invoice_id)->lockForUpdate()->firstOrFail();
+            $this->applyToInvoice($invoice, '-'.$allocation->allocated_usd);
+            $target = "الفاتورة {$invoice->invoice_number}";
+        }
 
         $allocation->update([
             'status' => PaymentAllocation::STATUS_REVERSED,
@@ -96,7 +153,29 @@ class PaymentAllocationService
 
         $this->audit->log('allocation_reversed', $allocation, 'Payments',
             old: ['allocated_usd' => $allocation->allocated_usd],
-            description: "عكس تخصيص {$allocation->allocated_usd} USD عن الفاتورة {$invoice->invoice_number}");
+            description: "عكس تخصيص {$allocation->allocated_usd} USD عن {$target}");
+    }
+
+    /**
+     * Apply a signed USD delta to an opening balance's paid/remaining. Mirrors
+     * applyToInvoice; remaining never goes below zero (rounding tolerance aside).
+     */
+    private function applyToOpeningBalance(CustomerOpeningBalance $ob, string $deltaUsd): void
+    {
+        $paid = Money::add($ob->paid_usd_equivalent, $deltaUsd);
+        if (Money::isZeroOrNegative($paid)) {
+            $paid = '0.00';
+        }
+
+        $remaining = Money::subtract($ob->amount_usd, $paid);
+        if (BigDecimal::of($remaining)->isNegative()) {
+            $remaining = '0.00';
+            $paid = Money::money($ob->amount_usd);
+        }
+
+        $ob->paid_usd_equivalent = $paid;
+        $ob->remaining_usd = $remaining;
+        $ob->save();
     }
 
     /**

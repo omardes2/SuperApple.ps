@@ -6,6 +6,7 @@ use App\Enums\FinancialAccountType;
 use App\Enums\PaymentCurrency;
 use App\Enums\PaymentMethod;
 use App\Models\Customer;
+use App\Models\CustomerOpeningBalance;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -144,7 +145,19 @@ class PaymentShow extends Component
     {
         // A hand-added row means the accountant is composing manually.
         $this->autoMode = false;
-        $this->allocations[] = ['invoice_id' => null, 'allocated_usd' => ''];
+        $this->allocations[] = ['invoice_id' => null, 'opening_balance_id' => null, 'allocated_usd' => ''];
+    }
+
+    /** Add a row that allocates to the customer's open opening balance. */
+    public function addOpeningBalanceRow(int $openingBalanceId): void
+    {
+        $this->autoMode = false;
+        foreach ($this->allocations as $row) {
+            if ((int) ($row['opening_balance_id'] ?? 0) === $openingBalanceId) {
+                return; // already present
+            }
+        }
+        $this->allocations[] = ['invoice_id' => null, 'opening_balance_id' => $openingBalanceId, 'allocated_usd' => ''];
     }
 
     public function removeAllocationRow(int $index): void
@@ -165,18 +178,24 @@ class PaymentShow extends Component
         $available = $this->usdPreview; // live USD equivalent of the amount entered
 
         foreach ($this->allocations as $i => $row) {
-            $invoiceId = $row['invoice_id'] ?? null;
-            $invoice = $invoiceId ? Invoice::find($invoiceId) : null;
+            // Each row targets an invoice or the opening balance.
+            if (! empty($row['opening_balance_id'])) {
+                $target = CustomerOpeningBalance::find($row['opening_balance_id']);
+                $remaining = $target?->remaining_usd;
+            } else {
+                $target = ($row['invoice_id'] ?? null) ? Invoice::find($row['invoice_id']) : null;
+                $remaining = $target?->remaining_usd;
+            }
 
-            if (! $invoice || Money::isZeroOrNegative($available)) {
+            if (! $target || Money::isZeroOrNegative($available)) {
                 $this->allocations[$i]['allocated_usd'] = '0.00';
 
                 continue;
             }
 
-            $take = Money::isGreaterThan($invoice->remaining_usd, $available)
+            $take = Money::isGreaterThan($remaining, $available)
                 ? Money::money($available)
-                : Money::money($invoice->remaining_usd);
+                : Money::money($remaining);
 
             $this->allocations[$i]['allocated_usd'] = $take;
             $available = Money::subtract($available, $take);
@@ -190,7 +209,8 @@ class PaymentShow extends Component
 
         $plan = $service->autoAllocatePlan($this->payment->refresh());
         $this->allocations = array_map(fn ($row) => [
-            'invoice_id' => $row['invoice_id'],
+            'invoice_id' => $row['invoice_id'] ?? null,
+            'opening_balance_id' => $row['opening_balance_id'] ?? null,
             'allocated_usd' => $row['allocated_usd'],
         ], $plan);
         // These rows are auto-derived — keep them in sync if the amount changes.
@@ -224,7 +244,12 @@ class PaymentShow extends Component
 
         $rows = [];
         foreach ($this->allocations as $row) {
-            if (($row['invoice_id'] ?? null) && $row['allocated_usd'] !== '' && (float) $row['allocated_usd'] > 0) {
+            if ($row['allocated_usd'] === '' || (float) $row['allocated_usd'] <= 0) {
+                continue;
+            }
+            if (! empty($row['opening_balance_id'])) {
+                $rows[] = ['opening_balance_id' => (int) $row['opening_balance_id'], 'allocated_usd' => $row['allocated_usd']];
+            } elseif (! empty($row['invoice_id'])) {
                 $rows[] = ['invoice_id' => (int) $row['invoice_id'], 'allocated_usd' => $row['allocated_usd']];
             }
         }
@@ -324,10 +349,11 @@ class PaymentShow extends Component
 
     public function render()
     {
-        $this->payment->loadMissing(['customer', 'receivedBy', 'allocations.invoice']);
+        $this->payment->loadMissing(['customer', 'receivedBy', 'allocations.invoice', 'allocations.openingBalance']);
 
         // Open invoices for the selected customer (for the allocation editor).
         $openInvoices = collect();
+        $openOpeningBalance = null;
         if ($this->payment->isDraft() && $this->customer_id) {
             $openInvoices = Invoice::where('customer_id', $this->customer_id)
                 ->whereIn('status', ['issued', 'sent', 'partially_paid'])
@@ -335,6 +361,9 @@ class PaymentShow extends Component
                 ->orderByRaw('due_date is null, due_date asc')
                 ->orderBy('invoice_date')
                 ->get();
+
+            $openOpeningBalance = CustomerOpeningBalance::where('customer_id', $this->customer_id)
+                ->posted()->debit()->where('remaining_usd', '>', 0)->first();
         }
 
         $allocatedTotal = Money::sum(array_map(
@@ -358,6 +387,7 @@ class PaymentShow extends Component
             'depositAccounts' => $depositAccounts,
             'receivedAccount' => $this->payment->account_id ? FinancialAccount::find($this->payment->account_id) : null,
             'openInvoices' => $openInvoices,
+            'openOpeningBalance' => $openOpeningBalance,
             'usdPreview' => $this->usdPreview,
             'allocatedTotal' => $allocatedTotal,
             'unallocatedPreview' => Money::subtract($this->usdPreview, $allocatedTotal),

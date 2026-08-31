@@ -44,6 +44,31 @@
                 </div>
             @endif
         @endisset
+
+        @if ($canOpeningBalance ?? false)
+            <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-800">الرصيد الافتتاحي</h3>
+                    @unless ($openingBalance)
+                        <button wire:click="openOpeningBalance" class="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50">إضافة رصيد افتتاحي</button>
+                    @endunless
+                </div>
+                @if ($openingBalance)
+                    <div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+                        <span class="font-bold text-slate-800" dir="ltr">${{ number_format((float) $openingBalance->amount_usd, 2) }}</span>
+                        <span class="text-xs text-slate-400" dir="ltr">≈ {{ number_format((float) $openingBalance->amount_ils, 2) }} ₪</span>
+                        <span class="text-slate-500">{{ $openingBalance->isDebit() ? 'مدين على العميل' : 'دائن لصالح العميل' }}</span>
+                        <span class="text-slate-500">التاريخ: <span dir="ltr">{{ $openingBalance->balance_date->format('Y-m-d') }}</span></span>
+                        <x-badge class="bg-emerald-50 text-emerald-700">مُرحّل</x-badge>
+                        @if ($openingBalance->journal_entry_id && $canStatement)
+                            <a href="{{ route('admin.accounting.journals') }}" class="text-xs text-brand-600 hover:underline">عرض القيد</a>
+                        @endif
+                    </div>
+                @else
+                    <p class="mt-1 text-xs text-slate-400">لا يوجد رصيد افتتاحي لهذا العميل.</p>
+                @endif
+            </div>
+        @endif
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">بيانات التواصل</h3>
@@ -208,6 +233,47 @@
             @error('reminder')<p class="mb-2 rounded bg-red-50 px-3 py-2 text-xs text-red-600">{{ $message }}</p>@enderror
             <textarea wire:model="reminderBody" rows="8" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>@error('reminderBody')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
             <div class="mt-4 flex justify-end gap-2"><button @click="$wire.showReminder=false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">تراجع</button><button wire:click="sendReminder" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">إرسال</button></div>
+        </x-modal>
+    @endif
+
+    @if ($canOpeningBalance ?? false)
+        <x-modal show="showOpeningBalance" title="إضافة رصيد افتتاحي" maxWidth="max-w-lg">
+            <form wire:submit="saveOpeningBalance" class="space-y-4">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">نوع الرصيد</label>
+                    <select wire:model="obType" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="debit">مدين على العميل</option>
+                        <option value="credit">دائن لصالح العميل</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">المبلغ USD <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.01" wire:model.live="obAmountUsd" dir="ltr" placeholder="1000.00" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('obAmountUsd') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">سعر الصرف <span class="text-red-500">*</span></label>
+                        <input type="number" step="0.000001" wire:model.live="obRate" dir="ltr" placeholder="3.10" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('obRate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <p class="text-sm text-slate-500">المقابل بالشيكل: <b dir="ltr">{{ number_format((float) $this->obIlsPreview, 2) }} ₪</b></p>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">تاريخ الرصيد <span class="text-red-500">*</span></label>
+                    <input type="date" wire:model="obDate" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    @error('obDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">ملاحظات الرصيد</label>
+                    <input type="text" wire:model="obNotes" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <p class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-700">سيتم إنشاء قيد محاسبي للرصيد الافتتاحي بقيمة <b dir="ltr">${{ number_format((float) ($obAmountUsd ?: 0), 2) }}</b> بما يعادل <b dir="ltr">{{ number_format((float) $this->obIlsPreview, 2) }} ₪</b>.</p>
+                <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                    <button type="button" @click="$wire.showOpeningBalance=false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">إلغاء</button>
+                    <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">حفظ وترحيل</button>
+                </div>
+            </form>
         </x-modal>
     @endif
 </div>

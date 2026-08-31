@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\PaymentCurrency;
 use App\Enums\PaymentStatus;
+use App\Models\CustomerOpeningBalance;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -142,7 +143,12 @@ class PaymentService
                 if (Money::isZeroOrNegative($alloc['allocated_usd'])) {
                     continue;
                 }
-                $this->allocator->allocate($payment, (int) $alloc['invoice_id'], Money::money($alloc['allocated_usd']));
+                // An allocation targets either an invoice or an opening balance.
+                if (! empty($alloc['opening_balance_id'])) {
+                    $this->allocator->allocateOpeningBalance($payment, (int) $alloc['opening_balance_id'], Money::money($alloc['allocated_usd']));
+                } else {
+                    $this->allocator->allocate($payment, (int) $alloc['invoice_id'], Money::money($alloc['allocated_usd']));
+                }
             }
 
             $payment->status = PaymentStatus::Posted;
@@ -199,14 +205,29 @@ class PaymentService
 
     /**
      * Suggested allocation of a payment's unallocated USD across the customer's
-     * open invoices, oldest DUE date first (then invoice date).
+     * open receivables. The opening balance (the oldest pre-system debt) is
+     * settled first, then invoices by oldest DUE date (then invoice date).
      *
-     * @return list<array{invoice_id:int,invoice_number:string,remaining_usd:string,allocated_usd:string}>
+     * @return list<array{invoice_id?:int,opening_balance_id?:int,invoice_number:string,remaining_usd:string,allocated_usd:string}>
      */
     public function autoAllocatePlan(Payment $payment): array
     {
         $available = $payment->unallocatedUsd();
         $plan = [];
+
+        // Opening balance first — it predates every invoice.
+        $ob = CustomerOpeningBalance::where('customer_id', $payment->customer_id)
+            ->posted()->debit()->where('remaining_usd', '>', 0)->first();
+        if ($ob && Money::isPositive($available)) {
+            $take = Money::isGreaterThan($ob->remaining_usd, $available) ? $available : Money::money($ob->remaining_usd);
+            $plan[] = [
+                'opening_balance_id' => $ob->id,
+                'invoice_number' => 'رصيد افتتاحي',
+                'remaining_usd' => Money::money($ob->remaining_usd),
+                'allocated_usd' => $take,
+            ];
+            $available = Money::subtract($available, $take);
+        }
 
         $invoices = Invoice::where('customer_id', $payment->customer_id)
             ->whereIn('status', ['issued', 'sent', 'partially_paid'])

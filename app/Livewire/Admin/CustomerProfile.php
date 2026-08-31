@@ -4,9 +4,12 @@ namespace App\Livewire\Admin;
 
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Models\CustomerOpeningBalance;
 use App\Models\Invoice;
 use App\Services\CustomerBalanceService;
+use App\Services\CustomerOpeningBalanceService;
 use App\Services\PaymentReminderService;
+use App\Support\Money;
 use App\Support\TemplateRenderer;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -33,6 +36,19 @@ class CustomerProfile extends Component
 
     public string $reminderBody = '';
 
+    // Opening balance modal
+    public bool $showOpeningBalance = false;
+
+    public string $obType = CustomerOpeningBalance::TYPE_DEBIT;
+
+    public string $obAmountUsd = '';
+
+    public string $obRate = '';
+
+    public string $obDate = '';
+
+    public string $obNotes = '';
+
     public function mount(Customer $customer): void
     {
         $this->authorize('customers.view');
@@ -42,6 +58,51 @@ class CustomerProfile extends Component
     public function setTab(string $tab): void
     {
         $this->tab = $tab;
+    }
+
+    public function getObIlsPreviewProperty(): string
+    {
+        $rate = (float) ($this->obRate ?: 0);
+
+        return $rate > 0 && $this->obAmountUsd !== '' ? Money::convertUsdToIls($this->obAmountUsd ?: 0, $this->obRate) : '0.00';
+    }
+
+    public function openOpeningBalance(): void
+    {
+        $this->authorize('customers.opening_balance.manage');
+        $this->reset(['obType', 'obAmountUsd', 'obRate', 'obNotes']);
+        $this->obDate = now()->toDateString();
+        $this->resetErrorBag();
+        $this->showOpeningBalance = true;
+    }
+
+    public function saveOpeningBalance(CustomerOpeningBalanceService $service): void
+    {
+        $this->authorize('customers.opening_balance.manage');
+        $this->validate([
+            'obType' => 'required|in:debit,credit',
+            'obAmountUsd' => 'required|numeric|gt:0',
+            'obRate' => 'required|numeric|gt:0',
+            'obDate' => 'required|date',
+            'obNotes' => 'nullable|string|max:2000',
+        ], [], ['obAmountUsd' => 'مبلغ الرصيد', 'obRate' => 'سعر الصرف', 'obDate' => 'تاريخ الرصيد']);
+
+        try {
+            $service->create($this->customer, [
+                'type' => $this->obType,
+                'amount_usd' => $this->obAmountUsd,
+                'exchange_rate' => $this->obRate,
+                'balance_date' => $this->obDate,
+                'notes' => $this->obNotes ?: null,
+            ]);
+        } catch (\RuntimeException $e) {
+            $this->addError('obAmountUsd', $e->getMessage());
+
+            return;
+        }
+
+        $this->showOpeningBalance = false;
+        session()->flash('status', 'تم تسجيل الرصيد الافتتاحي وقيده محاسبياً.');
     }
 
     public function openReminder(PaymentReminderService $reminders): void
@@ -130,6 +191,12 @@ class CustomerProfile extends Component
         if ($data['canPayments']) {
             $data['balance'] = app(CustomerBalanceService::class)->summary($this->customer);
         }
+
+        // Opening balance (finance-gated): the posted document, if any.
+        $data['canOpeningBalance'] = auth()->user()->can('customers.opening_balance.manage');
+        $data['openingBalance'] = $data['canOpeningBalance']
+            ? $this->customer->openingBalances()->posted()->latest('id')->first()
+            : null;
 
         if ($this->tab === 'payments' && $data['canPayments']) {
             $data['payments'] = $this->customer->payments()->with('receivedBy')->latest('payment_date')->latest('id')->get();

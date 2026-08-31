@@ -103,25 +103,36 @@
             @if ($payment->isDraft())
                 <div class="rounded-xl border border-slate-200 bg-white p-5">
                     <div class="mb-4 flex items-center justify-between">
-                        <h3 class="font-semibold text-slate-800">تخصيص الدفعة على الفواتير</h3>
-                        <div class="flex gap-2">
+                        <h3 class="font-semibold text-slate-800">تخصيص الدفعة على الذمم</h3>
+                        <div class="flex flex-wrap gap-2">
                             <button wire:click="autoAllocate" class="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50">تخصيص تلقائي (الأقدم)</button>
+                            @if ($openOpeningBalance)
+                                <button wire:click="addOpeningBalanceRow({{ $openOpeningBalance->id }})" class="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50">+ رصيد افتتاحي</button>
+                            @endif
                             <button wire:click="addAllocationRow" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">+ سطر</button>
                         </div>
                     </div>
 
-                    @if ($openInvoices->isEmpty())
-                        <p class="text-sm text-slate-400">لا توجد فواتير مفتوحة لهذا العميل.</p>
+                    @if ($openOpeningBalance)
+                        <p class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">رصيد افتتاحي مستحق: <b dir="ltr">${{ number_format((float) $openOpeningBalance->remaining_usd, 2) }}</b> — يمكن تخصيص الدفعة عليه.</p>
+                    @endif
+
+                    @if ($openInvoices->isEmpty() && ! $openOpeningBalance)
+                        <p class="text-sm text-slate-400">لا توجد ذمم مفتوحة لهذا العميل.</p>
                     @else
                         <div class="space-y-3">
                             @forelse ($allocations as $i => $row)
                                 <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center" wire:key="alloc-{{ $i }}">
-                                    <select wire:model.live="allocations.{{ $i }}.invoice_id" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                                        <option value="">— اختر فاتورة —</option>
-                                        @foreach ($openInvoices as $inv)
-                                            <option value="{{ $inv->id }}">{{ $inv->invoice_number }} — متبقٍ ${{ number_format((float) $inv->remaining_usd, 2) }}</option>
-                                        @endforeach
-                                    </select>
+                                    @if (! empty($row['opening_balance_id']))
+                                        <div class="flex-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">رصيد افتتاحي</div>
+                                    @else
+                                        <select wire:model.live="allocations.{{ $i }}.invoice_id" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                            <option value="">— اختر فاتورة —</option>
+                                            @foreach ($openInvoices as $inv)
+                                                <option value="{{ $inv->id }}">{{ $inv->invoice_number }} — متبقٍ ${{ number_format((float) $inv->remaining_usd, 2) }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
                                     <input type="number" step="0.01" min="0" wire:model.live="allocations.{{ $i }}.allocated_usd" placeholder="USD" dir="ltr" class="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                                     <button wire:click="removeAllocationRow({{ $i }})" class="rounded-lg border border-red-200 px-3 py-2 text-xs text-red-600 hover:bg-red-50">حذف</button>
                                 </div>
@@ -162,6 +173,8 @@
                                         <td class="px-3 py-2 font-mono" dir="ltr">
                                             @if ($alloc->invoice)
                                                 <a href="{{ route('admin.invoices.show', $alloc->invoice) }}" class="hover:text-brand-600 hover:underline">{{ $alloc->invoice->invoice_number }}</a>
+                                            @elseif ($alloc->opening_balance_id)
+                                                <span class="text-amber-700">رصيد افتتاحي</span>
                                             @else — @endif
                                         </td>
                                         <td class="px-3 py-2" dir="ltr">${{ number_format((float) $alloc->allocated_usd, 2) }}</td>

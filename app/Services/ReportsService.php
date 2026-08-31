@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\InvoiceStatus;
 use App\Models\Customer;
+use App\Models\CustomerOpeningBalance;
 use App\Models\Invoice;
 use App\Models\JournalEntryLine;
 use App\Models\Payment;
@@ -62,7 +63,10 @@ class ReportsService
     /** Outstanding receivables in USD (the official figure). */
     public function outstandingReceivablesUsd(): string
     {
-        return Money::money(Invoice::issued()->sum('remaining_usd'));
+        $invoices = Invoice::issued()->sum('remaining_usd');
+        $opening = CustomerOpeningBalance::posted()->debit()->sum('remaining_usd');
+
+        return Money::money(Money::add(Money::money($invoices), Money::money($opening)));
     }
 
     /**
@@ -82,6 +86,14 @@ class ReportsService
                     }
                 }
             });
+
+        // Debit opening balances at their own historical rate.
+        foreach (CustomerOpeningBalance::posted()->debit()->where('remaining_usd', '>', 0)
+            ->get(['remaining_usd', 'exchange_rate']) as $ob) {
+            if (Money::isPositive($ob->exchange_rate)) {
+                $total = Money::add($total, Money::convertUsdToIls($ob->remaining_usd, $ob->exchange_rate));
+            }
+        }
 
         return $total;
     }
@@ -220,6 +232,35 @@ class ReportsService
             $byCustomer[$cid]['remaining_ils'] = Money::add($byCustomer[$cid]['remaining_ils'], $remainingIls);
             if ($due && ($byCustomer[$cid]['oldest_due'] === null || $due->toDateString() < $byCustomer[$cid]['oldest_due'])) {
                 $byCustomer[$cid]['oldest_due'] = $due->toDateString();
+            }
+            $byCustomer[$cid]['max_days_overdue'] = max($byCustomer[$cid]['max_days_overdue'], $daysOverdue);
+        }
+
+        // Debit opening balances age by their own balance_date (the pre-system
+        // debt date), at their own historical rate.
+        foreach (CustomerOpeningBalance::posted()->debit()->where('remaining_usd', '>', 0)->with('customer')->get() as $ob) {
+            $remaining = Money::money($ob->remaining_usd);
+            $remainingIls = Money::isPositive($ob->exchange_rate) ? Money::convertUsdToIls($remaining, $ob->exchange_rate) : '0.00';
+            $total = Money::add($total, $remaining);
+            $totalIls = Money::add($totalIls, $remainingIls);
+            $date = Carbon::parse($ob->balance_date)->startOfDay();
+            $daysOverdue = $date->lt($asOf) ? $date->diffInDays($asOf) : 0;
+            $bucket = $this->bucketFor($daysOverdue);
+            $buckets[$bucket] = Money::add($buckets[$bucket], $remaining);
+            $bucketsIls[$bucket] = Money::add($bucketsIls[$bucket], $remainingIls);
+
+            $cid = $ob->customer_id;
+            if (! isset($byCustomer[$cid])) {
+                $byCustomer[$cid] = [
+                    'customer' => $ob->customer, 'invoices' => 0,
+                    'remaining_usd' => '0.00', 'remaining_ils' => '0.00',
+                    'oldest_due' => $date->toDateString(), 'max_days_overdue' => 0,
+                ];
+            }
+            $byCustomer[$cid]['remaining_usd'] = Money::add($byCustomer[$cid]['remaining_usd'], $remaining);
+            $byCustomer[$cid]['remaining_ils'] = Money::add($byCustomer[$cid]['remaining_ils'], $remainingIls);
+            if ($byCustomer[$cid]['oldest_due'] === null || $date->toDateString() < $byCustomer[$cid]['oldest_due']) {
+                $byCustomer[$cid]['oldest_due'] = $date->toDateString();
             }
             $byCustomer[$cid]['max_days_overdue'] = max($byCustomer[$cid]['max_days_overdue'], $daysOverdue);
         }

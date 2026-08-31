@@ -95,6 +95,6 @@ class SmokeRenderTest extends TestCase
 
         $this->get(route('admin.payments.show', $draft))
             ->assertOk()
-            ->assertSee('تخصيص الدفعة على الفواتير');
+            ->assertSee('تخصيص الدفعة على الذمم');
     }
 }

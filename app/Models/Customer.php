@@ -52,6 +52,17 @@ class Customer extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function openingBalances(): HasMany
+    {
+        return $this->hasMany(CustomerOpeningBalance::class);
+    }
+
+    /** The single active (posted, non-reversed) opening balance, if any. */
+    public function postedOpeningBalance(): ?CustomerOpeningBalance
+    {
+        return $this->openingBalances()->posted()->latest('id')->first();
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);

@@ -131,6 +131,52 @@
                 <textarea wire:model="notes" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
                 @error('notes') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
             </div>
+
+            @if ($canOpeningBalance && ! $editingId)
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                        <input type="checkbox" wire:model.live="showOpeningBalance" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                        إضافة رصيد افتتاحي (اختياري)
+                    </label>
+
+                    @if ($showOpeningBalance)
+                        <div class="mt-3 space-y-3 border-t border-slate-200 pt-3">
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-slate-600">نوع الرصيد</label>
+                                <select wire:model="obType" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                    <option value="debit">مدين على العميل</option>
+                                    <option value="credit">دائن لصالح العميل</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-slate-600">المبلغ USD <span class="text-red-500">*</span></label>
+                                    <input type="number" step="0.01" wire:model.live="obAmountUsd" dir="ltr" placeholder="1000.00" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                    @error('obAmountUsd') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-slate-600">سعر الصرف <span class="text-red-500">*</span></label>
+                                    <input type="number" step="0.000001" wire:model.live="obRate" dir="ltr" placeholder="3.10" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                    @error('obRate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                            @php $obIls = ((float) ($obRate ?: 0) > 0 && $obAmountUsd !== '') ? \App\Support\Money::convertUsdToIls($obAmountUsd ?: 0, $obRate) : '0.00'; @endphp
+                            <p class="text-xs text-slate-500">المقابل بالشيكل: <b dir="ltr">{{ number_format((float) $obIls, 2) }} ₪</b></p>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-slate-600">تاريخ الرصيد <span class="text-red-500">*</span></label>
+                                <input type="date" wire:model="obDate" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                @error('obDate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-slate-600">ملاحظات الرصيد</label>
+                                <input type="text" wire:model="obNotes" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            </div>
+                            <p class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-700">سيتم إنشاء قيد محاسبي للرصيد الافتتاحي عند الحفظ.</p>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
                 <button type="button" @click="$wire.showForm = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">إلغاء</button>
                 <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">حفظ</button>

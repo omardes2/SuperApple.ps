@@ -13,7 +13,7 @@ class PaymentAllocation extends Model
     public const STATUS_REVERSED = 'reversed';
 
     protected $fillable = [
-        'payment_id', 'invoice_id', 'allocated_usd', 'invoice_exchange_rate',
+        'payment_id', 'invoice_id', 'opening_balance_id', 'allocated_usd', 'invoice_exchange_rate',
         'payment_exchange_rate', 'invoice_accounting_value_ils',
         'payment_accounting_value_ils', 'exchange_difference_ils',
         'status', 'reversed_at', 'reversed_by', 'reversal_reason',
@@ -37,6 +37,11 @@ class PaymentAllocation extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function openingBalance(): BelongsTo
+    {
+        return $this->belongsTo(CustomerOpeningBalance::class, 'opening_balance_id');
     }
 
     public function isActive(): bool

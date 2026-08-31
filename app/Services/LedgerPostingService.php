@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\SystemAccountKey;
+use App\Models\CustomerOpeningBalance;
 use App\Models\EmployeeAdvance;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
@@ -133,7 +134,9 @@ class LedgerPostingService
             $allocatedUsdTotal = Money::add($allocatedUsdTotal, $alloc->allocated_usd);
             $arCredits[] = [
                 'account_id' => $this->accounting->systemAccountId(SystemAccountKey::AccountsReceivable),
-                'description' => 'تحصيل ذمم — فاتورة #'.$alloc->invoice_id,
+                'description' => $alloc->opening_balance_id !== null
+                    ? 'تحصيل ذمم — رصيد افتتاحي #'.$alloc->opening_balance_id
+                    : 'تحصيل ذمم — فاتورة #'.$alloc->invoice_id,
                 'credit_ils' => Money::money($alloc->invoice_accounting_value_ils),
                 'customer_id' => $payment->customer_id,
                 'invoice_id' => $alloc->invoice_id,
@@ -511,6 +514,57 @@ class LedgerPostingService
             'posting_type' => 'opening_balance',
             'description' => 'رصيد افتتاحي للحساب '.$account->name,
         ], $lines);
+    }
+
+    // ----------------------------------------------- Customer opening balances
+
+    /**
+     * A customer's pre-system balance. It is NOT a sale — it never touches
+     * revenue. A debit balance (customer owes) debits Accounts Receivable and
+     * credits Opening Balance Equity; a credit balance (in the customer's
+     * favour) is the mirror. ILS is the amount snapshotted at the historical
+     * rate; USD stays on the AR line for FX on later collection.
+     */
+    public function postCustomerOpeningBalance(CustomerOpeningBalance $ob): ?JournalEntry
+    {
+        if ($this->accounting->hasPosted('customer_opening_balance', $ob->id, 'customer_opening_balance')) {
+            return null;
+        }
+
+        $arId = $this->accounting->systemAccountId(SystemAccountKey::AccountsReceivable);
+        $obeId = $this->accounting->systemAccountId(SystemAccountKey::OpeningBalanceEquity);
+        $ils = Money::money($ob->amount_ils);
+        $rate = Money::rate($ob->exchange_rate);
+        $date = $ob->balance_date->toDateString();
+
+        $arLine = [
+            'account_id' => $arId,
+            'description' => 'رصيد افتتاحي — '.$ob->customer->name,
+            'original_currency' => 'USD',
+            'original_amount' => Money::money($ob->amount_usd),
+            'exchange_rate' => $rate,
+            'customer_id' => $ob->customer_id,
+        ];
+        $obeLine = [
+            'account_id' => $obeId,
+            'description' => 'حقوق ملكية — رصيد افتتاحي '.$ob->customer->name,
+        ];
+
+        if ($ob->isDebit()) {
+            $arLine['debit_ils'] = $ils;   // customer owes → AR up
+            $obeLine['credit_ils'] = $ils;
+        } else {
+            $arLine['credit_ils'] = $ils;  // in customer's favour → AR down
+            $obeLine['debit_ils'] = $ils;
+        }
+
+        return $this->accounting->post([
+            'entry_date' => $date,
+            'source_type' => 'customer_opening_balance',
+            'source_id' => $ob->id,
+            'posting_type' => 'customer_opening_balance',
+            'description' => 'رصيد افتتاحي للعميل '.$ob->customer->name,
+        ], [$arLine, $obeLine]);
     }
 
     // ------------------------------------------------------------- Payroll (S6)

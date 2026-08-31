@@ -21,6 +21,20 @@ class CustomerStatementService
     {
         $rows = [];
 
+        // Opening balance first — a pre-system debt/credit, never an invoice.
+        foreach ($customer->openingBalances()->posted()->get() as $ob) {
+            $isDebit = $ob->isDebit();
+            $rows[] = [
+                'date' => $ob->balance_date,
+                'sort' => $ob->balance_date->format('Y-m-d').'-0-'.$ob->id,
+                'type' => 'opening_balance',
+                'reference' => 'رصيد افتتاحي',
+                'description' => 'رصيد افتتاحي',
+                'debit_usd' => $isDebit ? Money::money($ob->amount_usd) : '0.00',
+                'credit_usd' => $isDebit ? '0.00' : Money::money($ob->amount_usd),
+            ];
+        }
+
         foreach ($customer->invoices()
             ->where('status', '!=', InvoiceStatus::Cancelled->value)
             ->where('status', '!=', InvoiceStatus::Draft->value)

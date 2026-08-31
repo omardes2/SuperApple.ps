@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\InvoiceStatus;
 use App\Enums\SystemAccountKey;
 use App\Models\Account;
+use App\Models\CustomerOpeningBalance;
 use App\Models\EmployeeAdvance;
 use App\Models\FinancialAccount;
 use App\Models\Invoice;
@@ -39,6 +40,17 @@ class ReconciliationService
         foreach (Invoice::whereNotIn('status', [InvoiceStatus::Draft->value, InvoiceStatus::Cancelled->value])
             ->where('remaining_usd', '>', 0)->get() as $invoice) {
             $subLedger = Money::add($subLedger, Money::convertUsdToIls($invoice->remaining_usd, Money::rate($invoice->exchange_rate)));
+        }
+
+        // Customer opening balances are AR documents too: a debit balance adds
+        // its remaining at its own rate; a credit balance subtracts its value.
+        foreach (CustomerOpeningBalance::posted()->get() as $ob) {
+            $rate = Money::rate($ob->exchange_rate);
+            if ($ob->isDebit()) {
+                $subLedger = Money::add($subLedger, Money::convertUsdToIls($ob->remaining_usd, $rate));
+            } else {
+                $subLedger = Money::subtract($subLedger, Money::convertUsdToIls($ob->amount_usd, $rate));
+            }
         }
 
         return $this->result('الذمم المدينة (AR)', $gl, $subLedger);

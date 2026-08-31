@@ -57,7 +57,8 @@ class CustomerImportService
     ) {}
 
     /**
-     * Header aliases → canonical field. Compared after normalizeHeader().
+     * Exact header aliases → canonical field (fast path, matched after
+     * normalizeHeader()).
      *
      * @return array<string,string>
      */
@@ -82,6 +83,43 @@ class CustomerImportService
         }
 
         return $flat;
+    }
+
+    /**
+     * Resolve a raw header cell to a canonical field. Uses the exact alias map
+     * first, then keyword rules so real-world variants still map correctly —
+     * e.g. "الرصيد الأصلي ILS", "سعر الصرف USD/ILS", "الرصيد الافتتاحي USD".
+     * Order matters: type/date/rate are checked before the generic balance rule
+     * because their labels also contain the word "رصيد".
+     */
+    private function resolveHeaderField(string $raw): ?string
+    {
+        $n = $this->normalizeHeader($raw);
+        if ($n === '') {
+            return null;
+        }
+
+        $aliases = $this->headerAliases();
+        if (isset($aliases[$n])) {
+            return $aliases[$n];
+        }
+
+        $has = fn (string $needle): bool => mb_strpos($n, $needle) !== false;
+
+        return match (true) {
+            $has('واتساب') || $has('whatsapp') || $has('جوال') || $has('mobile') || $has('هاتف') || $has('phone') => 'whatsapp',
+            $has('اسم') || $has('name') || $has('client') || ($has('عميل') && ! $has('رصيد')) => 'name',
+            $has('نوع') || $has('type') => 'type',
+            $has('تاريخ') || $has('date') => 'date',
+            $has('ملاحظ') || $has('note') || $has('بيان') || $has('remark') => 'notes',
+            $has('سعر') || $has('صرف') || $has('rate') || $has('exchange') || $has('fx') => 'rate',
+            // Balance columns — distinguish the currency the amount is expressed in.
+            $has('رصيد') || $has('مبلغ') || $has('balance') || $has('amount') || $has('دولار') || $has('شيكل') => match (true) {
+                $has('usd') || $has('دولار') || $has('$') => 'usd',
+                default => 'ils', // ILS is the source currency; "الأصلي"/شيكل/plain balance
+            },
+            default => null,
+        };
     }
 
     /** Canonical header labels for the downloadable template (first = preferred). */
@@ -138,17 +176,13 @@ class CustomerImportService
         $highestRow = $sheet->getHighestDataRow();
         $highestColIdx = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
 
-        // Map header columns.
-        $aliases = $this->headerAliases();
+        // Map header columns. First column that resolves to a field wins.
         $columns = []; // field => column index (1-based)
         for ($c = 1; $c <= $highestColIdx; $c++) {
             $raw = (string) $sheet->getCell([$c, 1])->getValue();
-            $key = $this->normalizeHeader($raw);
-            if ($key === '') {
-                continue;
-            }
-            if (isset($aliases[$key]) && ! isset($columns[$aliases[$key]])) {
-                $columns[$aliases[$key]] = $c;
+            $field = $this->resolveHeaderField($raw);
+            if ($field !== null && ! isset($columns[$field])) {
+                $columns[$field] = $c;
             }
         }
 
@@ -257,12 +291,12 @@ class CustomerImportService
         // --- Balance amount ---
         $ilsAbs = '';
         $hasBalance = false;
+        $ilsClean = $this->cleanNumeric($ilsRaw);
         if (trim($ilsRaw) !== '') {
-            if (! is_numeric(str_replace([',', ' '], '', $ilsRaw))) {
+            if (! is_numeric($ilsClean)) {
                 $messages[] = 'قيمة الرصيد غير رقمية.';
                 $status = self::STATUS_ERROR;
             } else {
-                $ilsClean = str_replace([',', ' '], '', $ilsRaw);
                 $ilsAbs = Money::money(Money::of($ilsClean)->abs());
                 $hasBalance = Money::isPositive($ilsAbs);
             }
@@ -273,11 +307,9 @@ class CustomerImportService
 
         // --- Rate ---
         $rate = null;
-        if (trim($rateRaw) !== '') {
-            $rateClean = str_replace([',', ' '], '', $rateRaw);
-            if (is_numeric($rateClean) && Money::isPositive($rateClean)) {
-                $rate = Money::rate($rateClean);
-            }
+        $rateClean = $this->cleanNumeric($rateRaw);
+        if (trim($rateRaw) !== '' && is_numeric($rateClean) && Money::isPositive($rateClean)) {
+            $rate = Money::rate($rateClean);
         }
 
         $usd = '';
@@ -306,12 +338,18 @@ class CustomerImportService
                     $status = self::STATUS_ERROR;
                 }
 
-                // Cross-check against any USD column in the file.
-                $usdClean = str_replace([',', ' '], '', $usdRaw);
+                // Cross-check against any USD column in the file. Real exports
+                // (Aliphia) round each figure independently, so a small drift
+                // between the file's USD and |ILS|/rate is expected. Only a gross
+                // mismatch — a wrong rate or swapped columns — is an error, so the
+                // tolerance is the larger of a fixed floor and 1% of the amount.
+                $usdClean = $this->cleanNumeric($usdRaw);
                 if (trim($usdRaw) !== '' && is_numeric($usdClean)) {
                     $fileUsd = Money::money(Money::of($usdClean)->abs());
-                    if (Money::isGreaterThan(Money::absDiff($fileUsd, $usd), self::USD_TOLERANCE)) {
-                        $messages[] = "تعارض في التحويل: الملف يذكر {$fileUsd}\$ بينما |الشيكل|÷السعر = {$usd}\$.";
+                    $onePct = Money::multiply($usd, '0.01');
+                    $allowed = Money::isGreaterThan(self::USD_TOLERANCE, $onePct) ? self::USD_TOLERANCE : $onePct;
+                    if (Money::isGreaterThan(Money::absDiff($fileUsd, $usd), $allowed)) {
+                        $messages[] = "تعارض كبير في التحويل: الملف يذكر {$fileUsd}\$ بينما |الشيكل|÷السعر = {$usd}\$.";
                         $status = self::STATUS_ERROR;
                     }
                 }
@@ -685,6 +723,25 @@ class CustomerImportService
         }
 
         return null;
+    }
+
+    /**
+     * Reduce a spreadsheet money/rate cell to a bare decimal string: convert
+     * Arabic-Indic digits, then drop currency symbols ($ ₪), thousands
+     * separators and spaces — keeping only digits, a dot and a leading minus.
+     * "$10,442.02" → "10442.02"; "32,370.25" → "32370.25".
+     */
+    private function cleanNumeric(string $raw): string
+    {
+        $ascii = strtr(trim($raw), [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+            '٫' => '.', '٬' => '', // Arabic decimal/thousands separators
+        ]);
+
+        return preg_replace('/[^0-9.\-]/', '', $ascii) ?? '';
     }
 
     private function parseType(string $raw): ?string

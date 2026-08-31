@@ -33,6 +33,7 @@ final class Permissions
                 'customers.archive' => 'أرشفة العملاء',
                 'customers.attachments' => 'إدارة مرفقات العملاء',
                 'customers.opening_balance.manage' => 'إدارة الرصيد الافتتاحي للعملاء',
+                'customers.import' => 'استيراد العملاء والأرصدة من Excel',
             ]],
             // NOTE: the "projects" module was retired (tasks are the operational
             // unit now); its permissions were removed from the catalogue so they

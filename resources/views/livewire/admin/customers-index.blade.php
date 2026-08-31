@@ -1,6 +1,12 @@
 <div>
     <x-page-header title="العملاء" subtitle="إدارة علاقات العملاء (CRM)">
         <x-slot:actions>
+            @can('customers.import')
+                <a href="{{ route('admin.customers.import') }}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                    استيراد العملاء والأرصدة
+                </a>
+            @endcan
             @can('customers.create')
                 <button wire:click="create" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">+ عميل جديد</button>
             @endcan

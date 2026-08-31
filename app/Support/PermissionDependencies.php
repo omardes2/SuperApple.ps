@@ -29,7 +29,7 @@ final class PermissionDependencies
     {
         return [
             'tasks.view' => ['tasks.create', 'tasks.edit', 'tasks.assign', 'tasks.manage', 'tasks.review'],
-            'customers.view' => ['customers.create', 'customers.edit', 'customers.delete', 'customers.manage', 'customers.archive', 'customers.attachments', 'customers.opening_balance.manage'],
+            'customers.view' => ['customers.create', 'customers.edit', 'customers.delete', 'customers.manage', 'customers.archive', 'customers.attachments', 'customers.opening_balance.manage', 'customers.import'],
             'services.view' => ['services.create', 'services.edit', 'services.manage', 'services.view_financial'],
             'departments.view' => ['departments.create', 'departments.edit', 'departments.manage'],
             'employees.view' => ['employees.create', 'employees.edit', 'employees.manage', 'employees.documents'],

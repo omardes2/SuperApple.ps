@@ -12,6 +12,7 @@ use App\Livewire\Admin\BalanceSheetReport;
 use App\Livewire\Admin\CashBanksIndex;
 use App\Livewire\Admin\ChartOfAccounts;
 use App\Livewire\Admin\CustomerProfile;
+use App\Livewire\Admin\CustomersImport;
 use App\Livewire\Admin\CustomersIndex;
 use App\Livewire\Admin\CustomersReport;
 use App\Livewire\Admin\CustomerStatement;
@@ -106,6 +107,9 @@ Route::middleware('auth')->group(function () {
 
         // Operational core — Sprint 2
         Route::get('/customers', CustomersIndex::class)->middleware('can:customers.view')->name('customers');
+        // Bulk import (customers + opening balances) — registered before the
+        // {customer} wildcard so "import" is not swallowed as a model binding.
+        Route::get('/customers/import', CustomersImport::class)->middleware('can:customers.import')->name('customers.import');
         Route::get('/customers/{customer}', CustomerProfile::class)->middleware('can:customers.view')->name('customers.show');
         Route::get('/services', ServicesIndex::class)->middleware('can:services.view')->name('services');
         Route::get('/tasks', TasksIndex::class)->middleware('can:tasks.view')->name('tasks');

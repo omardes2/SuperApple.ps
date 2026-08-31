@@ -204,6 +204,39 @@ class PaymentService
     }
 
     /**
+     * Permanently delete a DRAFT payment. Accounting-safe: a draft has never been
+     * posted, so it carries no journal entry and no persisted allocations — there
+     * is nothing to reverse. A posted or cancelled payment can NEVER be deleted
+     * (its GL history must be preserved); correct posted payments through
+     * cancel(), which reverses the journal instead.
+     */
+    public function deleteDraft(Payment $payment): void
+    {
+        if (! $payment->isDraft()) {
+            throw new RuntimeException('لا يمكن حذف دفعة مُرحّلة أو ملغاة. استخدم الإلغاء (عكس القيد) للدفعات المُرحّلة.');
+        }
+
+        DB::transaction(function () use ($payment) {
+            $payment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
+
+            // Defensive: a draft should have no posted GL entry. Never delete a
+            // payment that somehow carries ledger history.
+            if (! $payment->status->isDraft()) {
+                throw new RuntimeException('تغيّرت حالة الدفعة؛ لا يمكن حذفها.');
+            }
+
+            // Any allocation rows (drafts normally have none) are detached first.
+            $payment->allocations()->delete();
+
+            $this->audit->log('payment_draft_deleted', $payment, 'Payments',
+                old: ['payment_number' => $payment->payment_number, 'customer_id' => $payment->customer_id],
+                description: "حذف مسودة دفعة {$payment->payment_number}");
+
+            $payment->delete();
+        });
+    }
+
+    /**
      * Suggested allocation of a payment's unallocated USD across the customer's
      * open receivables. The opening balance (the oldest pre-system debt) is
      * settled first, then invoices by oldest DUE date (then invoice date).

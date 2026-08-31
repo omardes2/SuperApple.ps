@@ -7,6 +7,9 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>@endif
+    @if (session('error'))<div class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>@endif
+
     <div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <x-stat-card label="محصّل هذا الشهر" :value="'$'.number_format((float) $stats['collected_month_usd'], 2)" :hint="'≈ '.number_format((float) $stats['collected_month_ils'], 2).' ₪'" icon="cash" tone="emerald" />
         <x-stat-card label="شيكل مستلم هذا الشهر" :value="number_format((float) $stats['collected_month_ils_original'], 2).' ₪'" hint="القيمة الأصلية بالشيكل" icon="repeat" tone="brand" />
@@ -35,6 +38,7 @@
                     <th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">المبلغ المستلم</th>
                     <th class="px-4 py-3">ما يعادله USD</th><th class="px-4 py-3">الطريقة</th>
                     <th class="px-4 py-3">الحالة</th>
+                    <th class="px-4 py-3 text-center">إجراءات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -51,9 +55,44 @@
                         <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $payment->usd_equivalent, 2) }}</td>
                         <td class="px-4 py-3 text-slate-500">{{ $payment->payment_method->label() }}</td>
                         <td class="px-4 py-3"><x-badge :class="$payment->status->badgeClass()">{{ $payment->status->label() }}</x-badge></td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-center gap-1.5">
+                                {{-- View --}}
+                                <a href="{{ route('admin.payments.show', $payment) }}" title="مشاهدة الدفعة"
+                                   class="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-brand-600">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                                </a>
+
+                                {{-- Edit: only a draft can be edited (posted payments are immutable) --}}
+                                @can('update', $payment)
+                                    <a href="{{ route('admin.payments.show', $payment) }}" title="تعديل"
+                                       class="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-brand-600">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                    </a>
+                                @else
+                                    <span title="لا يمكن تعديل دفعة مُرحّلة" class="cursor-not-allowed rounded p-1.5 text-slate-300">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                    </span>
+                                @endcan
+
+                                {{-- Delete: only a draft (no journal) can be deleted; posted payments must be cancelled/reversed --}}
+                                @can('delete', $payment)
+                                    <button type="button" title="حذف المسودة"
+                                            wire:click="deletePayment({{ $payment->id }})"
+                                            wire:confirm="سيتم حذف مسودة الدفعة نهائياً. متابعة؟"
+                                            class="rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a2 2 0 002 2h4a2 2 0 002-2V7"/></svg>
+                                    </button>
+                                @else
+                                    <span title="لا يمكن حذف دفعة مُرحّلة — ألغِها (عكس القيد) من صفحة الدفعة" class="cursor-not-allowed rounded p-1.5 text-slate-300">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a2 2 0 002 2h4a2 2 0 002-2V7"/></svg>
+                                    </span>
+                                @endcan
+                            </div>
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">لا دفعات.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">لا دفعات.</td></tr>
                 @endforelse
             </tbody>
         </table>

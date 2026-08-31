@@ -64,6 +64,27 @@ class PaymentsIndex extends Component
         return redirect()->route('admin.payments.show', $payment);
     }
 
+    /**
+     * Delete a DRAFT payment (accounting-safe: no journal exists). Posted or
+     * cancelled payments are refused by the policy and the service — their GL
+     * history is preserved and corrected through cancellation instead.
+     */
+    public function deletePayment(int $id, PaymentService $service): void
+    {
+        $payment = Payment::findOrFail($id);
+        $this->authorize('delete', $payment);
+
+        try {
+            $service->deleteDraft($payment);
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', 'تم حذف مسودة الدفعة.');
+    }
+
     public function render()
     {
         $payments = Payment::query()

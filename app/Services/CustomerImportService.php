@@ -8,9 +8,14 @@ use App\Models\CustomerOpeningBalance;
 use App\Support\Money;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Reader\Csv as CsvReader;
+use PhpOffice\PhpSpreadsheet\Reader\Xls as XlsReader;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx as XlsxReader;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SpreadsheetDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use RuntimeException;
 
 /**
@@ -90,6 +95,10 @@ class CustomerImportService
     /**
      * Read a spreadsheet file and produce the full preview payload. Never writes.
      *
+     * @param  string  $path  A real, local, readable filesystem path.
+     * @param  ?string  $extension  The ORIGINAL upload extension (xlsx/xls/csv),
+     *                              used to pick the reader — the on-disk temp
+     *                              filename may be a hash with no useful suffix.
      * @return array{
      *   ok: bool,
      *   error: ?string,
@@ -98,13 +107,30 @@ class CustomerImportService
      *   warnings: list<string>
      * }
      */
-    public function preview(string $path): array
+    public function preview(string $path, ?string $extension = null): array
     {
+        if ($path === '' || ! is_file($path) || ! is_readable($path)) {
+            Log::warning('Customer import: unreadable upload path', [
+                'path' => $path,
+                'is_file' => is_file($path),
+                'extension' => $extension,
+            ]);
+
+            return $this->fail('تعذّر الوصول إلى الملف المرفوع. يرجى إعادة المحاولة.');
+        }
+
         try {
-            $reader = IOFactory::createReaderForFile($path);
-            $reader->setReadDataOnly(false); // keep number formats so dates resolve
-            $spreadsheet = $reader->load($path);
+            $spreadsheet = $this->loadSpreadsheet($path, $extension);
         } catch (\Throwable $e) {
+            // Surface the real technical cause to the log; keep the UI message safe.
+            Log::error('Customer import: failed to read spreadsheet', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+                'path' => $path,
+                'extension' => $extension,
+                'size' => @filesize($path) ?: 0,
+            ]);
+
             return $this->fail('تعذّر قراءة الملف. تأكد أنه ملف Excel صالح (xlsx / xls / csv).');
         }
 
@@ -564,6 +590,44 @@ class CustomerImportService
     private function fail(string $message): array
     {
         return ['ok' => false, 'error' => $message, 'rows' => [], 'stats' => [], 'warnings' => []];
+    }
+
+    /**
+     * Build a reader from the ORIGINAL upload extension (the on-disk temp name is
+     * often just a hash), read number formats so date cells resolve, and load. If
+     * the extension is unknown or the explicit reader fails, fall back to
+     * content-based identification.
+     */
+    private function loadSpreadsheet(string $path, ?string $extension): Spreadsheet
+    {
+        $ext = strtolower(trim((string) $extension));
+
+        $reader = match ($ext) {
+            'xlsx' => new XlsxReader,
+            'xls' => new XlsReader,
+            'csv' => new CsvReader,
+            default => null,
+        };
+
+        if ($reader !== null) {
+            try {
+                // Keep styles/number-formats so native Excel date cells resolve.
+                $reader->setReadDataOnly(false);
+
+                return $reader->load($path);
+            } catch (\Throwable $e) {
+                Log::warning('Customer import: explicit reader failed, trying content sniff', [
+                    'exception' => $e::class,
+                    'extension' => $ext,
+                ]);
+            }
+        }
+
+        // Fallback: identify by file content (magic bytes), not by filename.
+        $fallback = IOFactory::createReaderForFile($path);
+        $fallback->setReadDataOnly(false);
+
+        return $fallback->load($path);
     }
 
     private function cellString($sheet, ?int $col, int $row): string

@@ -4,6 +4,8 @@ namespace App\Livewire\Admin;
 
 use App\Services\CustomerImportService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -61,8 +63,13 @@ class CustomersImport extends Component
 
     private function validateFile(): void
     {
+        // Validate by the browser-provided extension rather than a content-sniffed
+        // MIME: an .xlsx is a ZIP container and is often reported as
+        // application/zip on Linux, which a strict `mimes` rule would wrongly
+        // reject. A file that passes here but is not a real spreadsheet is still
+        // rejected safely when PhpSpreadsheet fails to read it.
         $this->validate([
-            'file' => ['required', 'file', 'max:5120', 'mimes:xlsx,xls,csv'],
+            'file' => ['required', 'file', 'max:5120', 'extensions:xlsx,xls,csv'],
         ], [], ['file' => 'الملف']);
     }
 
@@ -73,11 +80,29 @@ class CustomersImport extends Component
 
         $this->reset(['rows', 'stats', 'warnings', 'parseError', 'report', 'imported']);
 
-        $path = $this->file->getRealPath();
         $this->originalFilename = $this->file->getClientOriginalName();
-        $this->fingerprint = hash_file('sha256', $path) ?: '';
+        // Trust the ORIGINAL extension, not the hashed temp filename, to pick the
+        // reader; default to xlsx when the browser sent none.
+        $extension = strtolower($this->file->getClientOriginalExtension() ?: 'xlsx');
 
-        $result = $service->preview($path);
+        // Copy the upload to a stable, private, local path. Livewire's temporary
+        // upload may live on a non-local disk (or expose a path PhpSpreadsheet
+        // cannot open), so we never hand its getRealPath() straight to the reader.
+        $localPath = null;
+        try {
+            $localPath = $this->stageUpload($extension);
+            $this->fingerprint = hash_file('sha256', $localPath) ?: '';
+            $result = $service->preview($localPath, $extension);
+        } catch (\Throwable $e) {
+            report($e);
+            $result = ['ok' => false, 'error' => 'تعذّر تحضير الملف المرفوع للمعاينة. يرجى إعادة المحاولة.'];
+        } finally {
+            // The preview reads the file synchronously; the parsed rows now live in
+            // component state, so the on-disk copy is no longer needed.
+            if ($localPath !== null) {
+                Storage::disk('local')->delete($this->stagedRelativePath($localPath));
+            }
+        }
 
         if (! $result['ok']) {
             $this->parseError = $result['error'];
@@ -90,6 +115,33 @@ class CustomersImport extends Component
         $this->stats = $result['stats'];
         $this->warnings = $result['warnings'];
         $this->step = 'preview';
+    }
+
+    /**
+     * Copy the Livewire temporary upload to a real local filesystem path and
+     * return that absolute path. Works regardless of which disk backs the
+     * temporary upload, because it streams through the framework rather than
+     * relying on getRealPath().
+     */
+    private function stageUpload(string $extension): string
+    {
+        $relative = $this->file->storeAs(
+            'imports/tmp',
+            Str::uuid()->toString().'.'.$extension,
+            ['disk' => 'local']
+        );
+
+        if ($relative === false) {
+            throw new \RuntimeException('failed to stage the uploaded import file');
+        }
+
+        return Storage::disk('local')->path($relative);
+    }
+
+    /** The local-disk-relative path for a staged absolute path (for deletion). */
+    private function stagedRelativePath(string $absolute): string
+    {
+        return 'imports/tmp/'.basename($absolute);
     }
 
     /**

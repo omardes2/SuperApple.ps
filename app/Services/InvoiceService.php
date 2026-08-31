@@ -234,6 +234,46 @@ class InvoiceService
     }
 
     /**
+     * Reopen an issued/sent invoice for editing the accounting-correct way:
+     * reverse its issue journal and move it back to Draft, keeping the same
+     * invoice number. Only permitted while NO payment is allocated against it —
+     * otherwise the payments must be reversed first. After editing, the invoice
+     * is re-issued (a fresh journal is posted). Never touches a paid/cancelled
+     * document's history silently: the reversal is recorded and audited.
+     */
+    public function revertToDraft(Invoice $invoice): Invoice
+    {
+        if ($invoice->isDraft()) {
+            return $invoice; // already editable
+        }
+        if ($invoice->isCancelled()) {
+            throw new RuntimeException('لا يمكن تعديل فاتورة ملغاة.');
+        }
+        if ($invoice->activeAllocations()->exists()) {
+            throw new RuntimeException('لا يمكن تعديل فاتورة لها دفعات مخصصة نشطة. ألغِ الدفعات أولاً.');
+        }
+
+        return DB::transaction(function () use ($invoice) {
+            // Reverse the issue journal (Dr AR / Cr revenue+tax) — kept as history.
+            $this->ledger->reverseInvoiceIssue($invoice, 'إرجاع الفاتورة إلى مسودة للتعديل');
+
+            $invoice->update([
+                'status' => InvoiceStatus::Draft,
+                'issued_at' => null,
+                'sent_at' => null,
+                'paid_usd_equivalent' => '0.00',
+                'remaining_usd' => '0.00', // recomputed on re-issue
+                'updated_by' => Auth::id(),
+            ]);
+
+            $this->audit->log('invoice_reverted_to_draft', $invoice, 'Invoices',
+                description: "إرجاع الفاتورة {$invoice->invoice_number} إلى مسودة للتعديل (عُكس القيد)");
+
+            return $invoice;
+        });
+    }
+
+    /**
      * Hard-delete a DRAFT invoice. Permitted only for a draft that never left
      * the drawing board: no payment allocations and no posted GL journal. An
      * issued/sent/paid/cancelled invoice is NEVER hard-deleted — those are

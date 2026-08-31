@@ -94,13 +94,15 @@ class InvoiceActionsTest extends TestCase
             ->assertSee('حذف المسودة');
     }
 
-    public function test_issued_shows_disabled_edit_tooltip(): void
+    public function test_issued_without_payments_is_editable_via_revert(): void
     {
+        // An issued invoice with no payments can now be edited the accounting-safe
+        // way: reverting it to a draft (reversing its journal), then reissuing.
         $this->accountant();
         $this->makeIssuedInvoice($this->makeCustomer(), '500');
 
         Livewire::test(InvoicesIndex::class)
-            ->assertSee('لا يمكن تعديل الفاتورة بعد إصدارها')
+            ->assertSee('تعديل الفاتورة (إرجاع لمسودة وعكس القيد)')
             ->assertSee('إلغاء الفاتورة');
     }
 

@@ -128,6 +128,40 @@ class InvoicesIndex extends Component
         session()->flash('status', 'تم إرسال الفاتورة عبر واتساب إلى العميل.');
     }
 
+    // ------------------------------------------------------------ Edit invoice
+
+    /**
+     * Open an invoice for editing. A draft goes straight to its form. An issued
+     * or sent invoice is first reverted to draft (its journal reversed, number
+     * kept) — the accounting-correct way to edit a posted document — then the
+     * form opens. Invoices with active payments cannot be edited until those
+     * payments are reversed.
+     */
+    public function editInvoice(int $id, InvoiceService $service)
+    {
+        $invoice = Invoice::findOrFail($id);
+
+        if ($invoice->isDraft()) {
+            $this->authorize('update', $invoice);
+
+            return redirect()->route('admin.invoices.show', $invoice);
+        }
+
+        $this->authorize('revertToDraft', $invoice);
+
+        try {
+            $service->revertToDraft($invoice);
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return null;
+        }
+
+        session()->flash('status', 'أُعيدت الفاتورة إلى مسودة وعُكس قيدها؛ يمكنك تعديلها ثم إعادة إصدارها.');
+
+        return redirect()->route('admin.invoices.show', $invoice);
+    }
+
     // ------------------------------------------------------------ Delete draft
 
     public function openDelete(int $id): void

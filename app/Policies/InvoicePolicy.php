@@ -32,6 +32,18 @@ class InvoicePolicy
         return $user->can('invoices.edit') && $invoice->isDraft();
     }
 
+    /**
+     * Reopen an issued/sent invoice for editing (reverse journal → draft). Only
+     * while it has no active payment allocations; a cancelled invoice is final.
+     */
+    public function revertToDraft(User $user, Invoice $invoice): bool
+    {
+        return $user->can('invoices.edit')
+            && ! $invoice->isDraft()
+            && ! $invoice->isCancelled()
+            && ! $invoice->activeAllocations()->exists();
+    }
+
     public function issue(User $user, Invoice $invoice): bool
     {
         return $user->can('invoices.issue') && $invoice->isDraft();

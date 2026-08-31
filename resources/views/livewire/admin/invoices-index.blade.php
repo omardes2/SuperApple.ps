@@ -53,7 +53,27 @@
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->due_date?->format('Y-m-d') ?? '—' }}</td>
                         <td class="px-4 py-3"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>
                         <td class="px-4 py-3"><x-money :usd="$invoice->remaining_usd" :rate="$invoice->exchange_rate" :class="(float) $invoice->remaining_usd > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-700'" dir="ltr" /></td>
-                        <td class="px-4 py-3"><x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge></td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col items-start gap-1">
+                                <x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge>
+                                @if ($isActive)
+                                    @php $remaining = (float) $invoice->remaining_usd; $total = (float) $invoice->total_usd; @endphp
+                                    @if ($remaining <= 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>مدفوعة
+                                        </span>
+                                    @elseif ($remaining < $total)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>مدفوعة جزئياً
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>غير مدفوعة
+                                        </span>
+                                    @endif
+                                @endif
+                            </div>
+                        </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
                                 {{-- View --}}
@@ -63,15 +83,24 @@
                                     <x-icon name="eye" class="h-[18px] w-[18px]" />
                                 </a>
 
-                                {{-- Edit (drafts only) --}}
+                                {{-- Edit: a draft opens directly; an issued/sent invoice is reverted
+                                     to a draft (journal reversed) first; blocked while it has payments. --}}
                                 @if ($isDraft && $canEdit)
                                     <a href="{{ route('admin.invoices.show', $invoice) }}"
                                        title="تعديل الفاتورة" aria-label="تعديل الفاتورة"
                                        class="rounded-md p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600">
                                         <x-icon name="pencil" class="h-[18px] w-[18px]" />
                                     </a>
+                                @elseif ($isActive && $canEdit && ! $hasActivePayments)
+                                    <button type="button" wire:click="editInvoice({{ $invoice->id }})"
+                                            wire:confirm="سيُعاد إصدار الفاتورة كمسودة ويُعكس قيدها المحاسبي لتعديلها. متابعة؟"
+                                            title="تعديل الفاتورة (إرجاع لمسودة وعكس القيد)" aria-label="تعديل الفاتورة"
+                                            class="rounded-md p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600">
+                                        <x-icon name="pencil" class="h-[18px] w-[18px]" />
+                                    </button>
                                 @else
-                                    <span title="لا يمكن تعديل الفاتورة بعد إصدارها" aria-label="تعديل الفاتورة غير متاح"
+                                    <span title="{{ $hasActivePayments ? 'لا يمكن تعديل فاتورة لها دفعات — ألغِ الدفعات أولاً' : 'تعديل الفاتورة غير متاح' }}"
+                                          aria-label="تعديل الفاتورة غير متاح"
                                           class="cursor-not-allowed rounded-md p-1.5 text-slate-300">
                                         <x-icon name="pencil" class="h-[18px] w-[18px]" />
                                     </span>

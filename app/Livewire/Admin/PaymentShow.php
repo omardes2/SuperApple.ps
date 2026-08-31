@@ -13,6 +13,7 @@ use App\Models\Payment;
 use App\Services\PaymentService;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -313,6 +314,19 @@ class PaymentShow extends Component
         if ($this->payment_currency === 'ILS' && (float) ($this->exchange_rate ?? 0) <= 0) {
             $this->addError('exchange_rate', 'سعر الصرف مطلوب لدفعات الشيكل.');
             $this->validate(['exchange_rate' => 'required']); // stop the flow
+        }
+
+        // The deposit account's currency must match the payment currency — a
+        // USD account can never receive an ILS payment and vice-versa. Enforced
+        // here (server-side) so a tampered request cannot bypass the filtered UI;
+        // PaymentService::post re-checks as the final gate.
+        if ($this->account_id) {
+            $account = FinancialAccount::find($this->account_id);
+            if ($account && $account->currency !== $this->payment_currency) {
+                throw ValidationException::withMessages([
+                    'account_id' => "عملة حساب الإيداع ({$account->currency}) لا تطابق عملة الدفعة ({$this->payment_currency}).",
+                ]);
+            }
         }
     }
 

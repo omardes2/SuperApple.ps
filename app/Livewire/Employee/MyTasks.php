@@ -235,7 +235,8 @@ class MyTasks extends Component
             : collect();
 
         return view('livewire.employee.my-tasks', [
-            'tasks' => $query->orderByRaw('due_date is null, due_date asc')->paginate(15),
+            // Newest-created task first; id as a stable tie-breaker.
+            'tasks' => $query->orderByDesc('tasks.created_at')->orderByDesc('tasks.id')->paginate(15),
             'counts' => $counts,
             'canCreate' => $user->can('tasks.create'),
             'priorityOptions' => Priority::options(),

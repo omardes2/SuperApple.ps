@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CustomerImportTemplateController;
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\PaymentReceiptController;
@@ -110,6 +111,8 @@ Route::middleware('auth')->group(function () {
         // Bulk import (customers + opening balances) — registered before the
         // {customer} wildcard so "import" is not swallowed as a model binding.
         Route::get('/customers/import', CustomersImport::class)->middleware('can:customers.import')->name('customers.import');
+        // The Excel template is a plain binary download (not a Livewire action).
+        Route::get('/customers/import/template', [CustomerImportTemplateController::class, 'download'])->middleware('can:customers.import')->name('customers.import.template');
         Route::get('/customers/{customer}', CustomerProfile::class)->middleware('can:customers.view')->name('customers.show');
         Route::get('/services', ServicesIndex::class)->middleware('can:services.view')->name('services');
         Route::get('/tasks', TasksIndex::class)->middleware('can:tasks.view')->name('tasks');

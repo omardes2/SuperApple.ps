@@ -9,9 +9,6 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Bulk import of customers + opening balances from an Aliphia-style Excel export.
@@ -160,28 +157,6 @@ class CustomersImport extends Component
             // temp file already gone — nothing to clean up
         }
         $this->file = null;
-    }
-
-    /** Stream a ready-to-fill xlsx template with the accepted Arabic headers. */
-    public function downloadTemplate(): StreamedResponse
-    {
-        $this->authorize('customers.import');
-
-        $spreadsheet = new Spreadsheet;
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setRightToLeft(true);
-        $headers = CustomerImportService::templateHeaders();
-        foreach ($headers as $i => $h) {
-            $sheet->setCellValue([$i + 1, 1], $h);
-        }
-        // One illustrative example row.
-        $sheet->fromArray(['شركة ألف', '', 'مدين', 3100, 3.10, 1000, '31/08/2026', 'مثال'], null, 'A2');
-
-        $writer = new XlsxWriter($spreadsheet);
-
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, 'customers-import-template.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     /** @return array<string,mixed> */

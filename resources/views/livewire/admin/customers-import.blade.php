@@ -31,7 +31,7 @@
                 @error('file') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
 
                 <div class="mt-5 flex items-center justify-between">
-                    <button type="button" wire:click="downloadTemplate" class="text-sm text-brand-600 hover:underline">تحميل نموذج Excel</button>
+                    <a href="{{ route('admin.customers.import.template') }}" class="text-sm text-brand-600 hover:underline">تحميل نموذج Excel</a>
                     <button type="button" wire:click="parse" wire:loading.attr="disabled" wire:target="parse,file"
                             class="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
                         <span wire:loading.remove wire:target="parse">معاينة الملف</span>

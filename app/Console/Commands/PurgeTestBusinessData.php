@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Task;
 use Illuminate\Console\Command;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -13,15 +14,19 @@ use Throwable;
 
 /**
  * Safely purge trial "business" data (customers, invoices, payments, expenses,
- * customer opening balances) together with EVERY dependent row and the
- * double-entry journal footprint they produced — leaving no orphaned records
- * and no stray accounting movement.
+ * customer opening balances AND all tasks) together with EVERY dependent row
+ * and the double-entry journal footprint they produced — leaving no orphaned
+ * records and no stray accounting movement.
  *
- * It NEVER touches reference/setup data: users, employees, roles, permissions,
- * services, expense categories, chart of accounts, system accounts, financial
- * accounts (and their real opening balances), suppliers, tasks, attendance,
- * leaves, payroll or settings. Tasks that referenced a purged customer keep
- * their history — the FK simply nulls tasks.customer_id.
+ * Tasks are purged with their whole graph: assignees/members, the task↔service
+ * pivot (services themselves are kept), comments, checklist items, status
+ * history, tags pivot, task attachments, and task-linked notifications. Ad
+ * budgets live on the task row and go with it — tasks never touch accounting.
+ *
+ * It NEVER touches reference/setup data: users, employees, departments, roles,
+ * permissions, services, expense categories, chart of accounts, system
+ * accounts, financial accounts (and their real opening balances), suppliers,
+ * attendance, leaves, payroll, settings, or audit logs.
  *
  * Dry-run by default: it only previews counts. Real deletion requires
  * --execute AND typing PURGE, and runs inside a single transaction so any
@@ -52,9 +57,9 @@ class PurgeTestBusinessData extends Command
         $this->table(['السجل', 'العدد'], $rows);
 
         $this->line('');
-        $this->line('سيبقى محفوظاً: المستخدمون، الموظفون، الأدوار والصلاحيات، الخدمات، تصنيفات المصاريف،');
-        $this->line('دليل الحسابات والحسابات النظامية، الحسابات النقدية/البنكية وأرصدتها الافتتاحية،');
-        $this->line('الموردون، المهام، الدوام، الإجازات، الرواتب، الإعدادات، وسجل العمليات (Audit).');
+        $this->line('سيبقى محفوظاً: المستخدمون، الموظفون، الأقسام، الأدوار والصلاحيات، الخدمات،');
+        $this->line('تصنيفات المصاريف، دليل الحسابات والحسابات النظامية، الحسابات النقدية/البنكية');
+        $this->line('وأرصدتها الافتتاحية، الموردون، الدوام، الإجازات، الرواتب، الإعدادات، وسجل العمليات (Audit).');
 
         if ($total === 0) {
             $this->info('لا توجد بيانات تجريبية للحذف.');
@@ -136,13 +141,25 @@ class PurgeTestBusinessData extends Command
             'بنود الاشتراكات (وحدة متقاعدة)' => fn () => DB::table('subscription_items'),
             'الاشتراكات (وحدة متقاعدة)' => fn () => DB::table('subscriptions'),
 
-            // 4) The documents themselves.
+            // 4) Tasks + their whole graph (services themselves are kept; only
+            //    the task↔service pivot rows are removed). Children before tasks.
+            'أعضاء/إسناد المهام' => fn () => DB::table('task_assignees'),
+            'ربط المهام بالخدمات (الخدمات نفسها تبقى)' => fn () => DB::table('task_service'),
+            'تعليقات المهام' => fn () => DB::table('task_comments'),
+            'عناصر قوائم تحقق المهام' => fn () => DB::table('task_checklist_items'),
+            'سجل حالة المهام' => fn () => DB::table('task_status_history'),
+            'وسوم المهام' => fn () => DB::table('task_tag'),
+            'مرفقات المهام' => fn () => DB::table('attachments')->where('attachable_type', Task::class),
+            'إشعارات مرتبطة بالمهام' => fn () => DB::table('notifications')->whereRaw("json_extract(data, '\$.task_id') is not null"),
+            'المهام' => fn () => DB::table('tasks'),
+
+            // 5) The financial documents themselves.
             'المصاريف' => fn () => DB::table('expenses'),
             'الدفعات والتحصيل' => fn () => DB::table('payments'),
             'الفواتير' => fn () => DB::table('invoices'),
             'المشاريع (وحدة متقاعدة)' => fn () => DB::table('projects'),
 
-            // 5) Finally the customers (tasks.customer_id is nulled by the FK).
+            // 6) Finally the customers.
             'العملاء' => fn () => DB::table('customers'),
         ];
     }

@@ -52,7 +52,8 @@
                             </div>
                         @endforeach
                     </div>
-                    <p class="mt-3 border-t border-slate-100 pt-2 text-xs text-amber-600">⚠ الصلاحيات المعلّمة حساسة مالياً — امنحها بحذر.</p>
+                    <p class="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">ℹ عند اختيار أي صلاحية عمليات داخل وحدة (مثل «إنشاء مهمة» أو «تعيين فريق المهمة») تُضاف صلاحية «مشاهدة» الوحدة تلقائياً عند الحفظ لتظهر في القائمة الجانبية.</p>
+                    <p class="mt-1 text-xs text-amber-600">⚠ الصلاحيات المعلّمة حساسة مالياً — امنحها بحذر.</p>
                 </div>
             @else
                 <div class="rounded-xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-400">اختر دوراً لتعديل صلاحياته.</div>

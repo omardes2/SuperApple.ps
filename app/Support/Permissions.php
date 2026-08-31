@@ -39,11 +39,11 @@ final class Permissions
             // no longer appear in the roles UI. The tables/models remain for
             // historical data only.
             'tasks' => ['financial' => false, 'permissions' => [
-                'tasks.view' => 'عرض جميع المهام',
-                'tasks.view_own' => 'عرض المهام الخاصة',
+                'tasks.view' => 'مشاهدة وإدارة قائمة المهام (لوحة الإدارة)',
+                'tasks.view_own' => 'مشاهدة المهام المسندة إليه فقط (سياق الموظف)',
                 'tasks.create' => 'إنشاء مهمة',
                 'tasks.edit' => 'تعديل مهمة',
-                'tasks.assign' => 'إسناد المهام',
+                'tasks.assign' => 'تعيين وإدارة فريق المهمة',
                 'tasks.manage' => 'إدارة المهام',
                 'tasks.review' => 'مراجعة واعتماد المهام',
                 'tasks.comment' => 'التعليق على المهام',

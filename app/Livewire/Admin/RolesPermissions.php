@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\RoleName;
+use App\Support\PermissionDependencies;
 use App\Support\Permissions;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -68,12 +69,21 @@ class RolesPermissions extends Component
         // a row first — otherwise Spatie throws PermissionDoesNotExist and the
         // whole save is lost (the root cause of "custom role lost some modules").
         $selected = array_values(array_intersect($this->rolePermissions, Permissions::all()));
+
+        // Expand through the dependency map: any admin operation carries its
+        // module's view permission (e.g. tasks.create ⇒ tasks.view) so the
+        // module can never be granted without being reachable in the sidebar.
+        $selected = array_values(array_intersect(PermissionDependencies::expand($selected), Permissions::all()));
+
         foreach ($selected as $name) {
             Permission::findOrCreate($name, 'web');
         }
 
         $role->syncPermissions($selected);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        // Reflect the auto-added prerequisites back into the checkboxes.
+        $this->rolePermissions = $selected;
         session()->flash('status', 'تم حفظ صلاحيات الدور.');
     }
 

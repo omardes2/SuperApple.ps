@@ -61,6 +61,7 @@ use App\Livewire\Employee\MyAttendance;
 use App\Livewire\Employee\MyLeaves;
 use App\Livewire\Employee\MyPayslips;
 use App\Livewire\Employee\MyTasks;
+use App\Livewire\Employee\Notifications as EmployeeNotifications;
 use App\Livewire\Employee\TaskShow as EmployeeTaskShow;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Auth;
@@ -181,6 +182,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/tasks', MyTasks::class)->middleware('can:tasks.view_own')->name('tasks');
         Route::get('/tasks/{task}', EmployeeTaskShow::class)->middleware('can:tasks.view_own')->name('tasks.show');
         Route::get('/payslips', MyPayslips::class)->middleware('can:payslips.view_own')->name('payslips');
+        Route::get('/notifications', EmployeeNotifications::class)->middleware('can:notifications.view')->name('notifications');
     });
 
     // Payslip print — reachable by admins and by the employee themself; the

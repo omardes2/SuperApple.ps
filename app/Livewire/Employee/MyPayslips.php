@@ -8,7 +8,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
+#[Layout('layouts.employee')]
 #[Title('قسائم راتبي')]
 class MyPayslips extends Component
 {

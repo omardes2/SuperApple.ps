@@ -55,8 +55,4 @@
             </div>
         @endif
     @endunless
-
-    <div class="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center text-sm text-slate-400">
-        لا توجد أي بيانات مالية في واجهة الموظف.
-    </div>
 </div>

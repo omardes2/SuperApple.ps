@@ -26,6 +26,11 @@ class NullWhatsAppProvider implements WhatsAppProvider
         return $this->sendText($phone, $renderedBody);
     }
 
+    public function sendDocument(string $phone, string $body, string $documentPath, string $filename): WhatsAppSendResult
+    {
+        return WhatsAppSendResult::sent('null-doc-'.substr(md5($phone.$filename.microtime()), 0, 16));
+    }
+
     public function getMessageStatus(string $providerMessageId): ?string
     {
         return null;

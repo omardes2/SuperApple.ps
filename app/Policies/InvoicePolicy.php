@@ -51,4 +51,15 @@ class InvoicePolicy
     {
         return $user->can('invoices.print');
     }
+
+    /**
+     * Hard-delete is reserved for a clean DRAFT (no payment allocations). Issued
+     * invoices are never deleted — they are cancelled (reversed) instead.
+     */
+    public function delete(User $user, Invoice $invoice): bool
+    {
+        return $user->can('invoices.edit')
+            && $invoice->isDraft()
+            && ! $invoice->allocations()->exists();
+    }
 }

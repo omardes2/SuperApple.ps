@@ -1,5 +1,12 @@
-@php $snap = $invoice->customer_snapshot ?? []; @endphp
-<x-print-layout :title="'فاتورة '.$invoice->invoice_number">
+@php
+    $snap = $invoice->customer_snapshot ?? [];
+    $pdf = $pdf ?? false;
+    $draft = ($draft ?? false) || $invoice->isDraft();
+@endphp
+<x-print-layout
+    :title="'فاتورة '.$invoice->invoice_number"
+    :pdf="$pdf"
+    :watermark="$draft ? 'مسودة — DRAFT (غير صالحة كفاتورة رسمية)' : null">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1f47f5; padding-bottom:14px;">
         <div class="brand">
             <div class="logo">S</div>

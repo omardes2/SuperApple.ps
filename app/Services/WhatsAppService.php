@@ -117,6 +117,115 @@ class WhatsAppService
         ], throwOnError: true);
     }
 
+    /**
+     * Send an ISSUED invoice to its customer as a PDF document over WhatsApp.
+     * This is a synchronous operator action (from the invoices list confirmation
+     * modal), so it returns the outcome immediately for a success/failure toast
+     * and never runs inside a financial transaction. Drafts and cancelled
+     * invoices are refused. The PDF is generated on demand to a private temp
+     * file and deleted right after the attempt — it is never stored publicly.
+     */
+    public function sendInvoice(Invoice $invoice): WhatsAppMessage
+    {
+        if (! $this->enabled()) {
+            throw new RuntimeException('خدمة واتساب غير مفعّلة. فعّلها من الإعدادات.');
+        }
+        if ($invoice->isDraft()) {
+            throw new RuntimeException('لا يمكن إرسال مسودة عبر واتساب. أصدر الفاتورة أولاً.');
+        }
+        if ($invoice->isCancelled()) {
+            throw new RuntimeException('لا يمكن إرسال فاتورة ملغاة عبر واتساب.');
+        }
+
+        $invoice->loadMissing('customer');
+        $customer = $invoice->customer;
+        if (! $customer) {
+            throw new RuntimeException('لا يوجد عميل مرتبط بهذه الفاتورة.');
+        }
+
+        $phone = $this->resolvePhone($customer);
+        if (! $phone) {
+            throw new RuntimeException('رقم واتساب غير صالح للعميل.');
+        }
+
+        $pdfService = app(InvoicePdfService::class);
+        $filename = $pdfService->filename($invoice);
+        $body = $this->invoiceMessageBody($invoice);
+
+        $message = WhatsAppMessage::create([
+            'customer_id' => $customer->id,
+            'invoice_id' => $invoice->id,
+            'phone' => $phone,
+            'message_body' => $body,
+            'document_name' => $filename,
+            'provider' => (string) $this->settings->get('whatsapp', 'provider', 'null'),
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessageStatus::Pending,
+            'created_by' => Auth::id(),
+        ]);
+
+        $path = null;
+        try {
+            $path = $pdfService->storeTemp($invoice);
+            $provider = app(WhatsAppProvider::class);
+            $result = $provider->sendDocument($phone, $body, $path, $filename);
+
+            if (! $result->ok) {
+                throw new RuntimeException($result->error ?? 'WhatsApp document send failed');
+            }
+
+            $message->update([
+                'status' => WhatsAppMessageStatus::Sent,
+                'provider' => $provider->key(),
+                'provider_message_id' => $result->providerMessageId,
+                'sent_at' => now(),
+                'failure_reason' => null,
+            ]);
+
+            app(AuditLogger::class)->log('invoice_whatsapp_sent', $invoice, 'Invoices',
+                new: ['phone' => $phone, 'document_name' => $filename],
+                description: "إرسال الفاتورة {$invoice->invoice_number} عبر واتساب");
+        } catch (\Throwable $e) {
+            // Log internally but never surface provider secrets/stack traces.
+            Log::warning('WhatsApp invoice send failed', ['invoice' => $invoice->id, 'error' => $e->getMessage()]);
+            $this->markFailed($message, $e->getMessage());
+
+            throw new RuntimeException('تعذّر إرسال الفاتورة عبر واتساب. حاول مرة أخرى.');
+        } finally {
+            if ($path !== null && is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        return $message;
+    }
+
+    /**
+     * The customer-facing WhatsApp body for an invoice: total in USD and its ILS
+     * equivalent AT THE INVOICE'S OWN exchange rate (never a global/latest rate).
+     */
+    public function invoiceMessageBody(Invoice $invoice): string
+    {
+        $invoice->loadMissing('customer');
+        $totalUsd = Money::money($invoice->total_usd);
+        $rate = $invoice->exchange_rate;
+        $totalIls = $rate ? Money::convertUsdToIls($invoice->total_usd, $rate) : null;
+        $company = (string) $this->settings->get('company', 'name', config('app.name'));
+
+        $lines = [
+            "مرحباً {$invoice->customer?->name}،",
+            "مرفق لكم فاتورة رقم {$invoice->invoice_number} بقيمة {$totalUsd} USD.",
+        ];
+        if ($totalIls !== null) {
+            $lines[] = "القيمة بالشيكل حسب سعر صرف الفاتورة: {$totalIls} ILS";
+        }
+        $lines[] = 'تاريخ الاستحقاق: '.(optional($invoice->due_date)->toDateString() ?? '—');
+        $lines[] = 'شكراً لتعاملكم معنا.';
+        $lines[] = $company;
+
+        return implode("\n", $lines);
+    }
+
     /** The single send attempt performed by the job (throws on failure). */
     public function deliver(WhatsAppMessage $message): void
     {

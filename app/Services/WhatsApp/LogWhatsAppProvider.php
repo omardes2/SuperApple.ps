@@ -32,6 +32,18 @@ class LogWhatsAppProvider implements WhatsAppProvider
         return $this->sendText($phone, $renderedBody);
     }
 
+    public function sendDocument(string $phone, string $body, string $documentPath, string $filename): WhatsAppSendResult
+    {
+        Log::channel(config('logging.default'))->info('WhatsApp (log driver) document', [
+            'phone' => $phone,
+            'body' => $body,
+            'filename' => $filename,
+            'bytes' => is_file($documentPath) ? filesize($documentPath) : null,
+        ]);
+
+        return WhatsAppSendResult::sent('log-doc-'.substr(md5($phone.$filename.microtime()), 0, 16));
+    }
+
     public function getMessageStatus(string $providerMessageId): ?string
     {
         return null;

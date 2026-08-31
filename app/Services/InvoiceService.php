@@ -233,6 +233,39 @@ class InvoiceService
         });
     }
 
+    /**
+     * Hard-delete a DRAFT invoice. Permitted only for a draft that never left
+     * the drawing board: no payment allocations and no posted GL journal. An
+     * issued/sent/paid/cancelled invoice is NEVER hard-deleted — those are
+     * reversed via cancel(). Items are removed with the invoice and the deletion
+     * is written to the audit trail before the row disappears.
+     */
+    public function deleteDraft(Invoice $invoice): void
+    {
+        if (! $invoice->isDraft()) {
+            throw new RuntimeException('لا يمكن حذف فاتورة صادرة. استخدم إلغاء الفاتورة بدلاً من الحذف.');
+        }
+        if ($invoice->allocations()->exists()) {
+            throw new RuntimeException('لا يمكن حذف فاتورة لها دفعات مرتبطة بها.');
+        }
+        // Belt-and-braces: a draft has no issue journal, but never delete one
+        // that somehow carries a posted entry.
+        if ($this->ledger->hasInvoiceJournal($invoice)) {
+            throw new RuntimeException('لا يمكن حذف فاتورة لها قيود محاسبية مرحّلة.');
+        }
+
+        DB::transaction(function () use ($invoice) {
+            $number = $invoice->invoice_number;
+
+            $this->audit->log('invoice_deleted', $invoice, 'Invoices',
+                old: ['invoice_number' => $number, 'status' => $invoice->status->value, 'total_usd' => $invoice->total_usd],
+                description: "حذف مسودة الفاتورة {$number}");
+
+            $invoice->items()->delete();
+            $invoice->delete();
+        });
+    }
+
     private function defaultDueDate(string $invoiceDate): string
     {
         $days = (int) $this->settings->get('finance', 'default_invoice_due_days', 30);

@@ -21,6 +21,15 @@ interface WhatsAppProvider
     public function sendText(string $phone, string $body): WhatsAppSendResult;
 
     /**
+     * Send a document (e.g. an invoice PDF) as a media attachment with an
+     * optional caption. A real driver uploads the file at $documentPath through
+     * the provider's media endpoint and sends it under $filename; the offline
+     * drivers simulate this without touching the network. The file is never a
+     * public URL — callers pass a private, on-demand path.
+     */
+    public function sendDocument(string $phone, string $body, string $documentPath, string $filename): WhatsAppSendResult;
+
+    /**
      * Send using a provider-side template. The default flows render locally and
      * call sendText; this exists so a real API driver can use native templates.
      *

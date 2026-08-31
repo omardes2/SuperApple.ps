@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\InvoiceService;
 use App\Services\ReportsService;
+use App\Services\WhatsAppService;
 use App\Support\Money;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -28,6 +29,30 @@ class InvoicesIndex extends Component
 
     #[Url]
     public string $status = '';
+
+    // ---- WhatsApp send confirmation modal ----
+    public bool $showWhatsapp = false;
+
+    public ?int $waInvoiceId = null;
+
+    /** @var array<string,mixed> */
+    public array $waPreview = [];
+
+    // ---- Delete-draft confirmation modal ----
+    public bool $showDelete = false;
+
+    public ?int $deleteInvoiceId = null;
+
+    public ?string $deleteNumber = null;
+
+    // ---- Cancel-invoice confirmation modal ----
+    public bool $showCancel = false;
+
+    public ?int $cancelInvoiceId = null;
+
+    public ?string $cancelNumber = null;
+
+    public string $cancelReason = '';
 
     public function mount(): void
     {
@@ -56,10 +81,118 @@ class InvoicesIndex extends Component
         return redirect()->route('admin.invoices.show', $invoice);
     }
 
-    public function render()
+    // ---------------------------------------------------------------- WhatsApp
+
+    public function openWhatsapp(int $id, WhatsAppService $whatsapp): void
+    {
+        $invoice = Invoice::with('customer')->findOrFail($id);
+        $this->authorize('send', $invoice);
+
+        if ($invoice->isDraft() || $invoice->isCancelled()) {
+            session()->flash('error', 'يمكن إرسال الفواتير الصادرة فقط عبر واتساب.');
+
+            return;
+        }
+
+        $rate = $invoice->exchange_rate;
+        $priorSends = $invoice->whatsappMessages()->count();
+
+        $this->waInvoiceId = $invoice->id;
+        $this->waPreview = [
+            'customer' => $invoice->customer?->name,
+            'phone' => $whatsapp->resolvePhone($invoice->customer) ?? '—',
+            'number' => $invoice->invoice_number,
+            'total_usd' => Money::money($invoice->total_usd),
+            'total_ils' => $rate ? Money::convertUsdToIls($invoice->total_usd, $rate) : null,
+            'filename' => 'Invoice-'.$invoice->invoice_number.'.pdf',
+            'prior_sends' => $priorSends,
+        ];
+        $this->showWhatsapp = true;
+    }
+
+    public function confirmWhatsapp(WhatsAppService $whatsapp): void
+    {
+        $invoice = Invoice::with('customer')->findOrFail($this->waInvoiceId);
+        $this->authorize('send', $invoice);
+
+        try {
+            $whatsapp->sendInvoice($invoice);
+        } catch (\Throwable $e) {
+            $this->showWhatsapp = false;
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->showWhatsapp = false;
+        session()->flash('status', 'تم إرسال الفاتورة عبر واتساب إلى العميل.');
+    }
+
+    // ------------------------------------------------------------ Delete draft
+
+    public function openDelete(int $id): void
+    {
+        $invoice = Invoice::findOrFail($id);
+        $this->authorize('delete', $invoice);
+
+        $this->deleteInvoiceId = $invoice->id;
+        $this->deleteNumber = $invoice->invoice_number;
+        $this->showDelete = true;
+    }
+
+    public function confirmDelete(InvoiceService $service): void
+    {
+        $invoice = Invoice::findOrFail($this->deleteInvoiceId);
+        $this->authorize('delete', $invoice);
+
+        try {
+            $service->deleteDraft($invoice);
+        } catch (\RuntimeException $e) {
+            $this->showDelete = false;
+            session()->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->showDelete = false;
+        session()->flash('status', 'تم حذف مسودة الفاتورة.');
+    }
+
+    // --------------------------------------------------------- Cancel invoice
+
+    public function openCancel(int $id): void
+    {
+        $invoice = Invoice::findOrFail($id);
+        $this->authorize('cancel', $invoice);
+
+        $this->cancelInvoiceId = $invoice->id;
+        $this->cancelNumber = $invoice->invoice_number;
+        $this->cancelReason = '';
+        $this->showCancel = true;
+    }
+
+    public function confirmCancel(InvoiceService $service): void
+    {
+        $invoice = Invoice::findOrFail($this->cancelInvoiceId);
+        $this->authorize('cancel', $invoice);
+
+        try {
+            $service->cancel($invoice, $this->cancelReason);
+        } catch (\RuntimeException $e) {
+            $this->addError('cancelReason', $e->getMessage());
+
+            return;
+        }
+
+        $this->showCancel = false;
+        session()->flash('status', 'تم إلغاء الفاتورة وعكس قيودها المحاسبية.');
+    }
+
+    public function render(WhatsAppService $whatsapp)
     {
         $invoices = Invoice::query()
             ->with(['customer', 'project'])
+            ->withCount(['activeAllocations as active_allocations_count'])
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('invoice_number', 'like', "%{$this->search}%")
                 ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$this->search}%"))))
@@ -97,6 +230,11 @@ class InvoicesIndex extends Component
             'stats' => $stats,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'statusOptions' => InvoiceStatus::options(),
+            'whatsappEnabled' => $whatsapp->enabled(),
+            'canEdit' => auth()->user()->can('invoices.edit'),
+            'canPrint' => auth()->user()->can('invoices.print'),
+            'canSend' => auth()->user()->can('invoices.send'),
+            'canCancel' => auth()->user()->can('invoices.cancel'),
         ]);
     }
 }

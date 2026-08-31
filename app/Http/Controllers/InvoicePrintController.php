@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Quotation;
 use App\Services\Settings;
+use App\Support\CompanyProfile;
 use Illuminate\View\View;
 
 /**
@@ -21,7 +22,7 @@ class InvoicePrintController extends Controller
 
         return view('print.invoice', [
             'invoice' => $invoice,
-            'company' => $this->company($settings),
+            'company' => CompanyProfile::fromSettings($settings),
         ]);
     }
 
@@ -33,22 +34,7 @@ class InvoicePrintController extends Controller
 
         return view('print.quotation', [
             'quotation' => $quotation,
-            'company' => $this->company($settings),
+            'company' => CompanyProfile::fromSettings($settings),
         ]);
-    }
-
-    /**
-     * @return array<string,mixed>
-     */
-    private function company(Settings $settings): array
-    {
-        return [
-            'name' => $settings->get('company', 'name', config('app.name')),
-            'phone' => $settings->get('company', 'phone', ''),
-            'whatsapp' => $settings->get('company', 'whatsapp', ''),
-            'address' => $settings->get('company', 'address', ''),
-            'tax_number' => $settings->get('company', 'tax_number', ''),
-            'invoice_footer' => $settings->get('finance', 'invoice_footer', ''),
-        ];
     }
 }

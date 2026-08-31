@@ -90,6 +90,12 @@ class LedgerPostingService
         ], $lines);
     }
 
+    /** Whether a posted issue journal exists for this invoice. */
+    public function hasInvoiceJournal(Invoice $invoice): bool
+    {
+        return $this->accounting->hasPosted('invoice', $invoice->id, 'invoice_issue');
+    }
+
     public function reverseInvoiceIssue(Invoice $invoice, ?string $reason = null): ?JournalEntry
     {
         $entry = JournalEntry::posted()

@@ -16,6 +16,9 @@ class FakeWhatsAppProvider implements WhatsAppProvider
     /** @var list<array{phone:string,body:string}> */
     public array $sent = [];
 
+    /** @var list<array{phone:string,body:string,document_path:string,filename:string}> */
+    public array $documents = [];
+
     private bool $shouldFail = false;
 
     private string $failMessage = 'Fake provider forced failure';
@@ -40,6 +43,7 @@ class FakeWhatsAppProvider implements WhatsAppProvider
     public function reset(): void
     {
         $this->sent = [];
+        $this->documents = [];
         $this->shouldFail = false;
     }
 
@@ -61,9 +65,32 @@ class FakeWhatsAppProvider implements WhatsAppProvider
         return $this->sendText($phone, $renderedBody);
     }
 
+    public function sendDocument(string $phone, string $body, string $documentPath, string $filename): WhatsAppSendResult
+    {
+        if ($this->shouldFail) {
+            throw new RuntimeException($this->failMessage);
+        }
+
+        $this->documents[] = [
+            'phone' => $phone,
+            'body' => $body,
+            'document_path' => $documentPath,
+            'filename' => $filename,
+        ];
+
+        return WhatsAppSendResult::sent('fake-doc-'.count($this->documents));
+    }
+
     public function getMessageStatus(string $providerMessageId): ?string
     {
         return 'delivered';
+    }
+
+    public function lastDocument(): ?array
+    {
+        $last = end($this->documents);
+
+        return $last === false ? null : $last;
     }
 
     public function count(): int

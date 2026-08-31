@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\PaymentReceiptController;
 use App\Http\Controllers\PayslipController;
@@ -113,6 +114,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoices', InvoicesIndex::class)->middleware('can:invoices.view')->name('invoices');
         Route::get('/invoices/{invoice}', InvoiceShow::class)->middleware('can:invoices.view')->name('invoices.show');
         Route::get('/invoices/{invoice}/print', [InvoicePrintController::class, 'invoice'])->middleware('can:invoices.print')->name('invoices.print');
+        Route::get('/invoices/{invoice}/pdf', [InvoicePdfController::class, 'download'])->middleware('can:invoices.print')->name('invoices.pdf');
 
         // Payments & collection — Sprint 4
         Route::get('/payments', PaymentsIndex::class)->middleware('can:payments.view')->name('payments');

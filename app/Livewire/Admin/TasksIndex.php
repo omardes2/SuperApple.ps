@@ -4,12 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Enums\Priority;
 use App\Enums\TaskStatus;
-use App\Models\Customer;
-use App\Models\Department;
+use App\Livewire\Concerns\CreatesTasks;
 use App\Models\Employee;
 use App\Models\Task;
-use App\Services\TaskService;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -20,7 +17,7 @@ use Livewire\WithPagination;
 #[Title('المهام')]
 class TasksIndex extends Component
 {
-    use WithPagination;
+    use CreatesTasks, WithPagination;
 
     #[Url]
     public string $search = '';
@@ -40,26 +37,6 @@ class TasksIndex extends Component
     #[Url]
     public string $priority = '';
 
-    public bool $showForm = false;
-
-    public string $title = '';
-
-    public string $description = '';
-
-    public ?int $customer_id = null;
-
-    public ?int $department_id = null;
-
-    public ?int $primary_assignee_id = null;
-
-    public string $task_priority = 'normal';
-
-    public ?string $start_date = null;
-
-    public ?string $due_date = null;
-
-    public ?string $estimated_minutes = null;
-
     public function mount(): void
     {
         $this->authorize('tasks.view');
@@ -70,53 +47,6 @@ class TasksIndex extends Component
         if (in_array($name, ['search', 'assignee', 'customer', 'department', 'status', 'priority'], true)) {
             $this->resetPage();
         }
-    }
-
-    public function create(): void
-    {
-        $this->authorize('tasks.create');
-        $this->reset(['title', 'description', 'customer_id', 'department_id', 'primary_assignee_id', 'start_date', 'due_date', 'estimated_minutes']);
-        $this->task_priority = 'normal';
-        $this->resetErrorBag();
-        $this->showForm = true;
-    }
-
-    public function save(TaskService $service): void
-    {
-        $this->authorize('tasks.create');
-
-        $validated = $this->validate([
-            'title' => 'required|string|max:200',
-            'description' => 'nullable|string|max:5000',
-            'customer_id' => 'nullable|integer|exists:customers,id',
-            'department_id' => 'nullable|integer|exists:departments,id',
-            'primary_assignee_id' => 'nullable|integer|exists:employees,id',
-            'task_priority' => ['required', Rule::enum(Priority::class)],
-            'start_date' => 'nullable|date',
-            'due_date' => 'nullable|date|after_or_equal:start_date',
-            'estimated_minutes' => 'nullable|integer|min:0',
-        ]);
-
-        try {
-            $service->create([
-                'title' => $validated['title'],
-                'description' => $validated['description'] ?? null,
-                'customer_id' => $validated['customer_id'] ?? null,
-                'department_id' => $validated['department_id'] ?? null,
-                'primary_assignee_id' => $validated['primary_assignee_id'] ?? null,
-                'priority' => $validated['task_priority'],
-                'start_date' => $validated['start_date'] ?? null,
-                'due_date' => $validated['due_date'] ?? null,
-                'estimated_minutes' => $validated['estimated_minutes'] ?? null,
-            ]);
-        } catch (\RuntimeException $e) {
-            $this->addError('customer_id', $e->getMessage());
-
-            return;
-        }
-
-        $this->showForm = false;
-        session()->flash('status', 'تم إنشاء المهمة.');
     }
 
     public function render()
@@ -142,14 +72,12 @@ class TasksIndex extends Component
             'completed_today' => Task::where('status', TaskStatus::Completed)->whereDate('completed_at', now()->toDateString())->count(),
         ];
 
-        return view('livewire.admin.tasks-index', [
+        return view('livewire.admin.tasks-index', array_merge($this->taskFormViewData(), [
             'tasks' => $tasks,
             'stats' => $stats,
-            'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'employees' => Employee::active()->orderBy('full_name')->get(['id', 'full_name']),
-            'departments' => Department::orderBy('name')->get(['id', 'name']),
             'statusOptions' => TaskStatus::options(),
             'priorityOptions' => Priority::options(),
-        ]);
+        ]));
     }
 }

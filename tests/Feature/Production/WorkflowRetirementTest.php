@@ -155,21 +155,37 @@ class WorkflowRetirementTest extends TestCase
         $this->assertFalse(property_exists($component->instance(), 'primary_assignee_id'));
     }
 
-    public function test_manager_with_assign_permission_can_assign_another_employee(): void
+    public function test_manager_without_employee_profile_creates_task_via_unified_form(): void
     {
+        // A manager/admin may hold tasks.create without an employee profile. The
+        // unified create form exposes no primary-assignee field at all; the task
+        // is created with no initial member (participants are added later from
+        // the task page). No fake employee is created and the user is untouched.
         $pm = $this->makeUser(RoleName::ProjectManager);
-        [, $other] = $this->makeStaff();
-        $this->assertTrue($pm->can('tasks.assign'));
+        $this->assertNull($pm->employee);
+        $customer = $this->makeCustomer();
+        $service = Service::create([
+            'service_code' => 'SRV-MGR1', 'name' => 'خدمة إدارية', 'category' => 'تصميم',
+            'service_type' => 'custom', 'default_price_usd' => '100.00', 'is_active' => true,
+        ]);
 
-        Livewire::actingAs($pm)->test(TasksIndex::class)
-            ->call('create')
-            ->set('title', 'مهمة مُسندة')
-            ->set('primary_assignee_id', $other->id)
+        $component = Livewire::actingAs($pm)->test(TasksIndex::class)->call('create');
+        $this->assertFalse(property_exists($component->instance(), 'primary_assignee_id'));
+
+        $component
+            ->set('title', 'مهمة إدارية')
             ->set('task_priority', 'normal')
+            ->call('selectCustomer', $customer->id)
+            ->call('toggleService', $service->id)
             ->call('save')
             ->assertHasNoErrors();
 
-        $this->assertSame($other->id, Task::where('title', 'مهمة مُسندة')->first()->primary_assignee_id);
+        $task = Task::where('title', 'مهمة إدارية')->first();
+        $this->assertNotNull($task);
+        // No employee profile → no primary member, no fake employee.
+        $this->assertNull($task->primary_assignee_id);
+        $this->assertTrue($task->activeMembers->isEmpty());
+        $this->assertNull($pm->fresh()->employee_id);
     }
 
     public function test_employee_with_tasks_create_still_cannot_reach_finance(): void

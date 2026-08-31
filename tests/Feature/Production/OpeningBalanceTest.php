@@ -19,6 +19,8 @@ use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\CreatesUsers;
 use Tests\TestCase;
 
@@ -90,6 +92,43 @@ class OpeningBalanceTest extends TestCase
         $this->assertNotNull($ob);
         $this->assertSame('3100.00', $ob->amount_ils);
         $this->assertNotNull($ob->journal_entry_id);
+    }
+
+    public function test_customer_profile_renders_with_a_posted_opening_balance(): void
+    {
+        // Regression: the profile linked "عرض القيد" to a non-existent route
+        // (admin.accounting.journals), so any customer carrying a posted opening
+        // balance — every imported customer — 500'd on open. It must render and
+        // point at the real journal route.
+        $customer = $this->customerWithDebit();
+        $ob = $customer->postedOpeningBalance();
+
+        Livewire::actingAs($this->accountant())->test(CustomerProfile::class, ['customer' => $customer])
+            ->assertOk()
+            ->assertSee('الرصيد الافتتاحي')
+            ->assertSee('عرض القيد')
+            ->assertSee(route('admin.journals.show', $ob->journal_entry_id), false);
+    }
+
+    public function test_customer_profile_without_journals_permission_still_renders(): void
+    {
+        // A user who can manage opening balances but cannot view journals sees the
+        // balance without the "عرض القيد" link, and the page never errors.
+        $customer = $this->customerWithDebit();
+
+        // A custom role with opening-balance access but NO journals.view.
+        $role = Role::findOrCreate('أمين أرصدة', 'web');
+        $role->syncPermissions(['customers.view', 'customers.opening_balance.manage']);
+        $user = $this->makeUser(RoleName::GeneralManager); // placeholder to reuse factory
+        $user->syncRoles(['أمين أرصدة']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->assertFalse($user->fresh()->can('journals.view'));
+
+        Livewire::actingAs($user->fresh())->test(CustomerProfile::class, ['customer' => $customer])
+            ->assertOk()
+            ->assertSee('الرصيد الافتتاحي')
+            ->assertDontSee('عرض القيد');
     }
 
     public function test_non_finance_user_does_not_see_opening_balance_section(): void

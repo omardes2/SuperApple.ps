@@ -60,8 +60,8 @@
                         <span class="text-slate-500">{{ $openingBalance->isDebit() ? 'مدين على العميل' : 'دائن لصالح العميل' }}</span>
                         <span class="text-slate-500">التاريخ: <span dir="ltr">{{ $openingBalance->balance_date->format('Y-m-d') }}</span></span>
                         <x-badge class="bg-emerald-50 text-emerald-700">مُرحّل</x-badge>
-                        @if ($openingBalance->journal_entry_id && $canStatement)
-                            <a href="{{ route('admin.accounting.journals') }}" class="text-xs text-brand-600 hover:underline">عرض القيد</a>
+                        @if ($openingBalance->journal_entry_id && auth()->user()->can('journals.view'))
+                            <a href="{{ route('admin.journals.show', $openingBalance->journal_entry_id) }}" class="text-xs text-brand-600 hover:underline">عرض القيد</a>
                         @endif
                     </div>
                 @else

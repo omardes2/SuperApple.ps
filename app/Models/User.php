@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\RoleName;
+use App\Support\AdminNavigation;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Arr;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'phone', 'password', 'employee_id', 'is_active', 'locale', 'last_login_at', 'notification_preferences'])]
@@ -58,8 +60,13 @@ class User extends Authenticatable
 
     /**
      * Should this user land in the full back-office (admin) experience?
-     * Anyone with a genuine financial or management permission does; a plain
-     * Employee / Team Leader gets the minimal operational dashboard.
+     * Permission-driven, not role-name-driven: anyone who holds ANY permission
+     * that unlocks a back-office sidebar item belongs in the admin experience.
+     * This is derived from AdminNavigation (the single source of truth) minus
+     * the handful of permissions the employee portal also exposes
+     * (dashboard/notifications), so a custom role with any real admin
+     * permission — tasks.view included — reaches the admin area automatically,
+     * while a plain Employee / Team Leader stays in the operational dashboard.
      */
     public function usesAdminExperience(): bool
     {
@@ -67,10 +74,24 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->hasAnyPermission([
-            'finance.view', 'invoices.view', 'payments.view', 'expenses.view',
-            'payroll.view', 'accounting.view', 'accounts.view', 'reports.financial',
-            'employees.view', 'customers.view', 'settings.view', 'reports.operational',
-        ]);
+        return $this->hasAnyPermission(self::adminExperiencePermissions());
+    }
+
+    /**
+     * Back-office sidebar permissions that define admin access, excluding the
+     * ones the employee portal shares (so employees are never misrouted).
+     *
+     * @return list<string>
+     */
+    public static function adminExperiencePermissions(): array
+    {
+        $shared = ['dashboard.view', 'notifications.view'];
+
+        return collect(AdminNavigation::groups())
+            ->flatMap(fn ($group) => Arr::pluck($group['items'], 'permission'))
+            ->reject(fn ($permission) => in_array($permission, $shared, true))
+            ->unique()
+            ->values()
+            ->all();
     }
 }

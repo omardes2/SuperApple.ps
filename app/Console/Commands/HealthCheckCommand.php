@@ -8,6 +8,7 @@ use App\Services\AccountingReportService;
 use App\Services\ReconciliationService;
 use App\Services\Settings;
 use App\Support\Money;
+use App\Support\Permissions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -41,6 +42,7 @@ class HealthCheckCommand extends Command
         $this->queueCheck();
         $this->storageCheck();
         $this->systemAccountsCheck();
+        $this->permissionCatalogCheck();
         $this->settingsChecks();
         $this->schedulerCheck();
         $this->whatsappCheck();
@@ -137,6 +139,27 @@ class HealthCheckCommand extends Command
             $this->record('PASS', 'system_accounts', 'جميع الحسابات النظامية مُعرّفة ('.count(SystemAccountKey::cases()).').');
         } else {
             $this->record('FAIL', 'system_accounts', 'حسابات نظامية مفقودة: '.implode(', ', $missing));
+        }
+    }
+
+    private function permissionCatalogCheck(): void
+    {
+        // Every catalog permission must exist as a row, or role editing silently
+        // drops modules (Spatie throws PermissionDoesNotExist on sync).
+        try {
+            $missing = Permissions::missing();
+        } catch (Throwable $e) {
+            $this->record('WARN', 'permissions.catalog', 'تعذّر فحص كتالوج الصلاحيات: '.$e->getMessage());
+
+            return;
+        }
+
+        if ($missing === []) {
+            $this->record('PASS', 'permissions.catalog', 'جميع صلاحيات الكتالوج موجودة في قاعدة البيانات.');
+        } else {
+            $this->record('FAIL', 'permissions.catalog',
+                'صلاحيات ناقصة ('.count($missing).'): '.implode(', ', array_slice($missing, 0, 8)).
+                ' — شغّل php artisan migrate أو db:seed لإصلاحها.');
         }
     }
 

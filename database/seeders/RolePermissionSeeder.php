@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Enums\RoleName;
 use App\Support\Permissions;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -15,10 +14,8 @@ class RolePermissionSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // 1) Permissions
-        foreach (Permissions::all() as $name) {
-            Permission::findOrCreate($name, 'web');
-        }
+        // 1) Permissions — idempotently ensure every catalog permission exists.
+        Permissions::sync();
 
         // 2) Roles
         foreach (RoleName::cases() as $role) {

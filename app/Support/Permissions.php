@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Enums\RoleName;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Single source of truth for the permission catalog and the default
@@ -381,6 +383,44 @@ final class Permissions
                 'tasks.comment', 'tasks.attachments', 'tasks.checklist',
             ], self::selfService()),
         ];
+    }
+
+    /**
+     * Idempotently ensure every catalog permission exists as a row (guard
+     * `web`), then clear the permission cache. This is the guarantee the whole
+     * RBAC depends on: the role editor lists permissions from this catalog, so
+     * each one MUST exist in the database or Spatie's syncPermissions() throws
+     * PermissionDoesNotExist and the entire role save is lost. Safe to run any
+     * number of times; only missing rows are created, nothing is deleted.
+     *
+     * @return int the number of permissions newly created
+     */
+    public static function sync(): int
+    {
+        $created = 0;
+        foreach (self::all() as $name) {
+            $permission = Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
+            if ($permission->wasRecentlyCreated) {
+                $created++;
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        return $created;
+    }
+
+    /**
+     * Catalog permissions that are missing as database rows — the drift that
+     * silently breaks role editing. Used by the health check.
+     *
+     * @return list<string>
+     */
+    public static function missing(): array
+    {
+        $existing = Permission::where('guard_name', 'web')->pluck('name')->flip();
+
+        return array_values(array_filter(self::all(), fn ($name) => ! $existing->has($name)));
     }
 
     /**

@@ -64,7 +64,15 @@ class RolesPermissions extends Component
 
             return;
         }
-        $role->syncPermissions($this->rolePermissions);
+        // Only ever grant real catalog permissions, and make sure each exists as
+        // a row first — otherwise Spatie throws PermissionDoesNotExist and the
+        // whole save is lost (the root cause of "custom role lost some modules").
+        $selected = array_values(array_intersect($this->rolePermissions, Permissions::all()));
+        foreach ($selected as $name) {
+            Permission::findOrCreate($name, 'web');
+        }
+
+        $role->syncPermissions($selected);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         session()->flash('status', 'تم حفظ صلاحيات الدور.');
     }

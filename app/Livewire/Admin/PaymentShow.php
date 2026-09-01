@@ -27,6 +27,9 @@ class PaymentShow extends Component
     // ---- Draft form ----
     public ?int $customer_id = null;
 
+    /** Live search term for the customer picker (name / number / whatsapp). */
+    public string $customerSearch = '';
+
     public string $payment_date = '';
 
     public string $payment_currency = 'USD';
@@ -138,6 +141,37 @@ class PaymentShow extends Component
         if (in_array($name, ['payment_amount', 'payment_currency', 'exchange_rate'], true) && $this->autoMode) {
             $this->recalcAutoAllocations();
         }
+    }
+
+    /**
+     * Choose a customer from the searchable picker. Only a draft may change its
+     * customer; switching customers invalidates any allocation rows (they may
+     * point at another customer's invoices), matching updated('customer_id').
+     */
+    public function selectCustomer(int $id): void
+    {
+        if (! $this->payment->isDraft()) {
+            return;
+        }
+        $customer = Customer::active()->find($id) ?? Customer::find($id);
+        if (! $customer) {
+            return;
+        }
+        $this->customer_id = $customer->id;
+        $this->customerSearch = '';
+        $this->allocations = [];
+        $this->autoMode = false;
+    }
+
+    public function clearCustomer(): void
+    {
+        if (! $this->payment->isDraft()) {
+            return;
+        }
+        $this->customer_id = null;
+        $this->customerSearch = '';
+        $this->allocations = [];
+        $this->autoMode = false;
     }
 
     // ---- Draft actions ----
@@ -394,9 +428,26 @@ class PaymentShow extends Component
             ->orderBy('name')
             ->get(['id', 'name', 'type', 'currency']);
 
+        // Searchable customer picker: match name / number / whatsapp, capped.
+        $customerResults = collect();
+        $term = trim($this->customerSearch);
+        if ($this->payment->isDraft() && $this->customer_id === null && $term !== '') {
+            $customerResults = Customer::query()
+                ->where(fn ($q) => $q
+                    ->where('name', 'like', "%{$term}%")
+                    ->orWhere('customer_number', 'like', "%{$term}%")
+                    ->orWhere('whatsapp_number', 'like', "%{$term}%"))
+                ->orderBy('name')
+                ->limit(10)
+                ->get(['id', 'name', 'customer_number', 'whatsapp_number']);
+        }
+
         return view('livewire.admin.payment-show', [
-            'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'currencyOptions' => PaymentCurrency::options(),
+            'customerResults' => $customerResults,
+            'selectedCustomerName' => $this->customer_id
+                ? (Customer::find($this->customer_id)?->name ?? '—')
+                : null,
             'methodOptions' => PaymentMethod::options(),
             'depositAccounts' => $depositAccounts,
             'receivedAccount' => $this->payment->account_id ? FinancialAccount::find($this->payment->account_id) : null,

@@ -35,10 +35,35 @@
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-sm text-slate-600">العميل</label>
-                        <select wire:model.live="customer_id" @disabled(! $canEdit) class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
-                            <option value="">— اختر —</option>
-                            @foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
-                        </select>
+                        @if ($customer_id)
+                            <div class="flex items-center justify-between rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm">
+                                <span class="font-medium text-slate-800">{{ $selectedCustomerName }}</span>
+                                @if ($canEdit)
+                                    <button type="button" wire:click="clearCustomer" class="text-xs text-red-500 hover:underline">تغيير</button>
+                                @endif
+                            </div>
+                        @elseif ($canEdit)
+                            <input type="text" wire:model.live.debounce.300ms="customerSearch"
+                                   placeholder="🔎 ابحث بالاسم / رقم العميل / واتساب..."
+                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            @if ($customerResults->isNotEmpty())
+                                <ul class="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm">
+                                    @foreach ($customerResults as $c)
+                                        <li>
+                                            <button type="button" wire:click="selectCustomer({{ $c->id }})"
+                                                    class="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-right hover:bg-slate-50">
+                                                <span class="font-medium text-slate-800">{{ $c->name }}</span>
+                                                <span class="text-xs text-slate-400" dir="ltr">{{ $c->customer_number }}@if ($c->whatsapp_number) · {{ $c->whatsapp_number }}@endif</span>
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @elseif (trim($customerSearch) !== '')
+                                <p class="mt-1 text-xs text-slate-400">لا يوجد عميل مطابق.</p>
+                            @endif
+                        @else
+                            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">{{ $selectedCustomerName ?? '—' }}</div>
+                        @endif
                         @error('customer_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>

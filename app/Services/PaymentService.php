@@ -40,7 +40,7 @@ class PaymentService
 
         $payment = Payment::create([
             'payment_number' => $data['payment_number'] ?? $this->numbers->next('payment'),
-            'customer_id' => $data['customer_id'],
+            'customer_id' => $data['customer_id'] ?? null,
             'payment_date' => $data['payment_date'] ?? now()->toDateString(),
             'payment_currency' => $currency,
             'payment_amount' => Money::money($amount),

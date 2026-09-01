@@ -47,7 +47,7 @@
                         <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">
                             <a href="{{ route('admin.payments.show', $payment) }}" class="hover:text-brand-600 hover:underline">{{ $payment->payment_number }}</a>
                         </td>
-                        <td class="px-4 py-3 font-medium text-slate-800">{{ $payment->customer->name }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-800">{{ $payment->customer?->name ?? '— بلا عميل' }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $payment->payment_date->format('Y-m-d') }}</td>
                         <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">
                             {{ number_format((float) $payment->payment_amount, 2) }} {{ $payment->payment_currency->symbol() }}

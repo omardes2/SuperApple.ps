@@ -48,7 +48,7 @@
                     @endphp
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $invoice->invoice_number }}</td>
-                        <td class="px-4 py-3 font-medium text-slate-800"><a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->customer->name }}</a></td>
+                        <td class="px-4 py-3 font-medium text-slate-800"><a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->customer?->name ?? '— بلا عميل' }}</a></td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->due_date?->format('Y-m-d') ?? '—' }}</td>
                         <td class="px-4 py-3"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>

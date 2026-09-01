@@ -12,7 +12,7 @@
                     <h2 class="text-xl font-bold text-slate-800" dir="ltr">{{ $invoice->invoice_number }}</h2>
                     <x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge>
                 </div>
-                <p class="mt-0.5 text-sm text-slate-500">{{ $invoice->customer->name }}</p>
+                <p class="mt-0.5 text-sm text-slate-500">{{ $invoice->customer?->name ?? '— بلا عميل' }}</p>
             </div>
         </div>
 

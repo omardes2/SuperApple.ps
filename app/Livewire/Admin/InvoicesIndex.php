@@ -72,11 +72,10 @@ class InvoicesIndex extends Component
     {
         $this->authorize('create', Invoice::class);
 
-        $firstCustomer = Customer::active()->orderBy('name')->first() ?? Customer::orderBy('name')->first();
-        abort_if($firstCustomer === null, 422);
-
+        // No default customer: the draft starts customerless and the accountant
+        // picks one through the searchable picker on the form (required to issue).
         $invoice = $service->createDraft([
-            'customer_id' => $firstCustomer->id,
+            'customer_id' => null,
             'invoice_date' => now()->toDateString(),
         ], []);
 

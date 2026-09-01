@@ -47,7 +47,7 @@ class InvoiceService
                 'invoice_number' => $data['invoice_number'] ?? $this->numbers->next('invoice'),
                 'quotation_id' => $data['quotation_id'] ?? null,
                 'subscription_id' => $data['subscription_id'] ?? null,
-                'customer_id' => $data['customer_id'],
+                'customer_id' => $data['customer_id'] ?? null,
                 'project_id' => $data['project_id'] ?? null,
                 'invoice_date' => $invoiceDate,
                 'due_date' => $dueDate,

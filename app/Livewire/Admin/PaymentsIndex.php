@@ -44,19 +44,18 @@ class PaymentsIndex extends Component
     }
 
     /**
-     * Create a draft for the first available customer and open it. The full
-     * form (customer, date, currency, amount, allocations) lives on the detail
-     * page so a draft is never posted from here.
+     * Create a customerless draft and open it. The full form (customer, date,
+     * currency, amount, allocations) lives on the detail page — where the
+     * customer is picked — so a draft is never posted from here.
      */
     public function create(PaymentService $service)
     {
         $this->authorize('create', Payment::class);
 
-        $firstCustomer = Customer::active()->orderBy('name')->first() ?? Customer::orderBy('name')->first();
-        abort_if($firstCustomer === null, 422, 'لا يوجد عملاء لإنشاء دفعة.');
-
+        // No default customer: the draft starts customerless and the accountant
+        // picks one through the searchable picker on the form (required to post).
         $payment = $service->createDraft([
-            'customer_id' => $firstCustomer->id,
+            'customer_id' => null,
             'payment_date' => now()->toDateString(),
             'payment_currency' => 'USD',
             'payment_amount' => 0,

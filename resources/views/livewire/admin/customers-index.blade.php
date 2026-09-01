@@ -20,8 +20,8 @@
         @if ($canViewBalance)
             <x-stat-card
                 label="إجمالي المستحقات"
-                :value="'$'.number_format((float) $stats['outstanding_usd'], 2)"
-                :hint="'≈ '.number_format((float) $stats['outstanding_ils'], 2).' ₪'"
+                :value="number_format((float) $stats['outstanding_ils'], 2).' ₪'"
+                :hint="'القيمة الرسمية $'.number_format((float) $stats['outstanding_usd'], 2)"
                 icon="invoice" tone="amber" />
         @endif
     </div>
@@ -76,7 +76,7 @@
                         <td class="hidden px-4 py-3 text-slate-600 md:table-cell">{{ $customer->tasks_count }}</td>
                         @if ($canViewBalance)
                             <td class="px-4 py-3">
-                                <x-money :usd="$bal['usd']" :ils="$bal['ils']" class="font-medium text-slate-800" dir="ltr" />
+                                <x-amount :ils="$bal['ils']" :usd="$bal['usd']" :usd-approx="false" class="font-medium text-slate-800" />
                             </td>
                         @endif
                         <td class="px-4 py-3">

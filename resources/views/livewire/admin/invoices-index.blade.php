@@ -86,6 +86,13 @@
                         $paid = (float) $invoice->paid_usd_equivalent;
                         $isOverdue = $eff === \App\Enums\InvoiceStatus::Overdue;
                         $overdueDays = ($isOverdue && $invoice->due_date) ? (int) $invoice->due_date->diffInDays(now()) : 0;
+                        // ILS at the invoice's OWN stored rate (never a current rate);
+                        // null when a draft has no rate yet → USD shown alone.
+                        $rate = $invoice->exchange_rate;
+                        $hasRate = $rate !== null && (float) $rate > 0;
+                        $totalIls = $invoice->total_ils_at_issue ?: ($hasRate ? \App\Support\Money::convertUsdToIls($invoice->total_usd, $rate) : null);
+                        $paidIls = $hasRate ? \App\Support\Money::convertUsdToIls($invoice->paid_usd_equivalent, $rate) : null;
+                        $remIls = $hasRate ? \App\Support\Money::convertUsdToIls($invoice->remaining_usd, $rate) : null;
                     @endphp
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-2.5 font-mono text-slate-500 whitespace-nowrap" dir="ltr">
@@ -93,9 +100,9 @@
                         </td>
                         <td class="px-4 py-2.5 text-slate-600 whitespace-nowrap hidden md:table-cell" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
                         <td class="px-4 py-2.5 font-medium text-slate-800"><a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->customer?->name ?? '— بلا عميل' }}</a></td>
-                        <td class="px-4 py-2.5"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>
-                        <td class="px-4 py-2.5 hidden lg:table-cell"><x-money :usd="$invoice->paid_usd_equivalent" :rate="$invoice->exchange_rate" :class="$paid > 0 ? 'font-medium text-emerald-700' : 'text-slate-400'" dir="ltr" /></td>
-                        <td class="px-4 py-2.5"><x-money :usd="$invoice->remaining_usd" :rate="$invoice->exchange_rate" :class="$remaining > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-600'" dir="ltr" /></td>
+                        <td class="px-4 py-2.5"><x-amount :ils="$totalIls" :usd="$invoice->total_usd" :usd-approx="false" class="font-semibold text-slate-800" /></td>
+                        <td class="px-4 py-2.5 hidden lg:table-cell"><x-amount :ils="$paidIls" :usd="$invoice->paid_usd_equivalent" :usd-approx="false" :class="$paid > 0 ? 'font-medium text-emerald-700' : 'text-slate-400'" /></td>
+                        <td class="px-4 py-2.5"><x-amount :ils="$remIls" :usd="$invoice->remaining_usd" :usd-approx="false" :class="$remaining > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-600'" /></td>
                         <td class="px-4 py-2.5 whitespace-nowrap hidden md:table-cell" dir="ltr">
                             @if ($invoice->due_date)
                                 <span class="text-slate-600">{{ $invoice->due_date->format('Y-m-d') }}</span>

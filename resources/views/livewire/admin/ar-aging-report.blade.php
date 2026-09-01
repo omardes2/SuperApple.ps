@@ -25,7 +25,7 @@
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-medium text-slate-800">{{ $r['customer']?->name ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $r['invoices'] }}</td>
-                        <td class="px-4 py-3"><x-money :usd="$r['remaining_usd']" :ils="$r['remaining_ils'] ?? null" class="text-slate-700" dir="ltr" /></td>
+                        <td class="px-4 py-3"><x-amount :ils="$r['remaining_ils'] ?? null" :usd="$r['remaining_usd']" :usd-approx="false" class="text-slate-700" /></td>
                         <td class="px-4 py-3 text-slate-500" dir="ltr">{{ $r['oldest_due'] ?? '—' }}</td>
                         <td class="px-4 py-3" dir="ltr"><span class="{{ $r['max_days_overdue'] > 90 ? 'text-red-600 font-semibold' : ($r['max_days_overdue'] > 0 ? 'text-amber-600' : 'text-slate-500') }}">{{ $r['max_days_overdue'] }}</span></td>
                     </tr>
@@ -33,7 +33,7 @@
                     <tr><td colspan="5" class="px-4 py-10 text-center text-slate-400">لا ذمم مستحقة.</td></tr>
                 @endforelse
             </tbody>
-            <tfoot class="bg-slate-50 font-semibold text-slate-700"><tr><td class="px-4 py-3">الإجمالي</td><td></td><td class="px-4 py-3"><x-money :usd="$data['total']" :ils="$data['total_ils'] ?? null" dir="ltr" /></td><td colspan="2"></td></tr></tfoot>
+            <tfoot class="bg-slate-50 font-semibold text-slate-700"><tr><td class="px-4 py-3">الإجمالي</td><td></td><td class="px-4 py-3"><x-amount :ils="$data['total_ils'] ?? null" :usd="$data['total']" :usd-approx="false" /></td><td colspan="2"></td></tr></tfoot>
         </table>
     </div>
 </div>

@@ -25,8 +25,8 @@
                 @isset($finance['revenue_month_ils'])
                     <a href="{{ route('admin.reports.profit-loss') }}" class="block"><x-stat-card label="إيراد الشهر (محاسبي)" :value="number_format((float) $finance['revenue_month_ils'], 2).' ₪'" hint="من دفتر الأستاذ" icon="chart" tone="emerald" /></a>
                 @endisset
-                <a href="{{ route('admin.payments') }}" class="block"><x-stat-card label="محصّل هذا الشهر" :value="'$'.number_format((float) $finance['collected_month_usd'], 2)" :hint="'≈ '.number_format((float) $finance['collected_month_ils'], 2).' ₪'" icon="cash" tone="emerald" /></a>
-                <a href="{{ route('admin.invoices') }}" class="block"><x-stat-card label="المستحق (ذمم)" :value="'$'.number_format((float) $finance['outstanding_usd'], 2)" :hint="'≈ '.number_format((float) $finance['outstanding_ils'], 2).' ₪'" icon="invoice" tone="amber" /></a>
+                <a href="{{ route('admin.payments') }}" class="block"><x-stat-card label="التحصيل هذا الشهر" :value="number_format((float) $finance['collected_month_ils'], 2).' ₪'" :hint="'≈ $'.number_format((float) $finance['collected_month_usd'], 2)" icon="cash" tone="emerald" /></a>
+                <a href="{{ route('admin.invoices') }}" class="block"><x-stat-card label="المستحق (ذمم)" :value="number_format((float) $finance['outstanding_ils'], 2).' ₪'" :hint="'القيمة الرسمية $'.number_format((float) $finance['outstanding_usd'], 2)" icon="invoice" tone="amber" /></a>
                 <a href="{{ route('admin.reports.exchange-gain-loss') }}" class="block"><x-stat-card label="صافي فروقات الصرف (الشهر)" :value="((float) $finance['exchange_net_ils'] >= 0 ? '+' : '−').number_format(abs((float) $finance['exchange_net_ils']), 2).' ₪'" hint="ILS — محقق" icon="repeat" :tone="(float) $finance['exchange_net_ils'] >= 0 ? 'violet' : 'red'" /></a>
             </div>
         </div>
@@ -51,10 +51,10 @@
                     ])
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-white p-5">
-                    <h4 class="mb-3 text-sm font-semibold text-slate-700">التحصيل الشهري (USD equivalent)</h4>
+                    <h4 class="mb-3 text-sm font-semibold text-slate-700">التحصيل الشهري (₪)</h4>
                     @include('livewire.admin.partials.dual-bar-chart', [
-                        'rows' => collect($charts['cash'])->map(fn($r) => ['label' => $r['label'], 'a' => $r['usd_equivalent'], 'b' => 0])->all(),
-                        'aName' => 'محصّل (USD eq.)', 'bName' => '', 'aClass' => 'bg-brand-500', 'bClass' => 'bg-transparent',
+                        'rows' => collect($charts['cash'])->map(fn($r) => ['label' => $r['label'], 'a' => $r['collected_ils'], 'b' => 0])->all(),
+                        'aName' => 'محصّل (₪)', 'bName' => '', 'aClass' => 'bg-brand-500', 'bClass' => 'bg-transparent',
                     ])
                 </div>
             </div>
@@ -66,21 +66,28 @@
         <div class="grid gap-4 lg:grid-cols-2">
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <div class="mb-3 flex items-center justify-between">
-                    <h4 class="text-sm font-semibold text-slate-700">أعمار الذمم المدينة (USD)</h4>
+                    <h4 class="text-sm font-semibold text-slate-700">أعمار الذمم المدينة (₪)</h4>
                     <a href="{{ route('admin.reports.ar-aging') }}" class="text-xs text-brand-600 hover:underline">التفاصيل</a>
                 </div>
                 <div class="grid grid-cols-5 gap-2 text-center text-xs">
                     @foreach (['current'=>'غير مستحقة','1_30'=>'1–30','31_60'=>'31–60','61_90'=>'61–90','90_plus'=>'+90'] as $k=>$lbl)
-                        <div class="rounded-lg bg-slate-50 p-2"><div class="text-slate-500">{{ $lbl }}</div><div class="mt-1 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $aging['buckets'][$k], 0) }}</div>@if (isset($aging['buckets_ils']))<div class="text-[10px] text-slate-400" dir="ltr">≈ {{ number_format((float) $aging['buckets_ils'][$k], 0) }} ₪</div>@endif</div>
+                        <div class="rounded-lg bg-slate-50 p-2"><div class="text-slate-500">{{ $lbl }}</div>
+                            @if (isset($aging['buckets_ils']))
+                                <div class="mt-1 font-semibold text-slate-800" dir="ltr">{{ number_format((float) $aging['buckets_ils'][$k], 0) }} ₪</div>
+                                <div class="text-[10px] text-slate-400" dir="ltr">≈ ${{ number_format((float) $aging['buckets'][$k], 0) }}</div>
+                            @else
+                                <div class="mt-1 font-semibold text-slate-800" dir="ltr">${{ number_format((float) $aging['buckets'][$k], 0) }}</div>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
             </div>
             @if ($topCustomers)
                 <div class="rounded-xl border border-slate-200 bg-white p-5">
-                    <div class="mb-3 flex items-center justify-between"><h4 class="text-sm font-semibold text-slate-700">أعلى العملاء مستحقات (USD)</h4><a href="{{ route('admin.reports.customers') }}" class="text-xs text-brand-600 hover:underline">المزيد</a></div>
+                    <div class="mb-3 flex items-center justify-between"><h4 class="text-sm font-semibold text-slate-700">أعلى العملاء مستحقات (₪)</h4><a href="{{ route('admin.reports.customers') }}" class="text-xs text-brand-600 hover:underline">المزيد</a></div>
                     <table class="min-w-full text-sm"><tbody class="divide-y divide-slate-100">
                         @forelse ($topCustomers['outstanding'] as $r)
-                            <tr><td class="py-1.5 text-slate-700">{{ $r['customer']?->name }}</td><td class="py-1.5 text-left"><x-money :usd="$r['amount']" :ils="$r['amount_ils'] ?? null" class="font-medium text-slate-800" dir="ltr" /></td></tr>
+                            <tr><td class="py-1.5 text-slate-700">{{ $r['customer']?->name }}</td><td class="py-1.5 text-left"><x-amount :ils="$r['amount_ils'] ?? null" :usd="$r['amount']" :usd-approx="false" class="font-medium text-slate-800" /></td></tr>
                         @empty <tr><td class="py-4 text-center text-slate-400">لا مستحقات.</td></tr> @endforelse
                     </tbody></table>
                 </div>

@@ -35,8 +35,8 @@
             <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500">
                 <tr>
                     <th class="px-4 py-3">الرقم</th><th class="px-4 py-3">العميل</th>
-                    <th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">المبلغ المستلم</th>
-                    <th class="px-4 py-3">ما يعادله USD</th><th class="px-4 py-3">الطريقة</th>
+                    <th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">المبلغ (₪)</th>
+                    <th class="px-4 py-3">الطريقة</th>
                     <th class="px-4 py-3">الحالة</th>
                     <th class="px-4 py-3 text-center">إجراءات</th>
                 </tr>
@@ -49,10 +49,19 @@
                         </td>
                         <td class="px-4 py-3 font-medium text-slate-800">{{ $payment->customer?->name ?? '— بلا عميل' }}</td>
                         <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $payment->payment_date->format('Y-m-d') }}</td>
-                        <td class="px-4 py-3 font-semibold text-slate-800" dir="ltr">
-                            {{ number_format((float) $payment->payment_amount, 2) }} {{ $payment->payment_currency->symbol() }}
+                        @php
+                            // Primary ILS = the actual shekels for an ILS payment, or the USD
+                            // payment's own accounting valuation (usd_equivalent × its stored
+                            // rate) — never a current rate. Secondary = original / equivalent.
+                            $payIsIls = $payment->payment_currency->value === 'ILS';
+                            $payRate = $payment->exchange_rate;
+                            $payIls = $payIsIls
+                                ? $payment->payment_amount
+                                : ((float) $payRate > 0 ? \App\Support\Money::convertUsdToIls($payment->usd_equivalent, $payRate) : null);
+                        @endphp
+                        <td class="px-4 py-3 font-semibold text-slate-800">
+                            <x-amount :ils="$payIls" :usd="$payIsIls ? $payment->usd_equivalent : $payment->payment_amount" :usd-approx="$payIsIls" />
                         </td>
-                        <td class="px-4 py-3 text-slate-600" dir="ltr">${{ number_format((float) $payment->usd_equivalent, 2) }}</td>
                         <td class="px-4 py-3 text-slate-500">{{ $payment->payment_method->label() }}</td>
                         <td class="px-4 py-3"><x-badge :class="$payment->status->badgeClass()">{{ $payment->status->label() }}</x-badge></td>
                         <td class="px-4 py-3">
@@ -94,7 +103,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">لا دفعات.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">لا دفعات.</td></tr>
                 @endforelse
             </tbody>
         </table>

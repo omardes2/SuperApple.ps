@@ -175,30 +175,26 @@
                         <dl class="space-y-1.5">
                             <div class="flex justify-between">
                                 <dt class="text-slate-500">المبلغ المستلم</dt>
-                                <dd class="font-semibold text-slate-800" dir="ltr">{{ number_format((float) $ps['received'], 2) }} {{ $ps['symbol'] }}</dd>
+                                <dd class="text-left"><x-amount :ils="$ps['received_ils']" :usd="$ps['received_usd']" :usd-approx="$ps['currency'] === 'ILS'" class="font-semibold text-slate-800" /></dd>
                             </div>
                             <div class="flex justify-between">
                                 <dt class="text-slate-500">{{ $ps['state'] === 'exact' ? 'سيتم تسديد الفاتورة بالكامل' : 'المخصّص للفواتير' }}</dt>
-                                <dd class="font-semibold text-slate-800" dir="ltr">
-                                    ${{ number_format((float) $ps['allocated_usd'], 2) }}@if ($ps['currency'] === 'ILS' && $ps['allocated_ils'] !== null) <span class="text-xs font-normal text-slate-400">≈ {{ number_format((float) $ps['allocated_ils'], 2) }} ₪</span>@endif
-                                </dd>
+                                <dd class="text-left"><x-amount :ils="$ps['allocated_ils']" :usd="$ps['allocated_usd']" :usd-approx="false" class="font-semibold text-slate-800" /></dd>
                             </div>
                             @if ($ps['state'] === 'partial')
                                 <div class="flex justify-between border-t border-slate-100 pt-1.5">
                                     <dt class="text-slate-500">المتبقي على الفاتورة بعد الدفع</dt>
-                                    <dd class="font-semibold text-amber-700" dir="ltr">${{ number_format((float) $ps['remaining_after_usd'], 2) }}</dd>
+                                    <dd class="text-left"><x-amount :ils="$ps['remaining_after_ils']" :usd="$ps['remaining_after_usd']" :usd-approx="false" class="font-semibold text-amber-700" /></dd>
                                 </div>
                             @elseif ($ps['state'] === 'exact')
                                 <div class="flex justify-between border-t border-slate-100 pt-1.5">
                                     <dt class="text-slate-500">الرصيد الزائد</dt>
-                                    <dd class="font-semibold text-emerald-600" dir="ltr">0.00 {{ $ps['symbol'] }}</dd>
+                                    <dd class="font-semibold text-emerald-600" dir="ltr">0.00 ₪</dd>
                                 </div>
                             @elseif ($ps['state'] === 'overpayment')
                                 <div class="flex justify-between border-t border-slate-100 pt-1.5">
                                     <dt class="text-slate-500">الرصيد الزائد</dt>
-                                    <dd class="font-semibold text-emerald-700" dir="ltr">
-                                        @if ($ps['surplus_original_ils'] !== null){{ number_format((float) $ps['surplus_original_ils'], 2) }} ₪ <span class="text-xs font-normal text-slate-400">≈ ${{ number_format((float) $ps['surplus_usd'], 2) }}</span>@else ${{ number_format((float) $ps['surplus_usd'], 2) }}@endif
-                                    </dd>
+                                    <dd class="text-left"><x-amount :ils="$ps['surplus_ils']" :usd="$ps['surplus_usd']" class="font-semibold text-emerald-700" /></dd>
                                 </div>
                                 <p class="mt-1 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">سيُحفظ المبلغ الزائد كرصيد دائن غير مخصص للعميل ويمكن استخدامه لاحقاً.</p>
                             @endif

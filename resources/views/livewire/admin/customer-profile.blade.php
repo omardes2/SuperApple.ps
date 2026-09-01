@@ -34,7 +34,7 @@
     @if ($tab === 'overview')
         @isset($balance)
             <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $balance['outstanding_usd'], 2)" :hint="'≈ '.number_format((float) $balance['outstanding_ils_by_document'], 2).' ₪ (رصيد رسمي بالدولار)'" icon="invoice" tone="amber" />
+                <x-stat-card label="المستحق (Outstanding)" :value="number_format((float) $balance['outstanding_ils_by_document'], 2).' ₪'" :hint="'القيمة الرسمية $'.number_format((float) $balance['outstanding_usd'], 2)" icon="invoice" tone="amber" />
                 <x-stat-card label="رصيد دائن غير مخصص" :value="'$'.number_format((float) $balance['unallocated_credit_usd'], 2)" hint="USD" icon="wallet" tone="emerald" />
                 @php $netIls = app(\App\Support\CurrencyDisplay::class)->estimatedIls($balance['net_balance_usd']); @endphp
                 <x-stat-card label="صافي الرصيد (Net)" :value="'$'.number_format((float) $balance['net_balance_usd'], 2)" :hint="$netIls !== null ? '≈ '.number_format((float) $netIls, 2).' ₪ (تقديري)' : 'مستحق − دائن'" icon="cash" tone="brand" />

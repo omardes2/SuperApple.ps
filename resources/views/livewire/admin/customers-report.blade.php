@@ -14,11 +14,11 @@
             </div>
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">الأعلى مستحقات (USD)</h3>
-                @include('livewire.admin.partials.report-rank', ['rows' => $byOutstanding, 'value' => fn($r) => $fmt::usd($r['amount']).(isset($r['amount_ils']) ? ' · ≈ '.$fmt::ils($r['amount_ils']) : ''), 'label' => fn($r) => $r['customer']?->name])
+                @include('livewire.admin.partials.report-rank', ['rows' => $byOutstanding, 'value' => fn($r) => isset($r['amount_ils']) ? $fmt::ils($r['amount_ils']).' · '.$fmt::usd($r['amount']) : $fmt::usd($r['amount']), 'label' => fn($r) => $r['customer']?->name])
             </div>
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">الأعلى دفعات (USD)</h3>
-                @include('livewire.admin.partials.report-rank', ['rows' => $byPayments, 'value' => fn($r) => $fmt::usd($r['amount']).(isset($r['amount_ils']) ? ' · ≈ '.$fmt::ils($r['amount_ils']) : ''), 'label' => fn($r) => $r['customer']?->name])
+                @include('livewire.admin.partials.report-rank', ['rows' => $byPayments, 'value' => fn($r) => isset($r['amount_ils']) ? $fmt::ils($r['amount_ils']).' · '.$fmt::usd($r['amount']) : $fmt::usd($r['amount']), 'label' => fn($r) => $r['customer']?->name])
             </div>
         @endif
         <div class="rounded-xl border border-slate-200 bg-white p-5">

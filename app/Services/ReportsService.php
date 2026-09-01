@@ -164,9 +164,27 @@ class ReportsService
             $end = $start->copy()->endOfMonth();
             $base = Payment::posted()->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()]);
 
+            // Accounting ILS of the month's collection, per payment (same rule as
+            // collectedThisMonthIls): an ILS payment contributes its own amount; a
+            // USD payment its usd_equivalent × its own stored payment rate. Never a
+            // current/global rate. Display figure for the ILS-primary chart.
+            $collectedIls = '0.00';
+            (clone $base)->select('payment_currency', 'payment_amount', 'usd_equivalent', 'exchange_rate')
+                ->chunk(500, function ($rows) use (&$collectedIls) {
+                    foreach ($rows as $p) {
+                        $ils = $p->payment_currency->value === 'ILS'
+                            ? Money::money($p->payment_amount)
+                            : ($p->exchange_rate !== null && Money::isPositive($p->exchange_rate)
+                                ? Money::convertUsdToIls($p->usd_equivalent, $p->exchange_rate)
+                                : '0.00');
+                        $collectedIls = Money::add($collectedIls, $ils);
+                    }
+                });
+
             $out[] = [
                 'month' => $start->format('Y-m'),
                 'label' => $start->translatedFormat('M Y'),
+                'collected_ils' => $collectedIls,
                 'usd_equivalent' => Money::money((clone $base)->sum('usd_equivalent')),
                 'original_ils' => Money::money((clone $base)->where('payment_currency', 'ILS')->sum('payment_amount')),
                 'original_usd' => Money::money((clone $base)->where('payment_currency', 'USD')->sum('payment_amount')),

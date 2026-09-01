@@ -575,17 +575,31 @@ class PaymentShow extends Component
             $state = 'exact';
         }
 
+        // ILS-primary display figures (base currency), from the effective rate.
+        $isIls = $currency === PaymentCurrency::ILS->value;
+        $receivedIls = $isIls ? $received : ($hasRate ? Money::convertUsdToIls($received, $rate) : null);
+        $receivedUsd = $isIls ? $paymentUsd : $received;
+        $surplusClamped = (float) $surplusUsd < 0 ? '0.00' : $surplusUsd;
+        $surplusIls = $surplusOriginalIls !== null
+            ? $surplusOriginalIls
+            : ($hasRate ? Money::convertUsdToIls($surplusClamped, $rate) : null);
+        $remainingAfterIls = $hasRate ? Money::convertUsdToIls($remainingAfter, $rate) : null;
+
         return [
             'state' => $state,
             'currency' => $currency,
-            'symbol' => $currency === PaymentCurrency::ILS->value ? '₪' : '$',
+            'symbol' => $isIls ? '₪' : '$',
             'received' => $received,
+            'received_ils' => $receivedIls,
+            'received_usd' => $receivedUsd,
             'payment_usd' => $paymentUsd,
             'allocated_usd' => $allocatedUsd,
             'allocated_ils' => $allocatedIls,
-            'surplus_usd' => (float) $surplusUsd < 0 ? '0.00' : $surplusUsd,
+            'surplus_usd' => $surplusClamped,
+            'surplus_ils' => $surplusIls,
             'surplus_original_ils' => $surplusOriginalIls !== null && (float) $surplusOriginalIls > 0 ? $surplusOriginalIls : null,
             'remaining_after_usd' => $remainingAfter,
+            'remaining_after_ils' => $remainingAfterIls,
             'has_rate' => $hasRate,
         ];
     }

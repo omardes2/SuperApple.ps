@@ -44,24 +44,15 @@ class PaymentsIndex extends Component
     }
 
     /**
-     * Create a customerless draft and open it. The full form (customer, date,
-     * currency, amount, allocations) lives on the detail page — where the
-     * customer is picked — so a draft is never posted from here.
+     * Open the "new payment" page. It persists NOTHING until the user posts (or
+     * explicitly saves a draft), so clicking "+ دفعة" no longer litters the
+     * database with abandoned draft payments.
      */
-    public function create(PaymentService $service)
+    public function create()
     {
         $this->authorize('create', Payment::class);
 
-        // No default customer: the draft starts customerless and the accountant
-        // picks one through the searchable picker on the form (required to post).
-        $payment = $service->createDraft([
-            'customer_id' => null,
-            'payment_date' => now()->toDateString(),
-            'payment_currency' => 'USD',
-            'payment_amount' => 0,
-        ]);
-
-        return redirect()->route('admin.payments.show', $payment);
+        return redirect()->route('admin.payments.create');
     }
 
     /**

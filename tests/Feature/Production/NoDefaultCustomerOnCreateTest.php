@@ -5,7 +5,7 @@ namespace Tests\Feature\Production;
 use App\Enums\RoleName;
 use App\Livewire\Admin\InvoiceShow;
 use App\Livewire\Admin\InvoicesIndex;
-use App\Livewire\Admin\PaymentShow;
+use App\Livewire\Admin\PaymentCreate;
 use App\Livewire\Admin\PaymentsIndex;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -46,19 +46,18 @@ class NoDefaultCustomerOnCreateTest extends TestCase
         $this->assertTrue($invoice->isDraft());
     }
 
-    public function test_new_payment_draft_has_no_customer(): void
+    public function test_new_payment_opens_create_page_without_persisting(): void
     {
         $this->makeCustomer(['name' => 'عميل موجود']);
 
+        // "+ دفعة" now opens the create page and persists nothing (no default
+        // customer, and no abandoned draft).
         Livewire::actingAs($this->makeUser(RoleName::GeneralManager))
             ->test(PaymentsIndex::class)
             ->call('create')
-            ->assertRedirect();
+            ->assertRedirect(route('admin.payments.create'));
 
-        $payment = Payment::latest('id')->first();
-        $this->assertNotNull($payment);
-        $this->assertNull($payment->customer_id);
-        $this->assertTrue($payment->isDraft());
+        $this->assertSame(0, Payment::count());
     }
 
     public function test_invoice_can_be_created_even_with_no_customers_at_all(): void
@@ -84,14 +83,10 @@ class NoDefaultCustomerOnCreateTest extends TestCase
             ->assertSee('ابحث بالاسم / رقم العميل / واتساب...');
     }
 
-    public function test_customerless_payment_shows_the_search_picker(): void
+    public function test_new_payment_page_shows_the_search_picker_with_no_customer(): void
     {
         Livewire::actingAs($this->makeUser(RoleName::GeneralManager))
-            ->test(PaymentsIndex::class)->call('create');
-        $payment = Payment::latest('id')->first();
-
-        Livewire::actingAs($this->makeUser(RoleName::GeneralManager))
-            ->test(PaymentShow::class, ['payment' => $payment])
+            ->test(PaymentCreate::class)
             ->assertSet('customer_id', null)
             ->assertSee('ابحث بالاسم / رقم العميل / واتساب...');
     }

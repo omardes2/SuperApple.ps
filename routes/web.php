@@ -33,6 +33,7 @@ use App\Livewire\Admin\JournalShow;
 use App\Livewire\Admin\JournalsIndex;
 use App\Livewire\Admin\LeavesIndex;
 use App\Livewire\Admin\NotificationCenter;
+use App\Livewire\Admin\PaymentCreate;
 use App\Livewire\Admin\PaymentShow;
 use App\Livewire\Admin\PaymentsIndex;
 use App\Livewire\Admin\PayrollIndex;
@@ -126,7 +127,8 @@ Route::middleware('auth')->group(function () {
 
         // Payments & collection — Sprint 4
         Route::get('/payments', PaymentsIndex::class)->middleware('can:payments.view')->name('payments');
-        Route::get('/payments/{payment}', PaymentShow::class)->middleware('can:payments.view')->name('payments.show');
+        Route::get('/payments/create', PaymentCreate::class)->middleware('can:payments.create')->name('payments.create');
+        Route::get('/payments/{payment}', PaymentShow::class)->middleware('can:payments.view')->name('payments.show')->whereNumber('payment');
         Route::get('/payments/{payment}/receipt', [PaymentReceiptController::class, 'receipt'])->middleware('can:payments.print')->name('payments.receipt');
         Route::get('/customers/{customer}/statement', CustomerStatement::class)->middleware('can:customer_statements.view')->name('customers.statement');
         Route::get('/reports/exchange-gain-loss', ExchangeGainLossReport::class)->middleware('can:exchange_gain_loss.view')->name('reports.exchange-gain-loss');

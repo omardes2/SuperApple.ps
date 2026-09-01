@@ -1,29 +1,61 @@
 <div>
-    <x-page-header title="الفواتير" subtitle="الرصيد الرسمي بالدولار الأمريكي (USD)">
+    <x-page-header title="الفواتير" subtitle="الحساب الرسمي للعميل بالدولار الأمريكي (USD)">
         <x-slot:actions>
+            @if ($canExport)
+                <button wire:click="export" wire:loading.attr="disabled" wire:target="export"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                    <x-icon name="download" class="h-4 w-4" /> تصدير Excel
+                </button>
+            @endif
             @can('create', \App\Models\Invoice::class)
                 <button wire:click="create" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">+ فاتورة</button>
             @endcan
         </x-slot:actions>
     </x-page-header>
 
+    @if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ session('status') }}</div>@endif
+    @if (session('error'))<div class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>@endif
+
+    {{-- KPI cards: this-month volume, outstanding, then the payment-state counts --}}
     <div class="mb-5 grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <x-stat-card label="مسودات" :value="$stats['draft']" icon="doc" tone="slate" />
-        <x-stat-card label="صادرة هذا الشهر" :value="$stats['issued_month']" icon="invoice" tone="brand" />
-        <x-stat-card label="مفوتر هذا الشهر" :value="'$'.number_format((float) $stats['invoiced_month'], 2)" :hint="'≈ '.number_format((float) $stats['invoiced_month_ils'], 2).' ₪'" icon="cash" tone="emerald" />
+        <x-stat-card label="فواتير هذا الشهر" :value="$stats['issued_month']" :hint="'$'.number_format((float) $stats['invoiced_month'], 2).' · ≈ '.number_format((float) $stats['invoiced_month_ils'], 2).' ₪'" icon="invoice" tone="brand" />
         <x-stat-card label="المستحق (Outstanding)" :value="'$'.number_format((float) $stats['outstanding'], 2)" :hint="'≈ '.number_format((float) $stats['outstanding_ils'], 2).' ₪'" icon="wallet" tone="amber" />
+        <x-stat-card label="غير مدفوعة" :value="$tabCounts['unpaid']" icon="doc" tone="slate" />
+        <x-stat-card label="مدفوعة جزئياً" :value="$tabCounts['partial']" icon="repeat" tone="amber" />
         <x-stat-card label="متأخرة" :value="$stats['overdue']" icon="minus" tone="red" />
     </div>
 
+    {{-- Quick status tabs (derived filters over existing columns — no new status) --}}
+    @php
+        $tabs = [
+            'all' => 'الكل', 'draft' => 'مسودة', 'unpaid' => 'غير مدفوعة', 'partial' => 'مدفوعة جزئياً',
+            'paid' => 'مدفوعة', 'overdue' => 'متأخرة', 'cancelled' => 'ملغاة',
+        ];
+    @endphp
+    <div class="mb-4 flex flex-nowrap gap-1.5 overflow-x-auto pb-1">
+        @foreach ($tabs as $key => $label)
+            @php $active = $tab === $key; @endphp
+            <button type="button" wire:click="selectTab('{{ $key }}')"
+                    class="inline-flex flex-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition
+                        {{ $active ? 'bg-brand-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+                <span>{{ $label }}</span>
+                <span class="rounded-full px-1.5 text-xs {{ $active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500' }}">{{ $tabCounts[$key] ?? 0 }}</span>
+            </button>
+        @endforeach
+    </div>
+
     <div class="mb-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 lg:flex-row lg:items-center">
-        <input type="text" wire:model.live.debounce.400ms="search" placeholder="بحث بالرقم/العميل..." class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <input type="text" wire:model.live.debounce.400ms="search" placeholder="بحث بالرقم / العميل / رقم العميل / واتساب..." class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <select wire:model.live="customer" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <option value="">كل العملاء</option>
             @foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
         </select>
         <select wire:model.live="status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <option value="">كل الحالات</option>
+            <option value="">كل الحالات (مستند)</option>
             @foreach ($statusOptions as $val => $label)<option value="{{ $val }}">{{ $label }}</option>@endforeach
+        </select>
+        <select wire:model.live="perPage" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            @foreach ([15, 25, 50] as $n)<option value="{{ $n }}">{{ $n }} / صفحة</option>@endforeach
         </select>
     </div>
 
@@ -31,10 +63,15 @@
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">الرقم</th><th class="px-4 py-3">العميل</th>
-                    <th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">الاستحقاق</th>
-                    <th class="px-4 py-3">الإجمالي</th><th class="px-4 py-3">المبلغ المتبقي</th>
-                    <th class="px-4 py-3">الحالة</th><th class="px-4 py-3">الإجراءات</th>
+                    <th class="px-4 py-2.5">الرقم</th>
+                    <th class="px-4 py-2.5 hidden md:table-cell">التاريخ</th>
+                    <th class="px-4 py-2.5">العميل</th>
+                    <th class="px-4 py-2.5">الإجمالي</th>
+                    <th class="px-4 py-2.5 hidden lg:table-cell">المدفوع</th>
+                    <th class="px-4 py-2.5">المتبقي</th>
+                    <th class="px-4 py-2.5 hidden md:table-cell">الاستحقاق</th>
+                    <th class="px-4 py-2.5">الحالة</th>
+                    <th class="px-4 py-2.5 text-center">الإجراءات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -45,37 +82,53 @@
                         $isCancelled = $invoice->isCancelled();
                         $isActive = ! $isDraft && ! $isCancelled;
                         $hasActivePayments = ($invoice->active_allocations_count ?? 0) > 0;
+                        $remaining = (float) $invoice->remaining_usd;
+                        $paid = (float) $invoice->paid_usd_equivalent;
+                        $isOverdue = $eff === \App\Enums\InvoiceStatus::Overdue;
+                        $overdueDays = ($isOverdue && $invoice->due_date) ? (int) $invoice->due_date->diffInDays(now()) : 0;
                     @endphp
                     <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $invoice->invoice_number }}</td>
-                        <td class="px-4 py-3 font-medium text-slate-800"><a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->customer?->name ?? '— بلا عميل' }}</a></td>
-                        <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
-                        <td class="px-4 py-3 text-slate-600" dir="ltr">{{ $invoice->due_date?->format('Y-m-d') ?? '—' }}</td>
-                        <td class="px-4 py-3"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>
-                        <td class="px-4 py-3"><x-money :usd="$invoice->remaining_usd" :rate="$invoice->exchange_rate" :class="(float) $invoice->remaining_usd > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-700'" dir="ltr" /></td>
-                        <td class="px-4 py-3">
-                            <div class="flex flex-col items-start gap-1">
-                                <x-badge :class="$eff->badgeClass()">{{ $eff->label() }}</x-badge>
-                                @if ($isActive)
-                                    @php $remaining = (float) $invoice->remaining_usd; $total = (float) $invoice->total_usd; @endphp
-                                    @if ($remaining <= 0)
-                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>مدفوعة
-                                        </span>
-                                    @elseif ($remaining < $total)
-                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>مدفوعة جزئياً
-                                        </span>
+                        <td class="px-4 py-2.5 font-mono text-slate-500 whitespace-nowrap" dir="ltr">
+                            <a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->invoice_number }}</a>
+                        </td>
+                        <td class="px-4 py-2.5 text-slate-600 whitespace-nowrap hidden md:table-cell" dir="ltr">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
+                        <td class="px-4 py-2.5 font-medium text-slate-800"><a href="{{ route('admin.invoices.show', $invoice) }}" class="hover:text-brand-600 hover:underline">{{ $invoice->customer?->name ?? '— بلا عميل' }}</a></td>
+                        <td class="px-4 py-2.5"><x-money :usd="$invoice->total_usd" :ils="$invoice->total_ils_at_issue" :rate="$invoice->exchange_rate" class="font-semibold text-slate-800" dir="ltr" /></td>
+                        <td class="px-4 py-2.5 hidden lg:table-cell"><x-money :usd="$invoice->paid_usd_equivalent" :rate="$invoice->exchange_rate" :class="$paid > 0 ? 'font-medium text-emerald-700' : 'text-slate-400'" dir="ltr" /></td>
+                        <td class="px-4 py-2.5"><x-money :usd="$invoice->remaining_usd" :rate="$invoice->exchange_rate" :class="$remaining > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-600'" dir="ltr" /></td>
+                        <td class="px-4 py-2.5 whitespace-nowrap hidden md:table-cell" dir="ltr">
+                            @if ($invoice->due_date)
+                                <span class="text-slate-600">{{ $invoice->due_date->format('Y-m-d') }}</span>
+                                @if ($isOverdue)<span class="mt-0.5 block text-[11px] font-medium text-red-600">متأخرة {{ $overdueDays }} يوم</span>@endif
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-2.5">
+                            <div class="flex flex-wrap items-center gap-1">
+                                @if ($isDraft)
+                                    <x-badge :class="\App\Enums\InvoiceStatus::Draft->badgeClass()">مسودة</x-badge>
+                                @elseif ($isCancelled)
+                                    <x-badge :class="\App\Enums\InvoiceStatus::Cancelled->badgeClass()">ملغاة</x-badge>
+                                @else
+                                    {{-- Document status --}}
+                                    <span class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">{{ $invoice->sent_at ? 'مُرسلة' : 'صادرة' }}</span>
+                                    <span class="text-slate-300">·</span>
+                                    {{-- Payment status (derived, folds overdue) --}}
+                                    @if ($isOverdue)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700"><span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>متأخرة</span>
+                                    @elseif ($remaining <= 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>مدفوعة</span>
+                                    @elseif ($paid > 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>جزئياً</span>
                                     @else
-                                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>غير مدفوعة
-                                        </span>
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>غير مدفوعة</span>
                                     @endif
                                 @endif
                             </div>
                         </td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center gap-1">
+                        <td class="px-4 py-2.5">
+                            <div class="flex items-center justify-center gap-1">
                                 {{-- View --}}
                                 <a href="{{ route('admin.invoices.show', $invoice) }}"
                                    title="عرض الفاتورة" aria-label="عرض الفاتورة"
@@ -169,7 +222,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">لا فواتير.</td></tr>
+                    <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">لا فواتير.</td></tr>
                 @endforelse
             </tbody>
         </table>

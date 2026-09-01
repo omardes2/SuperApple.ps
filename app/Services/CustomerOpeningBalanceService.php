@@ -88,6 +88,32 @@ class CustomerOpeningBalanceService
     }
 
     /**
+     * "Edit" a posted opening balance the only way accounting allows: reverse the
+     * existing document (mirror journal) and post a fresh one, atomically. There
+     * is no in-place edit — the old figure stays on record as a reversed entry and
+     * the corrected figure becomes the new live balance. Blocked, like reverse(),
+     * when payments were already allocated against the old balance.
+     *
+     * @param  array<string,mixed>  $data  type, amount_usd, exchange_rate, balance_date, notes
+     */
+    public function replace(CustomerOpeningBalance $ob, array $data, User $actor, ?string $reason = null): CustomerOpeningBalance
+    {
+        if (! $ob->isPosted()) {
+            throw new RuntimeException('لا يمكن تعديل رصيد افتتاحي غير مُرحّل.');
+        }
+        if ($ob->allocations()->active()->exists()) {
+            throw new RuntimeException('لا يمكن تعديل الرصيد الافتتاحي بعد تخصيص دفعات عليه. اعكس الدفعات أولاً.');
+        }
+
+        return DB::transaction(function () use ($ob, $data, $actor, $reason) {
+            $customer = $ob->customer;
+            $this->reverse($ob, $actor, $reason ?? 'تعديل الرصيد الافتتاحي (عكس القيد السابق)');
+
+            return $this->create($customer, $data);
+        });
+    }
+
+    /**
      * Reverse a posted opening balance (mirror journal + mark reversed). Never a
      * hard delete. Blocked if payments were already allocated against it.
      */

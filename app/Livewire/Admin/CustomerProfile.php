@@ -40,6 +40,10 @@ class CustomerProfile extends Component
     // Opening balance modal
     public bool $showOpeningBalance = false;
 
+    // When true the modal edits the existing posted balance (reverse + re-post)
+    // instead of creating a first one.
+    public bool $obEditing = false;
+
     public string $obType = CustomerOpeningBalance::TYPE_DEBIT;
 
     public string $obAmountUsd = '';
@@ -72,7 +76,30 @@ class CustomerProfile extends Component
     {
         $this->authorize('customers.opening_balance.manage');
         $this->reset(['obType', 'obAmountUsd', 'obRate', 'obNotes']);
+        $this->obEditing = false;
         $this->obDate = now()->toDateString();
+        $this->resetErrorBag();
+        $this->showOpeningBalance = true;
+    }
+
+    /**
+     * Open the same modal pre-filled with the current posted balance so the
+     * operator can correct it. Saving reverses the old document and posts the
+     * corrected one — there is no in-place edit of a posted accounting entry.
+     */
+    public function openEditOpeningBalance(): void
+    {
+        $this->authorize('customers.opening_balance.manage');
+        $ob = $this->customer->openingBalances()->posted()->latest('id')->first();
+        if (! $ob) {
+            return;
+        }
+        $this->obType = $ob->type;
+        $this->obAmountUsd = (string) $ob->amount_usd;
+        $this->obRate = (string) $ob->exchange_rate;
+        $this->obDate = $ob->balance_date->toDateString();
+        $this->obNotes = (string) ($ob->notes ?? '');
+        $this->obEditing = true;
         $this->resetErrorBag();
         $this->showOpeningBalance = true;
     }
@@ -88,22 +115,38 @@ class CustomerProfile extends Component
             'obNotes' => 'nullable|string|max:2000',
         ], [], ['obAmountUsd' => 'مبلغ الرصيد', 'obRate' => 'سعر الصرف', 'obDate' => 'تاريخ الرصيد']);
 
+        $data = [
+            'type' => $this->obType,
+            'amount_usd' => $this->obAmountUsd,
+            'exchange_rate' => $this->obRate,
+            'balance_date' => $this->obDate,
+            'notes' => $this->obNotes ?: null,
+        ];
+
         try {
-            $service->create($this->customer, [
-                'type' => $this->obType,
-                'amount_usd' => $this->obAmountUsd,
-                'exchange_rate' => $this->obRate,
-                'balance_date' => $this->obDate,
-                'notes' => $this->obNotes ?: null,
-            ]);
+            if ($this->obEditing) {
+                $current = $this->customer->openingBalances()->posted()->latest('id')->first();
+                if (! $current) {
+                    $this->addError('obAmountUsd', 'لا يوجد رصيد افتتاحي مُرحّل لتعديله.');
+
+                    return;
+                }
+                $service->replace($current, $data, Auth::user(), 'تعديل الرصيد الافتتاحي');
+            } else {
+                $service->create($this->customer, $data);
+            }
         } catch (\RuntimeException $e) {
             $this->addError('obAmountUsd', $e->getMessage());
 
             return;
         }
 
+        $wasEditing = $this->obEditing;
         $this->showOpeningBalance = false;
-        session()->flash('status', 'تم تسجيل الرصيد الافتتاحي وقيده محاسبياً.');
+        $this->obEditing = false;
+        session()->flash('status', $wasEditing
+            ? 'تم تعديل الرصيد الافتتاحي: عُكس القيد السابق وأُنشئ قيد جديد صحيح.'
+            : 'تم تسجيل الرصيد الافتتاحي وقيده محاسبياً.');
     }
 
     public function openReminder(PaymentReminderService $reminders): void

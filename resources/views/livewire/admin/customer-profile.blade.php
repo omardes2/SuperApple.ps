@@ -50,9 +50,11 @@
             <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-800">الرصيد الافتتاحي</h3>
-                    @unless ($openingBalance)
+                    @if ($openingBalance)
+                        <button wire:click="openEditOpeningBalance" class="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50">تعديل</button>
+                    @else
                         <button wire:click="openOpeningBalance" class="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50">إضافة رصيد افتتاحي</button>
-                    @endunless
+                    @endif
                 </div>
                 @if ($openingBalance)
                     <div class="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
@@ -249,8 +251,11 @@
     @endif
 
     @if ($canOpeningBalance ?? false)
-        <x-modal show="showOpeningBalance" title="إضافة رصيد افتتاحي" maxWidth="max-w-lg">
+        <x-modal show="showOpeningBalance" :title="$obEditing ? 'تعديل الرصيد الافتتاحي' : 'إضافة رصيد افتتاحي'" maxWidth="max-w-lg">
             <form wire:submit="saveOpeningBalance" class="space-y-4">
+                @if ($obEditing)
+                    <p class="rounded bg-blue-50 px-3 py-2 text-xs text-blue-700">تعديل الرصيد الافتتاحي يتمّ محاسبياً عبر <b>عكس القيد الحالي</b> وإنشاء قيد جديد بالقيمة الصحيحة. يبقى القيد السابق محفوظاً كقيد معكوس في السجل.</p>
+                @endif
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">نوع الرصيد</label>
                     <select wire:model="obType" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -280,10 +285,10 @@
                     <label class="mb-1 block text-sm font-medium text-slate-700">ملاحظات الرصيد</label>
                     <input type="text" wire:model="obNotes" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
-                <p class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-700">سيتم إنشاء قيد محاسبي للرصيد الافتتاحي بقيمة <b dir="ltr">${{ number_format((float) ($obAmountUsd ?: 0), 2) }}</b> بما يعادل <b dir="ltr">{{ number_format((float) $this->obIlsPreview, 2) }} ₪</b>.</p>
+                <p class="rounded bg-amber-50 px-3 py-2 text-xs text-amber-700">سيتم {{ $obEditing ? 'ترحيل القيد الجديد' : 'إنشاء قيد محاسبي' }} للرصيد الافتتاحي بقيمة <b dir="ltr">${{ number_format((float) ($obAmountUsd ?: 0), 2) }}</b> بما يعادل <b dir="ltr">{{ number_format((float) $this->obIlsPreview, 2) }} ₪</b>.</p>
                 <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
                     <button type="button" @click="$wire.showOpeningBalance=false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">إلغاء</button>
-                    <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">حفظ وترحيل</button>
+                    <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">{{ $obEditing ? 'حفظ التعديل وترحيله' : 'حفظ وترحيل' }}</button>
                 </div>
             </form>
         </x-modal>

@@ -9,6 +9,7 @@ use App\Models\CustomerOpeningBalance;
 use App\Models\Payment;
 use App\Services\CustomerOpeningBalanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
 use Tests\Concerns\CreatesUsers;
 use Tests\TestCase;
@@ -145,6 +146,35 @@ class PaymentCreateFlowTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('0.00', CustomerOpeningBalance::find($ob->id)->remaining_usd);
+    }
+
+    public function test_two_invoices_with_different_rates_settle_in_one_ils_payment(): void
+    {
+        // Regression: $1 @ 3.04 (3.04₪) + $2 @ 3.00 (6.00₪) = 9.04₪ for $3.00.
+        // A single-rate ILS payment must not reject this as over-allocated; it
+        // posts at a blended rate so received/AR/cash tie out.
+        $customer = $this->makeCustomer();
+        $inv1 = $this->makeIssuedInvoice($customer, '1.00', '3.04');
+        $inv2 = $this->makeIssuedInvoice($customer, '2.00', '3.00');
+        $cash = $this->makeCashAccount('ILS');
+
+        $comp = Livewire::actingAs($this->makeUser(RoleName::GeneralManager))->test(PaymentCreate::class)
+            ->call('selectCustomer', $customer->id)
+            ->set('payment_currency', 'ILS')
+            ->call('payInvoice', $inv1->id)
+            ->call('payInvoice', $inv2->id);
+
+        // Received = 9.04 ₪ and no over-allocation surplus.
+        $comp->assertSet('payment_amount', '9.04');
+        $ps = $comp->viewData('paymentSummary');
+        $this->assertSame('exact', $ps['state']);
+        $this->assertSame('0.00', $ps['surplus_usd']);
+
+        $comp->set('account_id', $cash->id)->call('post')->assertHasNoErrors()->assertRedirect();
+
+        $this->assertSame('0.00', $inv1->fresh()->remaining_usd);
+        $this->assertSame('0.00', $inv2->fresh()->remaining_usd);
+        $this->assertSame(0, Artisan::call('app:verify-integrity'));
     }
 
     public function test_save_draft_persists_a_draft(): void

@@ -176,19 +176,24 @@ class PaymentCreate extends Component
             return;
         }
 
-        // ILS: shekels per row at the row's own document rate.
+        // ILS: shekels per row at the row's own document rate; the received
+        // amount is their sum. A shekel payment posts at ONE rate, so we pin a
+        // single blended rate = total shekels ÷ total USD. With one document (or
+        // several sharing a rate) this is exactly that rate — zero FX. When the
+        // chosen documents carry different rates it is the only consistent rate:
+        // the received shekels, the AR relief and the cash all tie out, and the
+        // small per-invoice FX difference is booked by the allocation service.
         $ils = '0.00';
-        $rates = [];
         foreach ($this->allocations as $row) {
             $rate = $this->rowRate($row);
-            $rates[] = $rate;
             if ($rate !== null) {
                 $ils = Money::add($ils, Money::convertUsdToIls($row['allocated_usd'] ?: '0', $rate));
             }
         }
         $this->payment_amount = Money::money($ils);
-        $uniqueRates = array_unique(array_filter($rates, fn ($r) => $r !== null));
-        $this->exchange_rate = count($uniqueRates) === 1 ? (string) reset($uniqueRates) : null;
+        $this->exchange_rate = ((float) $totalUsd > 0 && (float) $ils > 0)
+            ? Money::rate((float) $ils / (float) $totalUsd)
+            : null;
     }
 
     /** The locked rate of an allocation row's target document (invoice/OB). */

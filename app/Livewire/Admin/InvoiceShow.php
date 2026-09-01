@@ -23,6 +23,9 @@ class InvoiceShow extends Component
 
     public ?int $customer_id = null;
 
+    /** Live search term for the customer picker (name / number / whatsapp). */
+    public string $customerSearch = '';
+
     public string $invoice_date = '';
 
     public ?string $due_date = null;
@@ -55,6 +58,32 @@ class InvoiceShow extends Component
         $this->notes = (string) $this->invoice->notes;
         $this->terms = (string) $this->invoice->terms;
         $this->loadLinesFrom($this->invoice->items);
+    }
+
+    /**
+     * Choose a customer from the searchable picker. Only a draft invoice may
+     * change its customer (an issued invoice's customer is locked).
+     */
+    public function selectCustomer(int $id): void
+    {
+        if (! $this->invoice->isDraft()) {
+            return;
+        }
+        $customer = Customer::active()->find($id) ?? Customer::find($id);
+        if (! $customer) {
+            return;
+        }
+        $this->customer_id = $customer->id;
+        $this->customerSearch = '';
+    }
+
+    public function clearCustomer(): void
+    {
+        if (! $this->invoice->isDraft()) {
+            return;
+        }
+        $this->customer_id = null;
+        $this->customerSearch = '';
     }
 
     public function save(InvoiceService $service): void
@@ -181,8 +210,25 @@ class InvoiceShow extends Component
         $canPayments = auth()->user()->can('payments.view');
         $canWhatsapp = auth()->user()->can('whatsapp.view');
 
+        // Searchable customer picker: match name / number / whatsapp, capped.
+        $customerResults = collect();
+        $term = trim($this->customerSearch);
+        if ($this->invoice->isDraft() && $this->customer_id === null && $term !== '') {
+            $customerResults = Customer::query()
+                ->where(fn ($q) => $q
+                    ->where('name', 'like', "%{$term}%")
+                    ->orWhere('customer_number', 'like', "%{$term}%")
+                    ->orWhere('whatsapp_number', 'like', "%{$term}%"))
+                ->orderBy('name')
+                ->limit(10)
+                ->get(['id', 'name', 'customer_number', 'whatsapp_number']);
+        }
+
         return view('livewire.admin.invoice-show', [
-            'customers' => Customer::orderBy('name')->get(['id', 'name']),
+            'customerResults' => $customerResults,
+            'selectedCustomerName' => $this->customer_id
+                ? (Customer::find($this->customer_id)?->name ?? '—')
+                : null,
             'services' => Service::active()->orderBy('name')->get(['id', 'name']),
             'preview' => $this->preview(),
             'canEdit' => $this->invoice->isDraft() && auth()->user()->can('invoices.edit'),

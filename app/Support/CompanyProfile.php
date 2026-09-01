@@ -20,6 +20,7 @@ final class CompanyProfile
             'name' => $settings->get('company', 'name', config('app.name')),
             'phone' => $settings->get('company', 'phone', ''),
             'whatsapp' => $settings->get('company', 'whatsapp', ''),
+            'email' => $settings->get('company', 'email', ''),
             'address' => $settings->get('company', 'address', ''),
             'tax_number' => $settings->get('company', 'tax_number', ''),
             'invoice_footer' => $settings->get('finance', 'invoice_footer', ''),

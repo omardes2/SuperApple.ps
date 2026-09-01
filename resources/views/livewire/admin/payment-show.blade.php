@@ -82,21 +82,24 @@
                         <input type="number" step="0.01" min="0" wire:model.live="payment_amount" @disabled(! $canEdit) dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
                         @error('payment_amount')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
-                    <div>
-                        <label class="mb-1 block text-sm text-slate-600">
-                            سعر صرف الدفعة (1 USD = ? ILS)
-                            @if ($payment_currency === 'ILS')<span class="text-red-500">*</span>@endif
-                        </label>
-                        <input type="number" step="0.000001" min="0" wire:model.live="exchange_rate" @disabled(! $canEdit) placeholder="مثال: 3.05" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
-                        <p class="mt-1 text-xs text-slate-400">
-                            @if ($payment_currency === 'ILS')
-                                مطلوب لتحويل مبلغ الشيكل إلى الدولار (رصيد العميل الرسمي بالدولار). يُدخل يدوياً لكل دفعة ومستقل عن سعر صرف الفاتورة.
-                            @else
-                                يُدخل يدوياً لكل دفعة، ومستقل تماماً عن سعر صرف الفاتورة.
-                            @endif
-                        </p>
-                        @error('exchange_rate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    </div>
+                    {{-- The manual rate only applies to USD payments. An ILS payment
+                         converts at the rate of the invoice it settles, so no rate
+                         is asked for — the amount is entered purely in shekels. --}}
+                    @if ($payment_currency === 'ILS')
+                        <div>
+                            <label class="mb-1 block text-sm text-slate-600">سعر الصرف</label>
+                            <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                                يُحتسب تلقائياً حسب سعر صرف الفاتورة المُخصَّصة — المبلغ بالشيكل كما هو.
+                            </div>
+                        </div>
+                    @else
+                        <div>
+                            <label class="mb-1 block text-sm text-slate-600">سعر صرف الدفعة (1 USD = ? ILS)</label>
+                            <input type="number" step="0.000001" min="0" wire:model.live="exchange_rate" @disabled(! $canEdit) placeholder="مثال: 3.05" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
+                            <p class="mt-1 text-xs text-slate-400">يُدخل يدوياً لكل دفعة، ومستقل تماماً عن سعر صرف الفاتورة.</p>
+                            @error('exchange_rate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endif
                     <div>
                         <label class="mb-1 block text-sm text-slate-600">طريقة الدفع</label>
                         <select wire:model.live="payment_method" @disabled(! $canEdit) class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
@@ -240,15 +243,19 @@
                         $summaryAmount = $payment->isDraft() ? (float) ($payment_amount ?: 0) : (float) $payment->payment_amount;
                         $summaryCurrency = $payment->isDraft() ? $payment_currency : $payment->payment_currency->value;
                         $summarySymbol = $summaryCurrency === 'ILS' ? '₪' : '$';
-                        $summaryRate = $payment->isDraft() ? $exchange_rate : $payment->exchange_rate;
-                        $needsRate = $summaryCurrency === 'ILS' && (float) ($summaryRate ?? 0) <= 0;
+                        // ILS drafts convert at the invoice rate (derived); show it.
+                        $summaryRate = $payment->isDraft()
+                            ? ((float) ($exchange_rate ?? 0) > 0 ? $exchange_rate : ($summaryCurrency === 'ILS' ? $this->ilsInvoiceRate() : $exchange_rate))
+                            : $payment->exchange_rate;
+                        $summaryUsd = (float) ($payment->isDraft() ? $usdPreview : $payment->usd_equivalent);
+                        $needsRate = $summaryCurrency === 'ILS' && $summaryUsd <= 0;
                     @endphp
                     <div class="flex justify-between"><dt class="text-slate-500">المبلغ المستلم</dt><dd class="font-semibold" dir="ltr">{{ number_format($summaryAmount, 2) }} {{ $summarySymbol }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">ما يعادله USD</dt>
                         @if ($needsRate)
-                            <dd class="text-xs text-amber-600">أدخل سعر الصرف</dd>
+                            <dd class="text-xs text-amber-600">اختر فاتورة لتحديد القيمة</dd>
                         @else
-                            <dd class="font-semibold text-slate-800" dir="ltr">${{ number_format((float) ($payment->isDraft() ? $usdPreview : $payment->usd_equivalent), 2) }}</dd>
+                            <dd class="font-semibold text-slate-800" dir="ltr">${{ number_format($summaryUsd, 2) }}</dd>
                         @endif
                     </div>
                     <div class="flex justify-between"><dt class="text-slate-500">سعر الصرف</dt><dd dir="ltr">{{ $summaryRate ?: '—' }}</dd></div>

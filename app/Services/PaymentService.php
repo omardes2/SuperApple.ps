@@ -111,6 +111,21 @@ class PaymentService
             if (Money::isZeroOrNegative($payment->payment_amount)) {
                 throw new RuntimeException('مبلغ الدفعة يجب أن يكون أكبر من صفر.');
             }
+
+            // An ILS payment without a manually entered rate is converted at the
+            // rate of the invoice (or opening balance) it settles — the customer's
+            // official balance is USD, and paying at the document's own rate means
+            // the AR relief in ILS equals the shekels received (no FX difference).
+            if ($payment->payment_currency === PaymentCurrency::ILS
+                && ($payment->exchange_rate === null || Money::isZeroOrNegative($payment->exchange_rate))) {
+                $derived = $this->deriveInvoiceRate($allocations);
+                if ($derived === null) {
+                    throw new RuntimeException('دفعة بالشيكل يجب تخصيصها على فاتورة أو رصيد افتتاحي لتحديد سعر الصرف حسب الفاتورة.');
+                }
+                $payment->exchange_rate = $derived;
+                $payment->save();
+            }
+
             if ($payment->exchange_rate === null || Money::isZeroOrNegative($payment->exchange_rate)) {
                 throw new RuntimeException('سعر الصرف مطلوب ويجب أن يكون أكبر من صفر.');
             }
@@ -284,6 +299,33 @@ class PaymentService
         }
 
         return $plan;
+    }
+
+    /**
+     * The exchange rate to convert an ILS payment, taken from the first invoice
+     * (or opening balance) it is allocated to. Returns null when the payment has
+     * no allocation target to borrow a rate from.
+     *
+     * @param  list<array<string,mixed>>  $allocations
+     */
+    private function deriveInvoiceRate(array $allocations): ?string
+    {
+        foreach ($allocations as $alloc) {
+            if (! empty($alloc['invoice_id'])) {
+                $invoice = Invoice::find($alloc['invoice_id']);
+                if ($invoice && Money::isPositive($invoice->exchange_rate)) {
+                    return Money::rate($invoice->exchange_rate);
+                }
+            }
+            if (! empty($alloc['opening_balance_id'])) {
+                $ob = CustomerOpeningBalance::find($alloc['opening_balance_id']);
+                if ($ob && Money::isPositive($ob->exchange_rate)) {
+                    return Money::rate($ob->exchange_rate);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

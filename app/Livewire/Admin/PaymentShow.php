@@ -240,6 +240,19 @@ class PaymentShow extends Component
     public function autoAllocate(PaymentService $service): void
     {
         $this->authorize('allocate', $this->payment);
+
+        // An ILS payment converts at the invoice rate: borrow it from the oldest
+        // open receivable so the auto plan (which works in USD) has a rate to use.
+        if ($this->payment_currency === 'ILS' && (float) ($this->exchange_rate ?? 0) <= 0) {
+            $rate = $this->ilsInvoiceRate();
+            if ($rate === null) {
+                session()->flash('status', 'لا توجد فواتير مفتوحة لتحديد سعر الصرف لدفعة الشيكل.');
+
+                return;
+            }
+            $this->exchange_rate = $rate;
+        }
+
         $this->persistDraft($service);
 
         $plan = $service->autoAllocatePlan($this->payment->refresh());
@@ -345,10 +358,9 @@ class PaymentShow extends Component
             'exchange_rate' => 'سعر الصرف',
         ]);
 
-        if ($this->payment_currency === 'ILS' && (float) ($this->exchange_rate ?? 0) <= 0) {
-            $this->addError('exchange_rate', 'سعر الصرف مطلوب لدفعات الشيكل.');
-            $this->validate(['exchange_rate' => 'required']); // stop the flow
-        }
+        // An ILS payment no longer needs a manually entered rate: it converts at
+        // the rate of the invoice it settles, derived when posting. (A manual rate
+        // is still honoured if one was typed.)
 
         // The deposit account's currency must match the payment currency — a
         // USD account can never receive an ILS payment and vice-versa. Enforced
@@ -387,12 +399,54 @@ class PaymentShow extends Component
             return Money::money($this->payment_amount ?: 0);
         }
 
-        $rate = (float) ($this->exchange_rate ?? 0);
-        if ($rate <= 0) {
+        // ILS: prefer a manual rate if one was entered, otherwise convert at the
+        // rate of the invoice/opening balance being settled.
+        $rate = (float) ($this->exchange_rate ?? 0) > 0 ? $this->exchange_rate : $this->ilsInvoiceRate();
+        if ((float) ($rate ?? 0) <= 0) {
             return '0.00';
         }
 
-        return Money::convertIlsToUsd($this->payment_amount ?: 0, $this->exchange_rate);
+        return Money::convertIlsToUsd($this->payment_amount ?: 0, $rate);
+    }
+
+    /**
+     * The USD/ILS rate an ILS payment converts at: the rate of the first invoice
+     * or opening balance it targets, else the customer's oldest open receivable.
+     * Null when there is nothing to borrow a rate from.
+     */
+    public function ilsInvoiceRate(): ?string
+    {
+        foreach ($this->allocations as $row) {
+            if (! empty($row['invoice_id'])) {
+                $inv = Invoice::find($row['invoice_id']);
+                if ($inv && (float) $inv->exchange_rate > 0) {
+                    return (string) $inv->exchange_rate;
+                }
+            }
+            if (! empty($row['opening_balance_id'])) {
+                $ob = CustomerOpeningBalance::find($row['opening_balance_id']);
+                if ($ob && (float) $ob->exchange_rate > 0) {
+                    return (string) $ob->exchange_rate;
+                }
+            }
+        }
+
+        if ($this->customer_id) {
+            $inv = Invoice::where('customer_id', $this->customer_id)
+                ->whereIn('status', ['issued', 'sent', 'partially_paid'])
+                ->where('remaining_usd', '>', 0)
+                ->orderByRaw('due_date is null, due_date asc')->orderBy('invoice_date')->first();
+            if ($inv && (float) $inv->exchange_rate > 0) {
+                return (string) $inv->exchange_rate;
+            }
+            $ob = CustomerOpeningBalance::where('customer_id', $this->customer_id)
+                ->posted()->debit()->where('remaining_usd', '>', 0)->first();
+            if ($ob && (float) $ob->exchange_rate > 0) {
+                return (string) $ob->exchange_rate;
+            }
+        }
+
+        return null;
     }
 
     public function render()

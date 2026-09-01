@@ -195,8 +195,10 @@ class InvoiceActionsTest extends TestCase
         $this->get(route('admin.invoices.print', $invoice))
             ->assertOk()
             ->assertSee($invoice->invoice_number)
-            ->assertSee('USD')
-            ->assertSee('3.50'); // invoice exchange rate
+            ->assertSee('USD')            // official currency on the grand total
+            ->assertSee('$500.00')        // total figure
+            ->assertDontSee('سعر الصرف')  // no exchange rate on the printed invoice
+            ->assertDontSee('3.50');
     }
 
     public function test_print_forbidden_without_permission(): void

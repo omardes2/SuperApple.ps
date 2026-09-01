@@ -2,13 +2,18 @@
     $snap = $invoice->customer_snapshot ?? [];
     $pdf = $pdf ?? false;
     $draft = ($draft ?? false) || $invoice->isDraft();
-    $eff = $invoice->effectiveStatus();
-    $rate = $invoice->exchange_rate;
-    $ilsOf = fn ($usd) => ($rate && (float) $rate > 0) ? \App\Support\Format::ils(\App\Support\Money::convertUsdToIls($usd, $rate)) : null;
     $paid = (float) $invoice->paid_usd_equivalent;
     $remaining = (float) $invoice->remaining_usd;
-    $navy = '#17233f';
-    $gold = '#e0a92e';
+    $hasDiscount = (float) $invoice->discount_usd > 0;
+    $hasTax = (float) $invoice->tax_usd > 0;
+    $custPhone = $snap['phone'] ?? $invoice->customer?->phone;
+    $navy = '#17233F';
+    $gold = '#D7A32D';
+    $gray = '#F5F6F8';
+    $line = '#E8EAEE';
+    $ink = '#1F2937';
+    $mut = '#8A93A2';
+    $usd = fn ($v) => '$'.number_format((float) $v, 2);
 @endphp
 <x-print-layout
     :title="'فاتورة '.$invoice->invoice_number"
@@ -16,201 +21,193 @@
     :watermark="$draft ? 'مسودة — DRAFT (غير صالحة كفاتورة رسمية)' : null">
 
     <style>
-        .sa {
-            color: {{ $navy }}; position: relative; overflow: hidden;
-            font-family: {{ $pdf ? "'DejaVu Sans', sans-serif" : "'Tajawal','Segoe UI',Tahoma,sans-serif" }};
+        @unless ($pdf)@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+        /* Pin the printed page box so browser printing is consistent regardless
+           of the user's margin setting; the sheet's own 12mm padding is the
+           margin. (dompdf keeps its setPaper('a4') box — this is browser-only.) */
+        @page { size: A4; margin: 0; }@endunless
+
+        .inv {
+            color: {{ $ink }};
+            /* PDF (dompdf, offline) uses the project's embedded DejaVu Sans. The
+               browser prefers Cairo, then Tajawal (already loaded by the shared
+               print layout), then local Arabic system fonts — so the invoice
+               never depends on a single web font loading. */
+            font-family: {{ $pdf ? "'DejaVu Sans', sans-serif" : "'Cairo','Tajawal','IBM Plex Sans Arabic','Segoe UI','Tahoma',sans-serif" }};
+            font-size: 12px; line-height: 1.5;
         }
-        .sa .num { direction: ltr; text-align: left; font-variant-numeric: tabular-nums; }
-        .sa .gold { color: {{ $gold }}; }
-        .sa svg { display: inline-block; vertical-align: middle; }
+        .inv * { box-sizing: border-box; }
+        .inv .num { direction: ltr; unicode-bidi: embed; font-variant-numeric: tabular-nums; }
+        .inv table { width: 100%; border-collapse: collapse; }
 
-        .sa-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
-        .sa-title { font-size:36px; font-weight:800; color:{{ $navy }}; margin:0; }
-        .sa-numlabel { color:#9aa4b6; font-size:12px; margin:8px 0 0; }
-        .sa-num { color:{{ $gold }}; font-weight:800; font-size:24px; letter-spacing:1px; margin:2px 0 0; }
-        .sa-badge { display:inline-flex; align-items:center; gap:7px; background:{{ $navy }}; color:#fff; padding:8px 16px; border-radius:999px; font-size:12.5px; font-weight:600; }
-        .sa-badge .dot { width:9px; height:9px; border-radius:999px; background:{{ $gold }}; display:inline-block; }
+        /* Header — compact */
+        .inv-head { width: 100%; margin-bottom: 18px; }
+        .inv-head td { vertical-align: middle; }
+        .inv-brand { display: flex; align-items: center; gap: 10px; }
+        .inv-word { font-size: 17px; font-weight: 700; color: {{ $navy }}; line-height: 1; }
+        .inv-word small { display: block; font-size: 8px; font-weight: 600; letter-spacing: 3px; color: {{ $gold }}; margin-top: 4px; }
+        .inv-doc { text-align: left; }
+        .inv-doc-t { font-size: 22px; font-weight: 700; color: {{ $navy }}; line-height: 1; }
+        .inv-doc-m { font-size: 11px; color: {{ $mut }}; margin-top: 7px; }
+        .inv-doc-m b { color: {{ $navy }}; font-weight: 600; }
 
-        .sa-word { font-weight:800; font-size:16px; color:{{ $navy }}; letter-spacing:1px; line-height:1; }
-        .sa-word .a { color:{{ $gold }}; }
-        .sa-word-sub { font-size:9px; color:#9aa4b6; letter-spacing:4px; margin-top:3px; }
-        .sa-meta { display:flex; align-items:center; gap:8px; color:#5b6472; font-size:13px; margin-top:12px; }
+        .inv-rule { height: 2px; background: {{ $navy }}; border: 0; margin: 0 0 16px; }
 
-        .sa-cards { display:flex; gap:16px; margin-top:20px; }
-        .sa-card { flex:1; border:1px solid #e9ecf3; border-radius:14px; padding:16px 18px; }
-        .sa-card-h { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:0 0 12px; font-size:15px; font-weight:700; color:{{ $navy }}; }
-        .sa-r { display:flex; justify-content:space-between; font-size:12.5px; margin:7px 0; }
-        .sa-r .k { color:#9aa4b6; }
-        .sa-r .v { color:{{ $navy }}; font-weight:600; }
+        /* Meta cards — very small, low height */
+        .inv-meta { margin-bottom: 18px; }
+        .inv-meta td { width: 50%; vertical-align: top; }
+        .inv-meta td:first-child { padding-left: 8px; }
+        .inv-meta td:last-child { padding-right: 8px; }
+        .inv-cardh { font-size: 10px; font-weight: 700; color: {{ $gold }}; letter-spacing: .5px; margin-bottom: 6px; text-transform: uppercase; }
+        .inv-card { background: {{ $gray }}; border: 1px solid {{ $line }}; border-radius: 8px; padding: 10px 12px; }
+        .inv-kv { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 11.5px; }
+        .inv-kv .k { color: {{ $mut }}; }
+        .inv-kv .v { color: {{ $navy }}; font-weight: 600; text-align: left; }
 
-        table.sa-items { width:100%; border-collapse:separate; border-spacing:0; margin-top:22px; }
-        table.sa-items thead th { background:{{ $navy }}; color:#fff; font-size:12.5px; font-weight:600; padding:13px 14px; text-align:right; }
-        table.sa-items thead th:first-child { border-top-right-radius:12px; }
-        table.sa-items thead th:last-child { border-top-left-radius:12px; }
-        table.sa-items tbody td { padding:13px 14px; font-size:12.5px; border-bottom:1px solid #eef1f6; color:{{ $navy }}; }
+        /* Items — the hero */
+        .inv-items { margin-bottom: 16px; }
+        .inv-items thead th {
+            background: {{ $navy }}; color: #fff; font-weight: 600; font-size: 11px;
+            padding: 10px 10px; text-align: right;
+        }
+        .inv-items thead th.n { text-align: left; }
+        .inv-items thead th:first-child { border-top-right-radius: 6px; }
+        .inv-items thead th:last-child { border-top-left-radius: 6px; }
+        .inv-items tbody td { padding: 8px 10px; font-size: 11.5px; border-bottom: 1px solid {{ $line }}; color: {{ $ink }}; vertical-align: top; }
+        .inv-items tbody tr:nth-child(even) td { background: #FBFBFC; }
+        .inv-items td.n { text-align: left; color: {{ $navy }}; }
+        .inv-items .desc { font-weight: 600; color: {{ $navy }}; }
+        .inv-items .desc small { display: block; font-weight: 400; font-size: 10px; color: {{ $mut }}; margin-top: 2px; }
+        .inv-items thead { display: table-header-group; }
+        .inv-items tr { page-break-inside: avoid; }
 
-        .sa-bottom { display:flex; gap:16px; margin-top:18px; align-items:stretch; }
-        .sa-tot { flex:1; border:1px solid #e9ecf3; border-radius:14px; padding:16px 18px; }
-        .sa-tot .l { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; }
-        .sa-tot .l .k { color:#7b8494; }
-        .sa-tot .grand { border-top:2px solid #eef1f6; margin-top:8px; padding-top:11px; font-weight:800; font-size:16px; }
+        /* Totals — small & elegant, aligned to the end (left in RTL) */
+        .inv-foot { page-break-inside: avoid; }
+        .inv-foot td { vertical-align: top; }
+        .inv-notes { font-size: 11px; color: {{ $mut }}; padding-left: 16px; }
+        .inv-notes .h { font-size: 10px; font-weight: 700; color: {{ $gold }}; letter-spacing: .5px; margin-bottom: 5px; text-transform: uppercase; }
+        .inv-tot { width: 46%; }
+        .inv-tot table { background: {{ $gray }}; border: 1px solid {{ $line }}; border-radius: 8px; overflow: hidden; }
+        .inv-tot td { padding: 6px 12px; font-size: 12px; }
+        .inv-tot td.k { color: {{ $mut }}; }
+        .inv-tot td.v { text-align: left; color: {{ $navy }}; font-weight: 600; }
+        .inv-tot tr.grand td { background: {{ $navy }}; color: #fff; font-size: 13.5px; font-weight: 700; padding: 9px 12px; }
+        .inv-tot tr.grand td.v { color: {{ $gold }}; }
+        .inv-tot tr.pay td { padding-top: 8px; }
+        .inv-tot tr.pay td.v { color: #15803D; }
+        .inv-tot tr.rem td.v { color: {{ $remaining > 0 ? '#B91C1C' : '#15803D' }}; }
+        .inv-tot tr.rem td { font-weight: 700; }
 
-        .sa-side { flex:1; display:flex; flex-direction:column; gap:12px; }
-        .sa-c { display:flex; align-items:center; justify-content:flex-end; gap:9px; font-size:12.5px; color:{{ $navy }}; margin:9px 0; }
-
-        .sa-foot { display:flex; justify-content:space-between; align-items:center; margin-top:26px; padding-top:16px; border-top:1px solid #eef1f6; }
-        .sa-soc { display:flex; gap:8px; }
-        .sa-soc span { width:30px; height:30px; border-radius:999px; background:{{ $navy }}; display:inline-flex; align-items:center; justify-content:center; }
-        .sa-corner { position:absolute; bottom:0; left:0; width:0; height:0; border-style:solid; border-width:0 0 70px 70px; border-color:transparent transparent {{ $gold }} transparent; opacity:.85; }
+        /* Footer — tiny: contact only */
+        .inv-bottom { margin-top: 20px; padding-top: 12px; border-top: 1px solid {{ $line }}; text-align: center; font-size: 11px; color: {{ $mut }}; page-break-inside: avoid; }
+        .inv-bottom .ty { color: {{ $navy }}; font-weight: 600; margin-bottom: 4px; }
+        .inv-bottom .sep { color: {{ $gold }}; padding: 0 6px; }
     </style>
 
-    @php
-        // Small inline gold line-icons (stroke = gold), print/PDF-safe simple paths.
-        $ic = fn ($p, $c = null) => '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'.($c ?? $gold).'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'.$p.'</svg>';
-        $icCal = $ic('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>');
-        $icClock = $ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>');
-        $icDoc = $ic('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>');
-        $icUser = $ic('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>');
-        $icNote = $ic('<path d="M4 4h16v12l-4 4H4z"/><path d="M14 20v-4h4"/>');
-        $icPhone = $ic('<path d="M4 4h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 4 6a2 2 0 0 1 2-2z"/>');
-        $icMail = $ic('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>');
-        $icPin = $ic('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>');
-    @endphp
-
-    <div class="sa">
-        {{-- ── Header ─────────────────────────────────────────────── --}}
-        <div class="sa-head">
-            {{-- RIGHT (RTL start): title + number + status --}}
-            <div style="display:flex; align-items:flex-start; gap:14px;">
-                {{-- dotted gold grid --}}
-                <svg width="70" height="46" viewBox="0 0 70 46" style="margin-top:8px;">
-                    @for ($r = 0; $r < 5; $r++)@for ($c = 0; $c < 8; $c++)<circle cx="{{ 4 + $c * 9 }}" cy="{{ 4 + $r * 9 }}" r="1.6" fill="{{ $gold }}" opacity="0.65"/>@endfor @endfor
-                </svg>
-                <div>
-                    <h1 class="sa-title">فاتورة</h1>
-                    <p class="sa-numlabel">رقم الفاتورة</p>
-                    <p class="sa-num num">{{ $invoice->invoice_number }}</p>
-                    <div style="margin-top:14px;"><span class="sa-badge"><span class="dot"></span>{{ $eff->label() }}</span></div>
-                </div>
-            </div>
-
-            {{-- LEFT: logo + date + time --}}
-            <div style="text-align:left;">
-                <div style="display:flex; align-items:center; gap:11px; justify-content:flex-start;">
-                    <svg width="52" height="52" viewBox="0 0 52 52">
-                        <circle cx="33" cy="30" r="15" fill="{{ $gold }}"/>
-                        <path d="M31 12c1 3 -1 5 -4 5 0 -3 2 -5 4 -5z" fill="{{ $navy }}"/>
-                        <text x="12" y="38" font-size="30" font-weight="800" fill="{{ $navy }}" font-family="Arial, sans-serif">S</text>
-                    </svg>
-                    <div style="text-align:left;">
-                        <div class="sa-word">{{ $company['name'] }}</div>
-                        <div class="sa-word-sub">SUPER APPLE</div>
+    <div class="inv">
+        {{-- ── Header (compact) ───────────────────────────────── --}}
+        <table class="inv-head">
+            <tr>
+                <td>
+                    <div class="inv-brand">
+                        <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+                            <circle cx="19" cy="20" r="11" fill="{{ $gold }}"/>
+                            <path d="M18 5c.8 2.2-.7 3.9-2.9 3.9C15.1 6.7 16.6 5 18 5z" fill="{{ $navy }}"/>
+                            <circle cx="12.5" cy="20" r="7.5" fill="{{ $navy }}"/>
+                        </svg>
+                        <div class="inv-word">{{ $company['name'] }}<small>SUPER APPLE</small></div>
                     </div>
-                </div>
-                <div class="sa-meta">{!! $icCal !!}<span class="num">{{ $invoice->invoice_date->format('d/m/Y') }}</span></div>
-                @if ($invoice->issued_at)
-                    <div class="sa-meta">{!! $icClock !!}<span class="num">{{ $invoice->issued_at->format('h:i A') }}</span></div>
-                @endif
-            </div>
-        </div>
+                </td>
+                <td class="inv-doc">
+                    <div class="inv-doc-t">فاتورة</div>
+                    <div class="inv-doc-m">رقم الفاتورة <b class="num">{{ $invoice->invoice_number }}</b></div>
+                    <div class="inv-doc-m">تاريخ الإصدار <b class="num">{{ $invoice->invoice_date->format('d/m/Y') }}</b></div>
+                </td>
+            </tr>
+        </table>
+        <hr class="inv-rule">
 
-        {{-- ── Info cards ─────────────────────────────────────────── --}}
-        <div class="sa-cards">
-            <div class="sa-card">
-                <div class="sa-card-h">تفاصيل الفاتورة {!! $icDoc !!}</div>
-                <div class="sa-r"><span class="k">رقم الفاتورة</span><span class="v num">{{ $invoice->invoice_number }}</span></div>
-                <div class="sa-r"><span class="k">تاريخ الإصدار</span><span class="v num">{{ $invoice->invoice_date->format('d/m/Y') }}</span></div>
-                <div class="sa-r"><span class="k">تاريخ الاستحقاق</span><span class="v num">{{ $invoice->due_date?->format('d/m/Y') ?? '—' }}</span></div>
-            </div>
-            <div class="sa-card">
-                <div class="sa-card-h">معلومات العميل {!! $icUser !!}</div>
-                <div class="sa-r"><span class="k">الاسم</span><span class="v">{{ $snap['customer_name'] ?? $invoice->customer?->name ?? '—' }}</span></div>
-                @php $custPhone = $snap['phone'] ?? $invoice->customer?->phone; $custAddr = $snap['address'] ?? $invoice->customer?->address; @endphp
-                @if ($custPhone)<div class="sa-r"><span class="k">الهاتف</span><span class="v num">{{ $custPhone }}</span></div>@endif
-                @if ($custAddr)<div class="sa-r"><span class="k">العنوان</span><span class="v">{{ $custAddr }}</span></div>@endif
-            </div>
-        </div>
+        {{-- ── Meta cards (small) ─────────────────────────────── --}}
+        <table class="inv-meta">
+            <tr>
+                <td>
+                    <div class="inv-cardh">معلومات العميل</div>
+                    <div class="inv-card">
+                        <div class="inv-kv"><span class="k">الاسم</span><span class="v">{{ $snap['customer_name'] ?? $invoice->customer?->name ?? '—' }}</span></div>
+                        @if ($custPhone)<div class="inv-kv"><span class="k">الهاتف</span><span class="v num">{{ $custPhone }}</span></div>@endif
+                    </div>
+                </td>
+                <td>
+                    <div class="inv-cardh">تفاصيل الفاتورة</div>
+                    <div class="inv-card">
+                        <div class="inv-kv"><span class="k">رقم الفاتورة</span><span class="v num">{{ $invoice->invoice_number }}</span></div>
+                        <div class="inv-kv"><span class="k">تاريخ الإصدار</span><span class="v num">{{ $invoice->invoice_date->format('d/m/Y') }}</span></div>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
-        {{-- ── Items ──────────────────────────────────────────────── --}}
-        <table class="sa-items">
+        {{-- ── Items (hero) ───────────────────────────────────── --}}
+        <table class="inv-items">
             <thead>
-                <tr><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr>
+                <tr>
+                    <th style="width:40%;">الوصف</th>
+                    <th class="n" style="width:8%;">الكمية</th>
+                    <th class="n" style="width:15%;">سعر الوحدة</th>
+                    <th class="n" style="width:11%;">الخصم</th>
+                    <th class="n" style="width:11%;">الضريبة</th>
+                    <th class="n" style="width:15%;">الإجمالي</th>
+                </tr>
             </thead>
             <tbody>
                 @foreach ($invoice->items as $item)
                     <tr>
-                        <td>{{ $item->item_name }}@if ($item->description)<br><span style="font-size:10px; color:#9aa4b6;">{{ $item->description }}</span>@endif</td>
-                        <td class="num">{{ rtrim(rtrim((string) $item->quantity, '0'), '.') }}</td>
-                        <td class="num">${{ number_format((float) $item->unit_price_usd, 2) }}</td>
-                        <td class="num">{{ (float) $item->discount_usd > 0 ? '$'.number_format((float) $item->discount_usd, 2) : '—' }}</td>
-                        <td class="num">{{ (float) $item->tax_usd > 0 ? '$'.number_format((float) $item->tax_usd, 2) : '—' }}</td>
-                        <td class="num">${{ number_format((float) $item->line_total_usd, 2) }}</td>
+                        <td class="desc">{{ $item->item_name }}@if ($item->description)<small>{{ $item->description }}</small>@endif</td>
+                        <td class="n num">{{ rtrim(rtrim((string) $item->quantity, '0'), '.') }}</td>
+                        <td class="n num">{{ $usd($item->unit_price_usd) }}</td>
+                        <td class="n num">{{ (float) $item->discount_usd > 0 ? $usd($item->discount_usd) : '—' }}</td>
+                        <td class="n num">{{ (float) $item->tax_usd > 0 ? $usd($item->tax_usd) : '—' }}</td>
+                        <td class="n num">{{ $usd($item->line_total_usd) }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
 
-        {{-- ── Totals + contact ───────────────────────────────────── --}}
-        <div class="sa-bottom">
-            <div class="sa-tot">
-                <div class="l"><span class="k">المجموع الفرعي</span><span class="num">${{ number_format((float) $invoice->subtotal_usd, 2) }}</span></div>
-                @if ((float) $invoice->discount_usd > 0)
-                    <div class="l"><span class="k">الخصم</span><span class="num">−${{ number_format((float) $invoice->discount_usd, 2) }}</span></div>
-                @endif
-                <div class="l"><span class="k">الضريبة</span><span class="num">${{ number_format((float) $invoice->tax_usd, 2) }}</span></div>
-                <div class="l grand"><span>الإجمالي</span><span class="num">${{ number_format((float) $invoice->total_usd, 2) }} USD</span></div>
-                @if ($rate && (float) $rate > 0)
-                    <div class="l" style="padding-top:0;"><span class="k" style="font-size:11px;">سعر الصرف</span><span class="num" style="font-size:11px; color:#9aa4b6;">1 USD = {{ $rate }} ILS</span></div>
-                    <div class="l" style="padding-top:0;"><span class="k" style="font-size:11px;">ما يعادله</span><span class="num" style="font-size:11px; color:#9aa4b6;">≈ {{ $ilsOf($invoice->total_usd) }}</span></div>
-                @endif
-                <div class="l" style="color:#16a34a; font-weight:700;"><span>المدفوع</span><span class="num">${{ number_format($paid, 2) }}</span></div>
-                <div class="l" style="color:{{ $remaining > 0 ? '#dc2626' : '#16a34a' }}; font-weight:700;"><span>المتبقي</span><span class="num">${{ number_format($remaining, 2) }}</span></div>
-            </div>
+        {{-- ── Notes + Totals ─────────────────────────────────── --}}
+        <table class="inv-foot">
+            <tr>
+                <td class="inv-notes">
+                    @if ($invoice->terms || $company['invoice_footer'])
+                        <div class="h">ملاحظات</div>
+                        @if ($invoice->terms)<div>{{ $invoice->terms }}</div>@endif
+                        @if ($company['invoice_footer'])<div style="margin-top:4px;">{{ $company['invoice_footer'] }}</div>@endif
+                    @endif
+                </td>
+                <td class="inv-tot">
+                    <table>
+                        <tr><td class="k">المجموع الفرعي</td><td class="v num">{{ $usd($invoice->subtotal_usd) }}</td></tr>
+                        @if ($hasDiscount)
+                            <tr><td class="k">الخصم</td><td class="v num">−{{ $usd($invoice->discount_usd) }}</td></tr>
+                        @endif
+                        <tr><td class="k">الضريبة</td><td class="v num">{{ $usd($invoice->tax_usd) }}</td></tr>
+                        <tr class="grand"><td>الإجمالي</td><td class="v num">{{ $usd($invoice->total_usd) }} USD</td></tr>
+                        <tr class="pay"><td class="k">المدفوع</td><td class="v num">{{ $usd($paid) }}</td></tr>
+                        <tr class="rem"><td class="k">المتبقي</td><td class="v num">{{ $usd($remaining) }}</td></tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
 
-            <div class="sa-side">
-                @if ($invoice->terms || $company['invoice_footer'])
-                    <div class="sa-card">
-                        <div class="sa-card-h">ملاحظات {!! $icNote !!}</div>
-                        @if ($invoice->terms)<p style="margin:0; font-size:12.5px; color:#5b6472;">{{ $invoice->terms }}</p>@endif
-                        @if ($company['invoice_footer'])<p style="margin:6px 0 0; font-size:12px; color:#9aa4b6;">{{ $company['invoice_footer'] }}</p>@endif
-                    </div>
-                @endif
-                <div class="sa-card">
-                    <div class="sa-card-h">بيانات التواصل والدفع {!! $icPhone !!}</div>
-                    @if ($company['phone'])<div class="sa-c">{!! $icPhone !!}<span class="num">{{ $company['phone'] }}</span></div>@endif
-                    @if (($company['email'] ?? ''))<div class="sa-c">{!! $icMail !!}<span class="num">{{ $company['email'] }}</span></div>@endif
-                    @if ($company['address'])<div class="sa-c">{!! $icPin !!}<span>{{ $company['address'] }}</span></div>@endif
-                </div>
-            </div>
-        </div>
-
-        {{-- ── Footer ─────────────────────────────────────────────── --}}
-        <div class="sa-foot">
-            {{-- decorative brand motif (not a scannable code) --}}
-            <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
-                <rect x="1" y="1" width="14" height="14" rx="2" fill="none" stroke="{{ $navy }}" stroke-width="3"/>
-                <rect x="33" y="1" width="14" height="14" rx="2" fill="none" stroke="{{ $navy }}" stroke-width="3"/>
-                <rect x="1" y="33" width="14" height="14" rx="2" fill="none" stroke="{{ $navy }}" stroke-width="3"/>
-                <rect x="6" y="6" width="4" height="4" fill="{{ $navy }}"/><rect x="38" y="6" width="4" height="4" fill="{{ $navy }}"/><rect x="6" y="38" width="4" height="4" fill="{{ $navy }}"/>
-                <rect x="22" y="22" width="4" height="4" fill="{{ $gold }}"/><rect x="30" y="22" width="4" height="4" fill="{{ $navy }}"/><rect x="22" y="30" width="4" height="4" fill="{{ $navy }}"/><rect x="34" y="34" width="4" height="4" fill="{{ $gold }}"/>
-            </svg>
-
-            <div style="text-align:center; font-size:12.5px;">
-                <div style="font-weight:700; color:{{ $navy }};">شكراً لتعاملكم مع {{ $company['name'] }} <span class="gold">♥</span></div>
-                <div style="margin-top:4px; color:#9aa4b6;" class="num">
-                    @if (($company['email'] ?? '')){{ $company['email'] }}@endif
-                    @if (($company['email'] ?? '') && $company['phone']) &nbsp;•&nbsp; @endif
-                    @if ($company['phone']){{ $company['phone'] }}@endif
-                </div>
-            </div>
-
-            <div class="sa-soc">
-                <span>{!! $ic('<path d="M6 9v7M6 6v.01M10 16v-4a2 2 0 0 1 4 0v4M10 12v4"/>', '#fff') !!}</span>
-                <span>{!! $ic('<rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.5"/><path d="M17 7v.01"/>', '#fff') !!}</span>
-                <span>{!! $ic('<path d="M14 8h2V5h-2a3 3 0 0 0-3 3v2H9v3h2v6h3v-6h2l1-3h-3V8a1 1 0 0 1 1-1z"/>', '#fff') !!}</span>
+        {{-- ── Footer (tiny, contact only) ────────────────────── --}}
+        <div class="inv-bottom">
+            @if ($company['name'])<div class="ty">شكراً لتعاملكم مع {{ $company['name'] }}</div>@endif
+            <div class="num">
+                @if ($company['phone'])<span>{{ $company['phone'] }}</span>@endif
+                @if ($company['phone'] && ($company['email'] ?? ''))<span class="sep">•</span>@endif
+                @if (($company['email'] ?? ''))<span>{{ $company['email'] }}</span>@endif
+                @if (($company['phone'] || ($company['email'] ?? '')) && $company['address'])<span class="sep">•</span>@endif
+                @if ($company['address'])<span>{{ $company['address'] }}</span>@endif
             </div>
         </div>
-
-        @unless ($pdf)<div class="sa-corner"></div>@endunless
     </div>
 </x-print-layout>

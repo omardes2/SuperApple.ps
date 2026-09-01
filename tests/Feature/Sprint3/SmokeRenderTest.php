@@ -49,8 +49,10 @@ class SmokeRenderTest extends TestCase
         $this->get(route('admin.invoices.print', $invoice))
             ->assertOk()
             ->assertSee($invoice->invoice_number)
-            ->assertSee('6,560.00')         // ILS equivalent snapshot (formatted)
-            ->assertSee('USD');
+            ->assertSee('$2,000.00')        // official USD total
+            ->assertSee('USD')
+            ->assertDontSee('6,560.00')     // ILS equivalent removed from the printed invoice
+            ->assertDontSee('سعر الصرف');   // exchange rate removed
     }
 
     public function test_customer_profile_shows_financial_tabs_for_accountant(): void

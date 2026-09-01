@@ -9,9 +9,11 @@ use Tests\Concerns\CreatesUsers;
 use Tests\TestCase;
 
 /**
- * The printed invoice uses the branded Super Apple layout (header + status
- * badge, info cards, dark items table, totals with paid/remaining, contact
- * block) bound to the invoice's real fields. Presentation only.
+ * The printed invoice uses the minimal Super Apple layout (compact header,
+ * two small meta cards, a full-width navy-headed items table, a small totals
+ * block with paid/remaining, and a tiny contact footer) bound to the invoice's
+ * real fields. No status badge, due date, exchange rate or ILS equivalent are
+ * shown. Presentation only.
  */
 class InvoicePrintDesignTest extends TestCase
 {
@@ -37,10 +39,12 @@ class InvoicePrintDesignTest extends TestCase
             ->assertSee('معلومات العميل')
             ->assertSee('توفير اون لاين')
             ->assertSee('الوصف')          // items table header
-            ->assertSee('بيانات التواصل والدفع')
+            ->assertSee('شكراً لتعاملكم')  // tiny contact footer
             ->assertSee('المدفوع')
             ->assertSee('المتبقي')
-            ->assertSee('$100.00');       // official USD figure
+            ->assertSee('$100.00')        // official USD figure
+            ->assertDontSee('تاريخ الاستحقاق') // due date removed
+            ->assertDontSee('سعر الصرف');      // exchange rate removed
     }
 
     public function test_print_shows_paid_and_remaining_after_payment(): void

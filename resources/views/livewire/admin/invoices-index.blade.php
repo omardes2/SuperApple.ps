@@ -83,6 +83,18 @@
                                     <x-icon name="eye" class="h-[18px] w-[18px]" />
                                 </a>
 
+                                {{-- Record payment: create a draft payment for this invoice's customer
+                                     and open the payment page with the invoice prefilled (posted there,
+                                     per correct accounting). Only for invoices that still accept a payment. --}}
+                                @if ($canRecordPayment && $invoice->acceptsAllocation())
+                                    <button type="button" wire:click="recordPayment({{ $invoice->id }})"
+                                            wire:loading.attr="disabled" wire:target="recordPayment({{ $invoice->id }})"
+                                            title="تسجيل دفعة عن الفاتورة" aria-label="تسجيل دفعة عن الفاتورة"
+                                            class="rounded-md p-1.5 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700">
+                                        <x-icon name="cash" class="h-[18px] w-[18px]" />
+                                    </button>
+                                @endif
+
                                 {{-- Edit: a draft opens directly; an issued/sent invoice is reverted
                                      to a draft (journal reversed) first; blocked while it has payments. --}}
                                 @if ($isDraft && $canEdit)

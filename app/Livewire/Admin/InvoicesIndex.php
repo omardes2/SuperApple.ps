@@ -5,7 +5,9 @@ namespace App\Livewire\Admin;
 use App\Enums\InvoiceStatus;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Services\InvoiceService;
+use App\Services\PaymentService;
 use App\Services\ReportsService;
 use App\Services\WhatsAppService;
 use App\Support\Money;
@@ -126,6 +128,31 @@ class InvoicesIndex extends Component
 
         $this->showWhatsapp = false;
         session()->flash('status', 'تم إرسال الفاتورة عبر واتساب إلى العميل.');
+    }
+
+    // --------------------------------------------------------- Record payment
+
+    /**
+     * Start recording a payment against a specific invoice: create a draft
+     * payment for the invoice's customer and open the payment page with this
+     * invoice prefilled. Posting there writes the GL journals (cash + AR),
+     * keeping the books correct. Mirrors InvoiceShow::recordPayment.
+     */
+    public function recordPayment(int $id, PaymentService $service)
+    {
+        $this->authorize('create', Payment::class);
+
+        $invoice = Invoice::findOrFail($id);
+        abort_unless($invoice->acceptsAllocation(), 422, 'الفاتورة لا تقبل تخصيص دفعة.');
+
+        $payment = $service->createDraft([
+            'customer_id' => $invoice->customer_id,
+            'payment_date' => now()->toDateString(),
+            'payment_currency' => 'USD',
+            'payment_amount' => 0,
+        ]);
+
+        return redirect()->route('admin.payments.show', ['payment' => $payment, 'invoice' => $invoice->id]);
     }
 
     // ------------------------------------------------------------ Edit invoice
@@ -269,6 +296,7 @@ class InvoicesIndex extends Component
             'canPrint' => auth()->user()->can('invoices.print'),
             'canSend' => auth()->user()->can('invoices.send'),
             'canCancel' => auth()->user()->can('invoices.cancel'),
+            'canRecordPayment' => auth()->user()->can('payments.create'),
         ]);
     }
 }

@@ -27,7 +27,7 @@ class JournalEntry extends Model
 
     protected $fillable = [
         'journal_number', 'entry_date', 'source_type', 'source_id', 'posting_type',
-        'description', 'status', 'is_reversal', 'posted_at', 'reversed_at',
+        'active_source_key', 'description', 'status', 'is_reversal', 'posted_at', 'reversed_at',
         'reversal_entry_id', 'created_by', 'posted_by',
     ];
 

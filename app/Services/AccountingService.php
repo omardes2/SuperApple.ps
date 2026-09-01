@@ -52,12 +52,37 @@ class AccountingService
         return $this->systemAccount($key)->id;
     }
 
-    /** Has a posted (non-reversed) journal already been created for this source? */
+    /**
+     * Has ANY journal (posted OR reversed) already been created for this source?
+     * This is the "already processed" test the historical backfill relies on so
+     * it never re-creates a document's journals — including a document whose
+     * journal was later reversed (e.g. a cancelled payment).
+     *
+     * To decide whether a NEW live journal may be posted, use hasLivePosting():
+     * a reversed journal does not block a legitimate re-post (e.g. re-issuing an
+     * invoice after it was reverted to draft).
+     */
     public function hasPosted(?string $sourceType, ?int $sourceId, string $postingType): bool
     {
         return JournalEntry::where('source_type', $sourceType)
             ->where('source_id', $sourceId)
             ->where('posting_type', $postingType)
+            ->exists();
+    }
+
+    /**
+     * Is there currently a LIVE (posted, non-reversal) journal for this source +
+     * posting type? At most one may exist at a time (enforced by the
+     * active_source_key unique index). A reversed original or a reversal mirror
+     * does NOT count, so a re-post after reversal is permitted.
+     */
+    public function hasLivePosting(?string $sourceType, ?int $sourceId, string $postingType): bool
+    {
+        return JournalEntry::where('source_type', $sourceType)
+            ->where('source_id', $sourceId)
+            ->where('posting_type', $postingType)
+            ->where('status', JournalStatus::Posted->value)
+            ->where('is_reversal', false)
             ->exists();
     }
 
@@ -75,8 +100,12 @@ class AccountingService
         $manual = $header['manual'] ?? false;
 
         return DB::transaction(function () use ($header, $rawLines, $postingType, $sourceType, $sourceId, $manual) {
-            // Idempotency guard (belt-and-braces with the unique index).
-            if ($sourceType !== null && $this->hasPosted($sourceType, $sourceId, $postingType)) {
+            // Idempotency guard (belt-and-braces with the active_source_key unique
+            // index): block only a duplicate LIVE posting. A reversed original does
+            // not block a legitimate re-post (e.g. an invoice re-issued after being
+            // reverted to draft). Reversal mirrors carry is_reversal and are exempt.
+            if ($sourceType !== null && ! ($header['is_reversal'] ?? false)
+                && $this->hasLivePosting($sourceType, $sourceId, $postingType)) {
                 throw new RuntimeException("يوجد قيد مُرحّل مسبقاً لهذا المستند ({$postingType}).");
             }
 
@@ -96,15 +125,27 @@ class AccountingService
                 throw new RuntimeException('لا يمكن ترحيل قيد بقيمة صفرية.');
             }
 
+            $isReversal = (bool) ($header['is_reversal'] ?? false);
+
+            // The uniqueness discriminator: set ONLY for a live source posting so
+            // at most one such journal can exist per (source, posting_type).
+            // Reversal mirrors and null-source (manual) entries stay NULL, and a
+            // reversed original is cleared to NULL (see reverse()), which frees the
+            // key for a legitimate re-post.
+            $activeSourceKey = ($sourceType !== null && ! $isReversal)
+                ? $sourceType.'|'.$sourceId.'|'.$postingType
+                : null;
+
             $entry = JournalEntry::create([
                 'journal_number' => $this->numbers->next('journal'),
                 'entry_date' => $header['entry_date'],
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,
                 'posting_type' => $postingType,
+                'active_source_key' => $activeSourceKey,
                 'description' => $header['description'] ?? null,
                 'status' => JournalStatus::Posted,
-                'is_reversal' => $header['is_reversal'] ?? false,
+                'is_reversal' => $isReversal,
                 'posted_at' => now(),
                 'created_by' => Auth::id(),
                 'posted_by' => Auth::id(),
@@ -164,10 +205,13 @@ class AccountingService
                 'manual' => false, // engine-driven: not subject to the manual-posting gate
             ], $reversalLines);
 
+            // Clearing active_source_key frees the (source, posting_type) slot so
+            // the document can be re-posted later (e.g. an invoice re-issued).
             $entry->update([
                 'status' => JournalStatus::Reversed,
                 'reversed_at' => now(),
                 'reversal_entry_id' => $reversal->id,
+                'active_source_key' => null,
             ]);
 
             $this->audit->log('journal_reversed', $entry, 'Accounting',

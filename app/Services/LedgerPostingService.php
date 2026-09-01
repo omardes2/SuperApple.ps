@@ -43,7 +43,11 @@ class LedgerPostingService
      */
     public function postInvoiceIssue(Invoice $invoice): ?JournalEntry
     {
-        if ($this->accounting->hasPosted('invoice', $invoice->id, 'invoice_issue')) {
+        // Skip only when a LIVE issue journal already exists. An invoice reverted
+        // to draft has a reversed issue journal — re-issuing must post a fresh one
+        // (otherwise its AR debit is silently lost and AR GL drifts below the
+        // sub-ledger). hasLivePosting excludes the reversed original.
+        if ($this->accounting->hasLivePosting('invoice', $invoice->id, 'invoice_issue')) {
             return null;
         }
 

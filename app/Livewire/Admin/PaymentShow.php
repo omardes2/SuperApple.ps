@@ -510,8 +510,83 @@ class PaymentShow extends Component
             'usdPreview' => $this->usdPreview,
             'allocatedTotal' => $allocatedTotal,
             'unallocatedPreview' => Money::subtract($this->usdPreview, $allocatedTotal),
+            'paymentSummary' => $this->paymentSummary($allocatedTotal),
             'canEdit' => $this->payment->isDraft() && auth()->user()->can('payments.edit'),
             'canPost' => $this->payment->isDraft() && auth()->user()->can('payments.post'),
         ]);
+    }
+
+    /**
+     * A pre-post preview of what this draft payment will do, derived ENTIRELY
+     * from values the payment/allocation services already produce (usdPreview =
+     * getUsdPreviewProperty, allocatedTotal, the targets' remaining_usd) and the
+     * shared Money helper. It invents no accounting: the ILS figures use the same
+     * Money::convertUsdToIls at the same effective rate the allocation uses, and
+     * the surplus is exactly usdPreview − allocated (the unallocated credit). It
+     * only formats these for display.
+     *
+     * @return array<string,mixed>
+     */
+    private function paymentSummary(string $allocatedTotal): array
+    {
+        $currency = $this->payment_currency;
+        $received = Money::money($this->payment_amount ?: 0);
+        $paymentUsd = Money::money($this->usdPreview);
+        $allocatedUsd = Money::money($allocatedTotal);
+        $surplusUsd = Money::money(Money::subtract($paymentUsd, $allocatedUsd));
+
+        // Effective rate for ILS: the manually entered rate, else the invoice
+        // rate the payment will convert at (same source getUsdPreview uses).
+        $rate = $currency === PaymentCurrency::ILS->value
+            ? ((float) ($this->exchange_rate ?? 0) > 0 ? $this->exchange_rate : $this->ilsInvoiceRate())
+            : $this->exchange_rate;
+        $hasRate = (float) ($rate ?? 0) > 0;
+
+        // ILS values (the customer's original currency when paying in shekels).
+        $allocatedIls = $hasRate ? Money::convertUsdToIls($allocatedUsd, $rate) : null;
+        // Surplus in the ORIGINAL currency: for an ILS payment it is exactly the
+        // shekels received minus the shekels applied to invoices (no drift).
+        $surplusOriginalIls = ($currency === PaymentCurrency::ILS->value && $allocatedIls !== null)
+            ? Money::subtract($received, $allocatedIls)
+            : null;
+
+        // Remaining still owed on the targeted documents after this payment.
+        $targetsRemaining = '0.00';
+        foreach ($this->allocations as $row) {
+            if (! empty($row['opening_balance_id'])) {
+                $t = CustomerOpeningBalance::find($row['opening_balance_id']);
+                $targetsRemaining = Money::add($targetsRemaining, $t?->remaining_usd ?? '0');
+            } elseif (! empty($row['invoice_id'])) {
+                $t = Invoice::find($row['invoice_id']);
+                $targetsRemaining = Money::add($targetsRemaining, $t?->remaining_usd ?? '0');
+            }
+        }
+        $remainingAfter = Money::money(max((float) Money::subtract($targetsRemaining, $allocatedUsd), 0));
+
+        // Classify the outcome (epsilon of one cent absorbs rounding).
+        $eps = 0.005;
+        if ((float) $surplusUsd > $eps) {
+            $state = 'overpayment';
+        } elseif ((float) $allocatedUsd <= $eps) {
+            $state = 'none';
+        } elseif ((float) $remainingAfter > $eps) {
+            $state = 'partial';
+        } else {
+            $state = 'exact';
+        }
+
+        return [
+            'state' => $state,
+            'currency' => $currency,
+            'symbol' => $currency === PaymentCurrency::ILS->value ? '₪' : '$',
+            'received' => $received,
+            'payment_usd' => $paymentUsd,
+            'allocated_usd' => $allocatedUsd,
+            'allocated_ils' => $allocatedIls,
+            'surplus_usd' => (float) $surplusUsd < 0 ? '0.00' : $surplusUsd,
+            'surplus_original_ils' => $surplusOriginalIls !== null && (float) $surplusOriginalIls > 0 ? $surplusOriginalIls : null,
+            'remaining_after_usd' => $remainingAfter,
+            'has_rate' => $hasRate,
+        ];
     }
 }

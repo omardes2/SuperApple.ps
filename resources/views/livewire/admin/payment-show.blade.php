@@ -185,6 +185,49 @@
                         <div><p class="text-xs text-slate-500">رصيد دائن (غير مخصص)</p><p class="font-bold {{ (float) $unallocatedPreview < 0 ? 'text-red-600' : 'text-emerald-700' }}" dir="ltr">${{ number_format((float) $unallocatedPreview, 2) }}</p></div>
                     </div>
 
+                    {{-- نتيجة الدفعة قبل الترحيل: يوضّح للمستخدم ما الذي ستفعله الدفعة.
+                         كل الأرقام محسوبة في المكوّن من قيم خدمات الدفع/التخصيص الرسمية. --}}
+                    @if ($paymentSummary['state'] !== 'none')
+                        @php $ps = $paymentSummary; @endphp
+                        <div class="mt-3 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+                            <p class="mb-2 font-semibold text-slate-700">نتيجة الدفعة</p>
+                            <dl class="space-y-1.5">
+                                <div class="flex justify-between">
+                                    <dt class="text-slate-500">المبلغ المستلم</dt>
+                                    <dd class="font-semibold text-slate-800" dir="ltr">{{ number_format((float) $ps['received'], 2) }} {{ $ps['symbol'] }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-slate-500">{{ $ps['state'] === 'exact' ? 'سيتم تسديد الفاتورة بالكامل' : 'المخصّص للفواتير' }}</dt>
+                                    <dd class="font-semibold text-slate-800" dir="ltr">
+                                        ${{ number_format((float) $ps['allocated_usd'], 2) }}@if ($ps['currency'] === 'ILS' && $ps['allocated_ils'] !== null) <span class="text-xs font-normal text-slate-400">≈ {{ number_format((float) $ps['allocated_ils'], 2) }} ₪</span>@endif
+                                    </dd>
+                                </div>
+
+                                @if ($ps['state'] === 'partial')
+                                    <div class="flex justify-between border-t border-slate-100 pt-1.5">
+                                        <dt class="text-slate-500">المتبقي على الفاتورة بعد الدفع</dt>
+                                        <dd class="font-semibold text-amber-700" dir="ltr">${{ number_format((float) $ps['remaining_after_usd'], 2) }}</dd>
+                                    </div>
+                                @elseif ($ps['state'] === 'exact')
+                                    <div class="flex justify-between border-t border-slate-100 pt-1.5">
+                                        <dt class="text-slate-500">الرصيد الزائد</dt>
+                                        <dd class="font-semibold text-emerald-600" dir="ltr">0.00 {{ $ps['symbol'] }}</dd>
+                                    </div>
+                                @elseif ($ps['state'] === 'overpayment')
+                                    <div class="flex justify-between border-t border-slate-100 pt-1.5">
+                                        <dt class="text-slate-500">الرصيد الزائد</dt>
+                                        <dd class="font-semibold text-emerald-700" dir="ltr">
+                                            @if ($ps['surplus_original_ils'] !== null){{ number_format((float) $ps['surplus_original_ils'], 2) }} ₪ <span class="text-xs font-normal text-slate-400">≈ ${{ number_format((float) $ps['surplus_usd'], 2) }}</span>@else ${{ number_format((float) $ps['surplus_usd'], 2) }}@endif
+                                        </dd>
+                                    </div>
+                                    <p class="mt-1 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                                        سيُحفظ المبلغ الزائد كرصيد دائن غير مخصص للعميل ويمكن استخدامه لاحقاً.
+                                    </p>
+                                @endif
+                            </dl>
+                        </div>
+                    @endif
+
                     @if ($canPost)
                         <div class="mt-4 flex justify-end">
                             <button wire:click="post" wire:confirm="سيتم ترحيل الدفعة وقفلها نهائياً. متابعة؟" class="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">ترحيل الدفعة</button>

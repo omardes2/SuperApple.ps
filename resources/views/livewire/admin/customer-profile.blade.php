@@ -17,6 +17,7 @@
         $tabs = ['overview' => 'نظرة عامة', 'tasks' => 'المهام'];
         if ($canInvoices) $tabs['invoices'] = 'الفواتير';
         if ($canPayments) $tabs['payments'] = 'الدفعات';
+        if ($canStatement) $tabs['statement'] = 'كشف حساب';
         if ($canWhatsapp) $tabs['communications'] = 'المراسلات';
         $tabs['attachments'] = 'المرفقات';
         $tabs['activity'] = 'سجل النشاط';
@@ -152,6 +153,17 @@
                 </tbody>
             </table>
         </div>
+    @endif
+
+    @if ($tab === 'statement' && $canStatement)
+        <div class="mb-3 flex items-center justify-between">
+            <p class="text-sm text-slate-500">كشف حساب العميل — العملة الرسمية: الدولار الأمريكي (USD)</p>
+            <a href="{{ route('admin.customers.statement', $customer) }}"
+               class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                فتح الكشف الكامل / طباعة ←
+            </a>
+        </div>
+        @include('livewire.admin.partials.statement-table', ['statement' => $statement])
     @endif
 
     @if ($tab === 'attachments')

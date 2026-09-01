@@ -8,6 +8,7 @@ use App\Models\CustomerOpeningBalance;
 use App\Models\Invoice;
 use App\Services\CustomerBalanceService;
 use App\Services\CustomerOpeningBalanceService;
+use App\Services\CustomerStatementService;
 use App\Services\PaymentReminderService;
 use App\Support\Money;
 use App\Support\TemplateRenderer;
@@ -200,6 +201,12 @@ class CustomerProfile extends Component
 
         if ($this->tab === 'payments' && $data['canPayments']) {
             $data['payments'] = $this->customer->payments()->with('receivedBy')->latest('payment_date')->latest('id')->get();
+        }
+
+        // Account statement (USD official) — read-only, from the statement
+        // service; gated on the same permission as the full statement page.
+        if ($this->tab === 'statement' && $data['canStatement']) {
+            $data['statement'] = app(CustomerStatementService::class)->build($this->customer);
         }
 
         // WhatsApp (Sprint 7). Subscriptions module retired.

@@ -105,7 +105,7 @@
                             </div>
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-slate-700">سعر صرف الفاتورة</label>
-                                <input type="number" step="0.000001" wire:model="exchange_rate" placeholder="مثال: 3.08" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                <input type="number" step="0.000001" wire:model.live.debounce.400ms="exchange_rate" placeholder="مثال: 3.08" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                                 <p class="mt-1 text-xs text-slate-400" dir="ltr">1 USD = ? ILS — يُثبت عند الإصدار</p>
                                 @error('exchange_rate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -179,6 +179,9 @@
                     'tax_usd' => $invoice->tax_usd, 'total_usd' => $invoice->total_usd,
                 ],
                 'invoice' => $invoice,
+                // While editing a draft, use the LIVE typed rate so the ILS
+                // equivalent updates as you fill the invoice (display only).
+                'rate' => $canEdit ? $exchange_rate : null,
             ])
 
             <div class="rounded-xl border border-slate-200 bg-white p-5 text-sm">

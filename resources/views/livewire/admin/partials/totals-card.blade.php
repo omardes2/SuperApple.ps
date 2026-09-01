@@ -1,10 +1,17 @@
 {{-- Totals card. Expects $totals (subtotal_usd/discount_usd/tax_usd/total_usd) and optionally $invoice for the locked rate. --}}
 @php
-    // ILS context: an invoice uses its own locked rate; a quotation or a draft
-    // with no rate falls back to the latest/default estimate rate. Display only.
-    $docRate = isset($invoice) ? $invoice->exchange_rate : null;
+    // ILS context (display only): while editing a draft, an optional live $rate
+    // (the rate being typed into the form) is used so the ILS equivalent updates
+    // as the invoice is filled. Otherwise an invoice uses its own locked rate,
+    // and a draft/quotation with no rate shows no ILS (the central-rate estimate
+    // was retired).
+    $liveRate = ($rate ?? null);
+    $hasLive = $liveRate !== null && $liveRate !== '' && (float) $liveRate > 0;
+    $docRate = $hasLive ? $liveRate : (isset($invoice) ? $invoice->exchange_rate : null);
     $docUseLatest = ($docRate === null || $docRate === '');
-    $totalIls = isset($invoice) && $invoice->total_ils_at_issue ? $invoice->total_ils_at_issue : null;
+    // Use the stored accounting ILS only when NOT overriding with a live rate
+    // (an issued document); a live draft computes ILS from the typed rate.
+    $totalIls = (! $hasLive && isset($invoice) && $invoice->total_ils_at_issue) ? $invoice->total_ils_at_issue : null;
 @endphp
 <div class="rounded-xl border border-slate-200 bg-white p-5">
     <h3 class="mb-3 font-semibold text-slate-800">ملخص الفاتورة</h3>

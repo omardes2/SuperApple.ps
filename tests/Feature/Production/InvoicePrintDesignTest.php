@@ -39,7 +39,7 @@ class InvoicePrintDesignTest extends TestCase
             ->assertSee('معلومات العميل')
             ->assertSee('توفير اون لاين')
             ->assertSee('الوصف')          // items table header
-            ->assertSee('شكراً لتعاملكم')  // tiny contact footer
+            ->assertSee('نحن نصنع الإعلان')  // footer slogan
             ->assertSee('المدفوع')
             ->assertSee('المتبقي')
             ->assertSee('$100.00')        // official USD figure

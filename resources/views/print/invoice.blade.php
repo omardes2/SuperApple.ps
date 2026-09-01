@@ -14,6 +14,11 @@
     $ink = '#1F2937';
     $mut = '#8A93A2';
     $usd = fn ($v) => '$'.number_format((float) $v, 2);
+    // Small gold line-icons for the footer contact row (print/PDF-safe paths).
+    $ic = fn ($p) => '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="'.$gold.'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'.$p.'</svg>';
+    $icPhone = $ic('<path d="M4 4h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 4 6a2 2 0 0 1 2-2z"/>');
+    $icMail = $ic('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>');
+    $icPin = $ic('<path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>');
 @endphp
 <x-print-layout
     :title="'فاتورة '.$invoice->invoice_number"
@@ -113,10 +118,25 @@
         .inv-tot tr.rem td.v { color: {{ $remaining > 0 ? '#B91C1C' : '#15803D' }}; }
         .inv-tot tr.rem td { font-weight: 600; }
 
-        /* Footer — tiny: contact only */
+        /* Footer — tiny: slogan + centered contact row with icons */
         .inv-bottom { margin-top: 20px; padding-top: 12px; border-top: 1px solid {{ $line }}; text-align: center; font-size: 11px; color: {{ $mut }}; page-break-inside: avoid; }
-        .inv-bottom .ty { color: {{ $navy }}; font-weight: 600; margin-bottom: 4px; }
-        .inv-bottom .sep { color: {{ $gold }}; padding: 0 6px; }
+        .inv-bottom .ty { color: {{ $navy }}; font-weight: 600; font-size: 12.5px; margin-bottom: 8px; }
+        .inv-contact { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 22px; }
+        .inv-contact .ci { display: inline-flex; align-items: center; gap: 6px; color: {{ $ink }}; }
+        .inv-contact .ci svg { flex: none; }
+
+        @if ($pdf)
+        /* dompdf honours position:fixed as a page-bottom footer. */
+        .inv { padding-bottom: 70px; }
+        .inv-bottom { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; background: #fff; }
+        @else
+        /* Browser: pin the footer to the bottom of every printed page; the
+           @page margin is 0, so 12mm places it in the sheet's margin. */
+        @media print {
+            .inv { padding-bottom: 34mm; }
+            .inv-bottom { position: fixed; left: 12mm; right: 12mm; bottom: 12mm; margin: 0; background: #fff; }
+        }
+        @endif
     </style>
 
     <div class="inv">
@@ -219,13 +239,11 @@
 
         {{-- ── Footer (tiny, contact only) ────────────────────── --}}
         <div class="inv-bottom">
-            @if ($company['name'])<div class="ty">شكراً لتعاملكم مع {{ $company['name'] }}</div>@endif
-            <div class="num">
-                @if ($company['phone'])<span>{{ $company['phone'] }}</span>@endif
-                @if ($company['phone'] && ($company['email'] ?? ''))<span class="sep">•</span>@endif
-                @if (($company['email'] ?? ''))<span>{{ $company['email'] }}</span>@endif
-                @if (($company['phone'] || ($company['email'] ?? '')) && $company['address'])<span class="sep">•</span>@endif
-                @if ($company['address'])<span>{{ $company['address'] }}</span>@endif
+            <div class="ty">نحن نصنع الإعلان … نحن نصنع النجاح</div>
+            <div class="inv-contact">
+                @if ($company['phone'])<span class="ci">{!! $icPhone !!}<span class="num">{{ $company['phone'] }}</span></span>@endif
+                @if (($company['email'] ?? ''))<span class="ci">{!! $icMail !!}<span class="num">{{ $company['email'] }}</span></span>@endif
+                @if ($company['address'])<span class="ci">{!! $icPin !!}<span>{{ $company['address'] }}</span></span>@endif
             </div>
         </div>
     </div>

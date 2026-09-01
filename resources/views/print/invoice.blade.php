@@ -21,19 +21,32 @@
     :watermark="$draft ? 'مسودة — DRAFT (غير صالحة كفاتورة رسمية)' : null">
 
     <style>
-        @unless ($pdf)@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        @unless ($pdf)
+        /* Cairo is self-hosted from this server (public/fonts/cairo, sourced from
+           @fontsource/cairo) — no external request when the invoice is opened.
+           @font-face is honoured inside a body <style> (unlike @import). The
+           arabic/latin subsets are split by unicode-range. Weights 400/600/700. */
+        @font-face { font-family: 'Cairo'; font-style: normal; font-weight: 400; font-display: swap; src: url('{{ asset('fonts/cairo/cairo-latin-400-normal.woff2') }}') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20A0-20CF, U+2212; }
+        @font-face { font-family: 'Cairo'; font-style: normal; font-weight: 600; font-display: swap; src: url('{{ asset('fonts/cairo/cairo-latin-600-normal.woff2') }}') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20A0-20CF, U+2212; }
+        @font-face { font-family: 'Cairo'; font-style: normal; font-weight: 700; font-display: swap; src: url('{{ asset('fonts/cairo/cairo-latin-700-normal.woff2') }}') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20A0-20CF, U+2212; }
+        @font-face { font-family: 'Cairo'; font-style: normal; font-weight: 400; font-display: swap; src: url('{{ asset('fonts/cairo/cairo-arabic-400-normal.woff2') }}') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+        @font-face { font-family: 'Cairo'; font-style: normal; font-weight: 600; font-display: swap; src: url('{{ asset('fonts/cairo/cairo-arabic-600-normal.woff2') }}') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+        @font-face { font-family: 'Cairo'; font-style: normal; font-weight: 700; font-display: swap; src: url('{{ asset('fonts/cairo/cairo-arabic-700-normal.woff2') }}') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0898-08E1, U+08E3-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+
         /* Pin the printed page box so browser printing is consistent regardless
            of the user's margin setting; the sheet's own 12mm padding is the
            margin. (dompdf keeps its setPaper('a4') box — this is browser-only.) */
-        @page { size: A4; margin: 0; }@endunless
+        @page { size: A4; margin: 0; }
+        @endunless
 
         .inv {
             color: {{ $ink }};
-            /* PDF (dompdf, offline) uses the project's embedded DejaVu Sans. The
-               browser prefers Cairo, then Tajawal (already loaded by the shared
-               print layout), then local Arabic system fonts — so the invoice
-               never depends on a single web font loading. */
-            font-family: {{ $pdf ? "'DejaVu Sans', sans-serif" : "'Cairo','Tajawal','IBM Plex Sans Arabic','Segoe UI','Tahoma',sans-serif" }};
+            /* PDF path (dompdf, offline) uses the project's embedded DejaVu Sans;
+               the browser uses the self-hosted Cairo above, with local Arabic
+               system fonts as the only fallback. Raw (unescaped) echo is required:
+               an escaped echo inside style turns the quotes into entities and
+               voids the whole declaration. */
+            font-family: {!! $pdf ? "'DejaVu Sans', sans-serif" : "'Cairo','Tahoma','Arial',sans-serif" !!};
             /* Weight scale: 400 body · 600 small headings · 700 big titles. */
             font-weight: 400;
             font-size: 12px; line-height: 1.5;

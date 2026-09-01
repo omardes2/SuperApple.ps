@@ -12,7 +12,9 @@
     <style>
         * { box-sizing: border-box; }
         body {
-            font-family: {{ $pdf ? "'DejaVu Sans', sans-serif" : "'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif" }};
+            /* Raw (unescaped) echo — inside style the browser does not decode HTML
+               entities, so an escaped echo would emit &#039; and void the value. */
+            font-family: {!! $pdf ? "'DejaVu Sans', sans-serif" : "'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif" !!};
             margin: 0; color: #1e293b; background: {{ $pdf ? '#fff' : '#f1f5f9' }};
         }
         .sheet {

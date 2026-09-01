@@ -43,12 +43,15 @@ class PaymentPolicy
     }
 
     /**
-     * Only a DRAFT payment may be deleted (it has no GL journal to preserve).
-     * Posted payments are corrected through cancel(), never deleted.
+     * A payment may be deleted at any status, but deleting a posted/cancelled
+     * payment undoes (reverses) its GL, so it requires the same authority as
+     * cancelling. A draft (no GL) only needs edit authority.
      */
     public function delete(User $user, Payment $payment): bool
     {
-        return $user->can('payments.edit') && $payment->isDraft();
+        return $payment->isDraft()
+            ? $user->can('payments.edit')
+            : $user->can('payments.cancel');
     }
 
     public function print(User $user, Payment $payment): bool

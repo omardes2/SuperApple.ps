@@ -75,18 +75,20 @@
                                     </span>
                                 @endcan
 
-                                {{-- Delete: only a draft (no journal) can be deleted; posted payments must be cancelled/reversed --}}
+                                {{-- Delete: any status. A posted payment is reversed (invoices restored
+                                     + GL mirror-reversed) before the record is removed. --}}
                                 @can('delete', $payment)
-                                    <button type="button" title="حذف المسودة"
+                                    @php
+                                        $delConfirm = $payment->status->isDraft()
+                                            ? 'سيتم حذف مسودة الدفعة نهائياً. متابعة؟'
+                                            : 'سيتم عكس القيود المحاسبية لهذه الدفعة (واستعادة أرصدة الفواتير) ثم حذفها نهائياً. متابعة؟';
+                                    @endphp
+                                    <button type="button" title="حذف الدفعة"
                                             wire:click="deletePayment({{ $payment->id }})"
-                                            wire:confirm="سيتم حذف مسودة الدفعة نهائياً. متابعة؟"
+                                            wire:confirm="{{ $delConfirm }}"
                                             class="rounded p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a2 2 0 002 2h4a2 2 0 002-2V7"/></svg>
                                     </button>
-                                @else
-                                    <span title="لا يمكن حذف دفعة مُرحّلة — ألغِها (عكس القيد) من صفحة الدفعة" class="cursor-not-allowed rounded p-1.5 text-slate-300">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a2 2 0 002 2h4a2 2 0 002-2V7"/></svg>
-                                    </span>
                                 @endcan
                             </div>
                         </td>

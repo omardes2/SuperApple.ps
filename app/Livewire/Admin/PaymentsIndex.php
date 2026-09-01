@@ -9,6 +9,7 @@ use App\Models\PaymentAllocation;
 use App\Services\PaymentService;
 use App\Services\ReportsService;
 use App\Support\Money;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -65,9 +66,9 @@ class PaymentsIndex extends Component
     }
 
     /**
-     * Delete a DRAFT payment (accounting-safe: no journal exists). Posted or
-     * cancelled payments are refused by the policy and the service — their GL
-     * history is preserved and corrected through cancellation instead.
+     * Delete a payment of any status. A draft is removed outright; a posted
+     * payment is reversed first (invoices restored + GL mirror-reversed) so the
+     * accounting effect is fully undone before the record is deleted.
      */
     public function deletePayment(int $id, PaymentService $service): void
     {
@@ -75,14 +76,14 @@ class PaymentsIndex extends Component
         $this->authorize('delete', $payment);
 
         try {
-            $service->deleteDraft($payment);
+            $service->delete($payment, Auth::user());
         } catch (\RuntimeException $e) {
             session()->flash('error', $e->getMessage());
 
             return;
         }
 
-        session()->flash('status', 'تم حذف مسودة الدفعة.');
+        session()->flash('status', 'تم حذف الدفعة وعكس قيودها المحاسبية.');
     }
 
     public function render()

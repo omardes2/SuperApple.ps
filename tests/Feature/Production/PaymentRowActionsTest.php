@@ -4,12 +4,13 @@ namespace Tests\Feature\Production;
 
 use App\Enums\RoleName;
 use App\Livewire\Admin\PaymentsIndex;
-use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Payment;
+use App\Services\FinancialAccountService;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
-use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\CreatesUsers;
@@ -17,9 +18,9 @@ use Tests\TestCase;
 
 /**
  * The payments list has a per-row actions column (view / edit / delete). Delete
- * is accounting-safe: only a draft (which has no GL journal) can be removed;
- * a posted payment must be corrected through cancellation and can never be
- * deleted, so its ledger history is preserved.
+ * works at any status and is accounting-safe: a posted payment is reversed first
+ * (invoices restored + GL mirror-reversed to net zero) before the record is
+ * removed, so the books stay balanced and integrity holds.
  */
 class PaymentRowActionsTest extends TestCase
 {
@@ -77,15 +78,16 @@ class PaymentRowActionsTest extends TestCase
         $this->draft();
         Livewire::actingAs($this->makeUser(RoleName::GeneralManager))->test(PaymentsIndex::class)
             ->assertSee('تعديل')
-            ->assertSee('حذف المسودة');
+            ->assertSee('حذف الدفعة')
+            ->assertSee('سيتم حذف مسودة الدفعة نهائياً');
     }
 
-    public function test_posted_row_shows_delete_disabled_hint(): void
+    public function test_posted_row_offers_delete_action(): void
     {
         $this->posted();
         Livewire::actingAs($this->makeUser(RoleName::GeneralManager))->test(PaymentsIndex::class)
-            ->assertSee('لا يمكن حذف دفعة مُرحّلة — ألغِها (عكس القيد) من صفحة الدفعة')
-            ->assertDontSee('حذف المسودة');
+            ->assertSee('حذف الدفعة')
+            ->assertSee('سيتم عكس القيود المحاسبية لهذه الدفعة');
     }
 
     // ---- Delete behaviour (accounting-safe) ----
@@ -100,45 +102,70 @@ class PaymentRowActionsTest extends TestCase
         $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
     }
 
-    public function test_posted_payment_cannot_be_deleted_via_component(): void
+    public function test_posted_payment_can_be_deleted_with_reversal(): void
     {
         $payment = $this->posted();
 
-        // The policy forbids it → Livewire authorization error, nothing removed.
         Livewire::actingAs($this->makeUser(RoleName::GeneralManager))->test(PaymentsIndex::class)
-            ->call('deletePayment', $payment->id)
-            ->assertForbidden();
+            ->call('deletePayment', $payment->id);
 
-        $this->assertDatabaseHas('payments', ['id' => $payment->id]);
+        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
     }
 
-    public function test_service_refuses_to_delete_a_posted_payment(): void
+    public function test_deleting_posted_payment_restores_the_invoice(): void
+    {
+        $customer = $this->makeCustomer();
+        $invoice = $this->makeIssuedInvoice($customer, '100.00', '3.20');
+        $cash = $this->makeCashAccount('ILS');
+        $payment = $this->service()->createDraft([
+            'customer_id' => $customer->id, 'payment_currency' => 'ILS',
+            'payment_amount' => '320.00', 'exchange_rate' => '3.20', 'account_id' => $cash->id,
+        ]);
+        $this->service()->post($payment, [['invoice_id' => $invoice->id, 'allocated_usd' => '100.00']]);
+        $this->assertSame('0.00', $invoice->fresh()->remaining_usd);
+
+        $this->service()->delete($payment->fresh(), $this->makeUser(RoleName::GeneralManager));
+
+        // Invoice fully restored, cash movement reversed to zero, record gone.
+        $this->assertSame('100.00', $invoice->fresh()->remaining_usd);
+        $this->assertSame('0.00', app(FinancialAccountService::class)->balanceIls($cash));
+        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+    }
+
+    public function test_deleting_posted_payment_leaves_a_balanced_net_zero_ledger(): void
     {
         $payment = $this->posted();
+        $this->service()->delete($payment->fresh(), $this->makeUser(RoleName::GeneralManager));
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('لا يمكن حذف دفعة مُرحّلة');
+        // The (immutable) journals remain but net to zero — books stay balanced.
+        $lines = JournalEntryLine::whereHas('journalEntry',
+            fn ($q) => $q->where('source_type', 'payment')->where('source_id', $payment->id))->get();
+        $this->assertSame((float) $lines->sum('debit_ils'), (float) $lines->sum('credit_ils'));
+    }
+
+    public function test_cancelled_payment_can_be_deleted(): void
+    {
+        $payment = $this->posted();
+        $this->service()->cancel($payment, $this->makeUser(RoleName::GeneralManager), 'خطأ');
+        $this->assertTrue($payment->fresh()->isCancelled());
+
+        $this->service()->delete($payment->fresh(), $this->makeUser(RoleName::GeneralManager));
+        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+    }
+
+    public function test_deleting_payment_keeps_integrity_green(): void
+    {
+        $payment = $this->posted();
+        $this->service()->delete($payment->fresh(), $this->makeUser(RoleName::GeneralManager));
+
+        $this->assertSame(0, Artisan::call('app:verify-integrity'));
+    }
+
+    public function test_draft_delete_still_removes_a_draft(): void
+    {
+        $payment = $this->draft();
         $this->service()->deleteDraft($payment);
-    }
-
-    public function test_deleting_posted_payment_preserves_its_journal(): void
-    {
-        $payment = $this->posted();
-        $journalsBefore = JournalEntry::where('source_type', 'payment')->where('source_id', $payment->id)->count();
-        $this->assertGreaterThan(0, $journalsBefore);
-
-        try {
-            $this->service()->deleteDraft($payment);
-        } catch (RuntimeException) {
-            // expected
-        }
-
-        // Payment and its GL history untouched.
-        $this->assertDatabaseHas('payments', ['id' => $payment->id]);
-        $this->assertSame(
-            $journalsBefore,
-            JournalEntry::where('source_type', 'payment')->where('source_id', $payment->id)->count()
-        );
+        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
     }
 
     public function test_deleting_draft_creates_an_audit_entry(): void

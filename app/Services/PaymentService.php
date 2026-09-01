@@ -221,9 +221,7 @@ class PaymentService
     /**
      * Permanently delete a DRAFT payment. Accounting-safe: a draft has never been
      * posted, so it carries no journal entry and no persisted allocations — there
-     * is nothing to reverse. A posted or cancelled payment can NEVER be deleted
-     * (its GL history must be preserved); correct posted payments through
-     * cancel(), which reverses the journal instead.
+     * is nothing to reverse.
      */
     public function deleteDraft(Payment $payment): void
     {
@@ -247,6 +245,51 @@ class PaymentService
                 old: ['payment_number' => $payment->payment_number, 'customer_id' => $payment->customer_id],
                 description: "حذف مسودة دفعة {$payment->payment_number}");
 
+            $payment->delete();
+        });
+    }
+
+    /**
+     * Delete a payment of ANY status, undoing its accounting effect first.
+     *
+     * A draft is simply removed. A POSTED payment is fully reversed before the
+     * record is deleted: every active allocation is reversed (the invoices and
+     * opening balances it settled are restored) and its GL receipt journal is
+     * reversed by a mirror entry, so the net accounting effect is zero and the
+     * books stay balanced. A CANCELLED payment was already reversed, so nothing
+     * is undone again.
+     *
+     * Posted journal entries are never physically destroyed (that is forbidden by
+     * the ledger and by accounting principle) — they are reversed. Once the
+     * payment row is deleted, its allocations cascade away and the (now net-zero)
+     * journal lines are detached (payment_id set null), leaving a balanced,
+     * self-cancelling audit trail behind.
+     */
+    public function delete(Payment $payment, User $actor): void
+    {
+        DB::transaction(function () use ($payment, $actor) {
+            $payment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
+
+            // Undo the accounting effect of a posted payment before removing it.
+            if ($payment->status === PaymentStatus::Posted) {
+                foreach ($payment->activeAllocations()->get() as $allocation) {
+                    $this->allocator->reverse($allocation, $actor, 'حذف الدفعة');
+                }
+                // Mirror-reverse the receipt journal (Dr/Cr flipped) → net zero.
+                $this->ledger->reversePaymentReceipt($payment, 'حذف الدفعة');
+            }
+
+            $this->audit->log('payment_deleted', $payment, 'Payments',
+                old: [
+                    'payment_number' => $payment->payment_number,
+                    'status' => $payment->status->value,
+                    'customer_id' => $payment->customer_id,
+                    'usd_equivalent' => $payment->usd_equivalent,
+                ],
+                description: "حذف الدفعة {$payment->payment_number} وعكس قيودها المحاسبية");
+
+            // Cascade removes allocation rows; journal_entry_lines.payment_id is
+            // nulled (nullOnDelete). The balanced reversed journals remain.
             $payment->delete();
         });
     }

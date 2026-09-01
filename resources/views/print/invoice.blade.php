@@ -6,7 +6,10 @@
     $remaining = (float) $invoice->remaining_usd;
     $hasDiscount = (float) $invoice->discount_usd > 0;
     $hasTax = (float) $invoice->tax_usd > 0;
-    $custPhone = $snap['phone'] ?? $invoice->customer?->phone;
+    // The customer's contact number: prefer phone, fall back to WhatsApp,
+    // from the historical snapshot first then the live customer record.
+    $custPhone = ($snap['phone'] ?? null) ?: ($snap['whatsapp_number'] ?? null)
+        ?: $invoice->customer?->phone ?: $invoice->customer?->whatsapp_number;
     $navy = '#17233F';
     $gold = '#D7A32D';
     $gray = '#F5F6F8';
@@ -130,8 +133,14 @@
         .inv { padding-bottom: 70px; }
         .inv-bottom { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; background: #fff; }
         @else
-        /* Browser: pin the footer to the bottom of every printed page; the
-           @page margin is 0, so 12mm places it in the sheet's margin. */
+        /* Browser on screen: pin the footer to the bottom of the A4 sheet
+           (the print layout gives .sheet position:relative + min-height:297mm). */
+        @media screen {
+            .inv { padding-bottom: 96px; }
+            .inv-bottom { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; }
+        }
+        /* Browser print: pin to the bottom of every printed page; the @page
+           margin is 0, so 12mm places it inside the sheet's margin. */
         @media print {
             .inv { padding-bottom: 34mm; }
             .inv-bottom { position: fixed; left: 12mm; right: 12mm; bottom: 12mm; margin: 0; background: #fff; }

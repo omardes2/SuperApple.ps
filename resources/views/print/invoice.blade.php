@@ -21,7 +21,7 @@
     :watermark="$draft ? 'مسودة — DRAFT (غير صالحة كفاتورة رسمية)' : null">
 
     <style>
-        @unless ($pdf)@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+        @unless ($pdf)@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
         /* Pin the printed page box so browser printing is consistent regardless
            of the user's margin setting; the sheet's own 12mm padding is the
            margin. (dompdf keeps its setPaper('a4') box — this is browser-only.) */
@@ -34,6 +34,8 @@
                print layout), then local Arabic system fonts — so the invoice
                never depends on a single web font loading. */
             font-family: {{ $pdf ? "'DejaVu Sans', sans-serif" : "'Cairo','Tajawal','IBM Plex Sans Arabic','Segoe UI','Tahoma',sans-serif" }};
+            /* Weight scale: 400 body · 600 small headings · 700 big titles. */
+            font-weight: 400;
             font-size: 12px; line-height: 1.5;
         }
         .inv * { box-sizing: border-box; }
@@ -58,7 +60,7 @@
         .inv-meta td { width: 50%; vertical-align: top; }
         .inv-meta td:first-child { padding-left: 8px; }
         .inv-meta td:last-child { padding-right: 8px; }
-        .inv-cardh { font-size: 10px; font-weight: 700; color: {{ $gold }}; letter-spacing: .5px; margin-bottom: 6px; text-transform: uppercase; }
+        .inv-cardh { font-size: 10px; font-weight: 600; color: {{ $gold }}; letter-spacing: .5px; margin-bottom: 6px; text-transform: uppercase; }
         .inv-card { background: {{ $gray }}; border: 1px solid {{ $line }}; border-radius: 8px; padding: 10px 12px; }
         .inv-kv { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 11.5px; }
         .inv-kv .k { color: {{ $mut }}; }
@@ -85,7 +87,7 @@
         .inv-foot { page-break-inside: avoid; }
         .inv-foot td { vertical-align: top; }
         .inv-notes { font-size: 11px; color: {{ $mut }}; padding-left: 16px; }
-        .inv-notes .h { font-size: 10px; font-weight: 700; color: {{ $gold }}; letter-spacing: .5px; margin-bottom: 5px; text-transform: uppercase; }
+        .inv-notes .h { font-size: 10px; font-weight: 600; color: {{ $gold }}; letter-spacing: .5px; margin-bottom: 5px; text-transform: uppercase; }
         .inv-tot { width: 46%; }
         .inv-tot table { background: {{ $gray }}; border: 1px solid {{ $line }}; border-radius: 8px; overflow: hidden; }
         .inv-tot td { padding: 6px 12px; font-size: 12px; }
@@ -96,7 +98,7 @@
         .inv-tot tr.pay td { padding-top: 8px; }
         .inv-tot tr.pay td.v { color: #15803D; }
         .inv-tot tr.rem td.v { color: {{ $remaining > 0 ? '#B91C1C' : '#15803D' }}; }
-        .inv-tot tr.rem td { font-weight: 700; }
+        .inv-tot tr.rem td { font-weight: 600; }
 
         /* Footer — tiny: contact only */
         .inv-bottom { margin-top: 20px; padding-top: 12px; border-top: 1px solid {{ $line }}; text-align: center; font-size: 11px; color: {{ $mut }}; page-break-inside: avoid; }

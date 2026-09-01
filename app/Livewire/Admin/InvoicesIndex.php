@@ -54,12 +54,14 @@ class InvoicesIndex extends Component
     /** @var array<string,mixed> */
     public array $waPreview = [];
 
-    // ---- Delete-draft confirmation modal ----
+    // ---- Delete confirmation modal ----
     public bool $showDelete = false;
 
     public ?int $deleteInvoiceId = null;
 
     public ?string $deleteNumber = null;
+
+    public bool $deleteIsDraft = false;
 
     // ---- Cancel-invoice confirmation modal ----
     public bool $showCancel = false;
@@ -218,6 +220,7 @@ class InvoicesIndex extends Component
 
         $this->deleteInvoiceId = $invoice->id;
         $this->deleteNumber = $invoice->invoice_number;
+        $this->deleteIsDraft = $invoice->isDraft();
         $this->showDelete = true;
     }
 
@@ -227,7 +230,7 @@ class InvoicesIndex extends Component
         $this->authorize('delete', $invoice);
 
         try {
-            $service->deleteDraft($invoice);
+            $service->delete($invoice);
         } catch (\RuntimeException $e) {
             $this->showDelete = false;
             session()->flash('error', $e->getMessage());
@@ -236,7 +239,9 @@ class InvoicesIndex extends Component
         }
 
         $this->showDelete = false;
-        session()->flash('status', 'تم حذف مسودة الفاتورة.');
+        session()->flash('status', $this->deleteIsDraft
+            ? 'تم حذف مسودة الفاتورة.'
+            : 'تم حذف الفاتورة وعكس قيدها المحاسبي بنجاح.');
     }
 
     // --------------------------------------------------------- Cancel invoice
@@ -279,6 +284,7 @@ class InvoicesIndex extends Component
         return Invoice::query()
             ->with(['customer:id,name,customer_number'])
             ->withCount(['activeAllocations as active_allocations_count'])
+            ->withCount(['allocations as allocations_count'])
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('invoice_number', 'like', "%{$this->search}%")
                 ->orWhereHas('customer', fn ($c) => $c

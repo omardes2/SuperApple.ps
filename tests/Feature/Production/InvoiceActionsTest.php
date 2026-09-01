@@ -134,16 +134,18 @@ class InvoiceActionsTest extends TestCase
         $this->assertStringNotContainsString('openWhatsapp(', Livewire::test(InvoicesIndex::class)->html());
     }
 
-    public function test_cancelled_invoice_shows_no_delete_or_cancel(): void
+    public function test_cancelled_unpaid_invoice_shows_delete_but_no_cancel(): void
     {
         $this->accountant();
         $invoice = $this->makeIssuedInvoice($this->makeCustomer(), '500');
         app(InvoiceService::class)->cancel($invoice, 'خطأ');
 
         $html = Livewire::test(InvoicesIndex::class)->html();
-        $this->assertStringNotContainsString('حذف المسودة', $html);
-        // The cancel action button label is not rendered for a cancelled invoice.
+        // A cancelled invoice cannot be cancelled again…
         $this->assertStringNotContainsString('wire:click="openCancel', $html);
+        // …but a cancelled, payment-free invoice CAN be removed from the record.
+        $this->assertStringContainsString('wire:click="openDelete', $html);
+        $this->assertStringNotContainsString('حذف المسودة', $html); // not the draft label
     }
 
     public function test_print_and_pdf_icons_present_for_printer(): void
@@ -479,14 +481,17 @@ class InvoiceActionsTest extends TestCase
         $this->assertDatabaseHas('invoices', ['id' => $invoice->id]);
     }
 
-    public function test_policy_delete_true_for_clean_draft_false_for_issued(): void
+    public function test_policy_delete_true_for_clean_draft_and_issued_unpaid(): void
     {
         $user = $this->accountant();
         $draft = $this->draftInvoice($this->makeCustomer());
         $issued = $this->makeIssuedInvoice($this->makeCustomer(), '500');
 
+        // Both are payment-free, so both are deletable (issued has its journal
+        // reversed on delete). Invoices tied to a payment are covered as
+        // not-deletable in InvoiceSafeDeleteTest.
         $this->assertTrue($user->can('delete', $draft));
-        $this->assertFalse($user->can('delete', $issued));
+        $this->assertTrue($user->can('delete', $issued));
     }
 
     public function test_livewire_delete_draft_flow(): void

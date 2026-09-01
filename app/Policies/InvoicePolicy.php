@@ -65,13 +65,21 @@ class InvoicePolicy
     }
 
     /**
-     * Hard-delete is reserved for a clean DRAFT (no payment allocations). Issued
-     * invoices are never deleted — they are cancelled (reversed) instead.
+     * Delete an invoice that is NOT tied to any payment. A clean draft is
+     * removed with invoices.edit; an issued/sent/unpaid/overdue or an
+     * already-reversed cancelled invoice is removed (its issue journal reversed)
+     * with invoices.cancel — the same right as cancelling it. NEVER deletable
+     * once a payment is attached (any allocation, or a paid amount): those must
+     * be handled through the payments first.
      */
     public function delete(User $user, Invoice $invoice): bool
     {
-        return $user->can('invoices.edit')
-            && $invoice->isDraft()
-            && ! $invoice->allocations()->exists();
+        if ((float) $invoice->paid_usd_equivalent > 0 || $invoice->allocations()->exists()) {
+            return false;
+        }
+
+        return $invoice->isDraft()
+            ? $user->can('invoices.edit')
+            : $user->can('invoices.cancel');
     }
 }

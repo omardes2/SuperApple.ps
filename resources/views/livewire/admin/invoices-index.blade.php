@@ -84,6 +84,10 @@
                         $hasActivePayments = ($invoice->active_allocations_count ?? 0) > 0;
                         $remaining = (float) $invoice->remaining_usd;
                         $paid = (float) $invoice->paid_usd_equivalent;
+                        // Deletable only when tied to NO payment at all (any
+                        // allocation row, active or reversed, or a paid amount).
+                        $hasAnyPayments = ($invoice->allocations_count ?? 0) > 0 || $paid > 0;
+                        $deletePermitted = $isDraft ? $canEdit : $canCancel;
                         $isOverdue = $eff === \App\Enums\InvoiceStatus::Overdue;
                         $overdueDays = ($isOverdue && $invoice->due_date) ? (int) $invoice->due_date->diffInDays(now()) : 0;
                         // ILS at the invoice's OWN stored rate (never a current rate);
@@ -203,14 +207,8 @@
                                     </button>
                                 @endif
 
-                                {{-- Delete draft / Cancel invoice --}}
-                                @if ($isDraft && $canEdit)
-                                    <button type="button" wire:click="openDelete({{ $invoice->id }})"
-                                            title="حذف المسودة" aria-label="حذف مسودة الفاتورة"
-                                            class="rounded-md p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700">
-                                        <x-icon name="trash" class="h-[18px] w-[18px]" />
-                                    </button>
-                                @elseif ($isActive && $canCancel)
+                                {{-- Cancel invoice (issued, unpaid) --}}
+                                @if ($isActive && $canCancel)
                                     @if ($hasActivePayments)
                                         <span title="لا يمكن إلغاء هذه الفاتورة لوجود دفعات مرتبطة بها. يجب إلغاء/عكس الدفعات أولاً."
                                               aria-label="إلغاء الفاتورة غير متاح لوجود دفعات"
@@ -222,6 +220,24 @@
                                                 title="إلغاء الفاتورة" aria-label="إلغاء الفاتورة"
                                                 class="rounded-md p-1.5 text-orange-600 hover:bg-orange-50 hover:text-orange-700">
                                             <x-icon name="ban" class="h-[18px] w-[18px]" />
+                                        </button>
+                                    @endif
+                                @endif
+
+                                {{-- Delete invoice (all statuses; disabled when tied to payments) --}}
+                                @if ($deletePermitted)
+                                    @if ($hasAnyPayments)
+                                        <span title="لا يمكن حذف فاتورة مدفوعة أو مرتبطة بدفعات."
+                                              aria-label="حذف الفاتورة غير متاح لوجود دفعات"
+                                              class="cursor-not-allowed rounded-md p-1.5 text-slate-300">
+                                            <x-icon name="trash" class="h-[18px] w-[18px]" />
+                                        </span>
+                                    @else
+                                        <button type="button" wire:click="openDelete({{ $invoice->id }})"
+                                                title="{{ $isDraft ? 'حذف المسودة' : 'حذف الفاتورة (عكس القيد ثم الحذف)' }}"
+                                                aria-label="حذف الفاتورة"
+                                                class="rounded-md p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700">
+                                            <x-icon name="trash" class="h-[18px] w-[18px]" />
                                         </button>
                                     @endif
                                 @endif
@@ -266,13 +282,17 @@
         </div>
     </x-modal>
 
-    {{-- Delete-draft confirmation modal --}}
-    <x-modal show="showDelete" title="حذف مسودة الفاتورة" maxWidth="max-w-md">
+    {{-- Delete confirmation modal --}}
+    <x-modal show="showDelete" :title="$deleteIsDraft ? 'حذف مسودة الفاتورة' : 'حذف الفاتورة'" maxWidth="max-w-md">
         <div class="space-y-4 text-sm text-slate-700">
-            <p>سيتم حذف مسودة الفاتورة <span class="font-mono" dir="ltr">{{ $deleteNumber }}</span> نهائياً مع بنودها. هذا الإجراء متاح للمسودات فقط ولا يمكن التراجع عنه.</p>
+            @if ($deleteIsDraft)
+                <p>سيتم حذف مسودة الفاتورة <span class="font-mono" dir="ltr">{{ $deleteNumber }}</span> نهائياً مع بنودها. لا يمكن التراجع عن هذا الإجراء.</p>
+            @else
+                <p>سيتم <b>عكس القيد المحاسبي</b> للفاتورة <span class="font-mono" dir="ltr">{{ $deleteNumber }}</span> ثم حذفها من السجل. تبقى القيود الأصلية والعكسية محفوظة في دفتر الأستاذ (لا يُحذف أي قيد)، وتعود الذمم والإيراد إلى الصفر. لا يمكن التراجع عن هذا الإجراء.</p>
+            @endif
             <div class="flex justify-end gap-2">
                 <button type="button" @click="$wire.showDelete = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">تراجع</button>
-                <button type="button" wire:click="confirmDelete" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">حذف نهائي</button>
+                <button type="button" wire:click="confirmDelete" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">{{ $deleteIsDraft ? 'حذف نهائي' : 'حذف الفاتورة وعكس قيدها' }}</button>
             </div>
         </div>
     </x-modal>

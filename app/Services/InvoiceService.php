@@ -306,6 +306,51 @@ class InvoiceService
         });
     }
 
+    /**
+     * Safely delete an invoice that is NOT tied to any payment. A draft is
+     * removed as-is; an issued/sent/unpaid/overdue invoice first has its issue
+     * journal reversed (kept as history) so Revenue and AR return to zero; a
+     * cancelled invoice whose journal is already reversed is removed WITHOUT a
+     * second reversal (reverseInvoiceIssue is idempotent — it finds no posted
+     * journal and does nothing).
+     *
+     * Deletion is REFUSED for any invoice that carries a payment allocation
+     * (active OR reversed) or a non-zero paid amount — those must be handled
+     * through the payments first. The row is locked FOR UPDATE so a concurrent
+     * double-delete cannot double-process. Items go with the invoice; journals
+     * are never deleted (their invoice_id is nulled by the FK) and the removal
+     * is written to the audit trail before the row disappears.
+     */
+    public function delete(Invoice $invoice, ?string $reason = null): void
+    {
+        DB::transaction(function () use ($invoice, $reason) {
+            /** @var Invoice $invoice */
+            $invoice = Invoice::whereKey($invoice->getKey())->lockForUpdate()->firstOrFail();
+
+            if ((float) $invoice->paid_usd_equivalent > 0 || $invoice->allocations()->exists()) {
+                throw new RuntimeException('لا يمكن حذف فاتورة مرتبطة بدفعات. يجب معالجة الدفعات أولاً.');
+            }
+
+            // Reverse the live issue posting if one remains. Idempotent: a draft
+            // was never posted and an already-reversed/cancelled invoice has no
+            // posted issue journal, so neither is double-reversed.
+            $this->ledger->reverseInvoiceIssue($invoice, $reason ?? 'حذف الفاتورة');
+
+            $this->audit->log('invoice_deleted', $invoice, 'Invoices',
+                old: [
+                    'invoice_number' => $invoice->invoice_number,
+                    'customer_id' => $invoice->customer_id,
+                    'customer_name' => $invoice->customer_snapshot['customer_name'] ?? null,
+                    'status' => $invoice->status->value,
+                    'total_usd' => $invoice->total_usd,
+                ],
+                description: "حذف الفاتورة {$invoice->invoice_number}".($reason ? " — {$reason}" : ''));
+
+            $invoice->items()->delete();
+            $invoice->delete();
+        });
+    }
+
     private function defaultDueDate(string $invoiceDate): string
     {
         $days = (int) $this->settings->get('finance', 'default_invoice_due_days', 30);

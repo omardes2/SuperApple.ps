@@ -129,21 +129,21 @@
         .inv-contact .ci svg { flex: none; }
 
         @if ($pdf)
-        /* dompdf honours position:fixed as a page-bottom footer. */
-        .inv { padding-bottom: 70px; }
-        .inv-bottom { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; background: #fff; }
+        /* dompdf honours position:fixed as a page-bottom footer; raised 50mm. */
+        .inv { padding-bottom: 72mm; }
+        .inv-bottom { position: fixed; left: 0; right: 0; bottom: 50mm; margin: 0; background: #fff; }
         @else
-        /* Browser on screen: pin the footer to the bottom of the A4 sheet
-           (the print layout gives .sheet position:relative + min-height:297mm). */
+        /* Browser on screen: pin the footer near the bottom of the A4 sheet
+           (the print layout gives .sheet position:relative + min-height:297mm),
+           raised 50mm from the bottom. */
         @media screen {
-            .inv { padding-bottom: 96px; }
-            .inv-bottom { position: absolute; left: 0; right: 0; bottom: 0; margin: 0; }
+            .inv { padding-bottom: 72mm; }
+            .inv-bottom { position: absolute; left: 0; right: 0; bottom: 50mm; margin: 0; }
         }
-        /* Browser print: pin to the bottom of every printed page; the @page
-           margin is 0, so 12mm places it inside the sheet's margin. */
+        /* Browser print: pin near the bottom of every printed page, 50mm up. */
         @media print {
-            .inv { padding-bottom: 34mm; }
-            .inv-bottom { position: fixed; left: 12mm; right: 12mm; bottom: 12mm; margin: 0; background: #fff; }
+            .inv { padding-bottom: 72mm; }
+            .inv-bottom { position: fixed; left: 12mm; right: 12mm; bottom: 50mm; margin: 0; background: #fff; }
         }
         @endif
     </style>

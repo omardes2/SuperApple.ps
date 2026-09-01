@@ -24,6 +24,27 @@
                     <label class="mb-1 block text-sm font-medium text-slate-700">الرقم الضريبي</label>
                     <input type="text" wire:model="taxNumber" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none">
                 </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-sm font-medium text-slate-700">شعار الشركة (يظهر على الفاتورة المطبوعة)</label>
+                    <div class="flex flex-wrap items-center gap-4">
+                        @if ($this->logoPreview)
+                            <div class="flex h-16 w-40 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-2">
+                                <img src="{{ $this->logoPreview }}" alt="شعار الشركة" class="max-h-full max-w-full object-contain">
+                            </div>
+                        @else
+                            <div class="flex h-16 w-40 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-400">لا يوجد شعار</div>
+                        @endif
+                        <div class="flex-1">
+                            <input type="file" wire:model="logo" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100">
+                            <div wire:loading wire:target="logo" class="mt-1 text-xs text-slate-400">جارٍ الرفع…</div>
+                            <p class="mt-1 text-xs text-slate-400">PNG بخلفية شفافة (أو JPG/WEBP) — يُفضّل أفقي ‎~600×132px أو مربّع ‎~320×320px (يُعرض بحد أقصى ارتفاع 44px). الحد الأقصى 2MB.</p>
+                            @error('logo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            @if ($this->logoPreview)
+                                <button type="button" wire:click="removeLogo" class="mt-2 text-xs font-medium text-red-600 hover:underline">حذف الشعار</button>
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 

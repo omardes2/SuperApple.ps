@@ -4,15 +4,26 @@ namespace App\Livewire\Admin;
 
 use App\Services\AuditLogger;
 use App\Services\Settings;
+use App\Support\CompanyProfile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts.app')]
 #[Title('الإعدادات')]
 class SettingsPage extends Component
 {
+    use WithFileUploads;
+
     public string $companyName = '';
+
+    /** A newly-picked logo file, pending save. */
+    public $logo = null;
+
+    /** The stored path of the current company logo, if any. */
+    public string $logoPath = '';
 
     public string $companyPhone = '';
 
@@ -50,6 +61,7 @@ class SettingsPage extends Component
     {
         $this->authorize('settings.view');
 
+        $this->logoPath = (string) $settings->get('company', 'logo_path', '');
         $this->companyName = (string) $settings->get('company', 'name', '');
         $this->companyPhone = (string) $settings->get('company', 'phone', '');
         $this->companyWhatsapp = (string) $settings->get('company', 'whatsapp', '');
@@ -74,11 +86,44 @@ class SettingsPage extends Component
             : implode('، ', array_map(fn ($d) => self::WEEK_DAYS[$d], $off));
     }
 
+    /** Data URI of the logo to show in the settings preview (new pick wins). */
+    public function getLogoPreviewProperty(): ?string
+    {
+        if ($this->logo) {
+            try {
+                return 'data:'.$this->logo->getMimeType().';base64,'.base64_encode($this->logo->get());
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return CompanyProfile::logoDataUri($this->logoPath);
+    }
+
+    /** Remove the current company logo (deletes the file and the setting). */
+    public function removeLogo(Settings $settings, AuditLogger $audit): void
+    {
+        $this->authorize('settings.manage');
+
+        if ($this->logoPath) {
+            Storage::disk(CompanyProfile::LOGO_DISK)->delete($this->logoPath);
+        }
+        $this->reset('logo');
+        $this->logoPath = '';
+        $settings->set('company', 'logo_path', '');
+        $audit->log('settings_updated', null, 'Settings', description: 'حذف شعار الشركة');
+
+        session()->flash('status', 'تم حذف الشعار.');
+    }
+
     public function save(Settings $settings, AuditLogger $audit): void
     {
         $this->authorize('settings.manage');
 
         $data = $this->validate([
+            // Real image validation (content-checked), raster only — SVG is
+            // excluded because we do not sanitize it. Max 2 MB.
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'companyName' => 'required|string|max:150',
             'companyPhone' => 'nullable|string|max:40',
             'companyWhatsapp' => 'nullable|string|max:40',
@@ -96,12 +141,26 @@ class SettingsPage extends Component
             'workingDays.min' => 'يجب اختيار يوم عمل واحد على الأقل.',
         ]);
 
+        // Store a freshly-picked logo (replacing any previous file).
+        if ($this->logo) {
+            $ext = strtolower($this->logo->guessExtension() ?: $this->logo->getClientOriginalExtension() ?: 'png');
+            $old = $this->logoPath;
+            // Unique name so a replacement never collides with the old file.
+            $path = $this->logo->storeAs('company', 'logo-'.now()->timestamp.'-'.str()->random(8).'.'.$ext, CompanyProfile::LOGO_DISK);
+            if ($old && $old !== $path) {
+                Storage::disk(CompanyProfile::LOGO_DISK)->delete($old);
+            }
+            $this->logoPath = $path;
+            $this->reset('logo');
+        }
+
         $settings->setMany('company', [
             'name' => $data['companyName'],
             'phone' => $data['companyPhone'] ?? '',
             'whatsapp' => $data['companyWhatsapp'] ?? '',
             'address' => $data['companyAddress'] ?? '',
             'tax_number' => $data['taxNumber'] ?? '',
+            'logo_path' => $this->logoPath,
         ]);
         $settings->setMany('finance', [
             'invoice_terms' => $data['invoiceTerms'] ?? '',

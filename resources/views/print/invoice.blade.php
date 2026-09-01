@@ -124,14 +124,18 @@
         <table class="inv-head">
             <tr>
                 <td>
-                    <div class="inv-brand">
-                        <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
-                            <circle cx="19" cy="20" r="11" fill="{{ $gold }}"/>
-                            <path d="M18 5c.8 2.2-.7 3.9-2.9 3.9C15.1 6.7 16.6 5 18 5z" fill="{{ $navy }}"/>
-                            <circle cx="12.5" cy="20" r="7.5" fill="{{ $navy }}"/>
-                        </svg>
-                        <div class="inv-word">{{ $company['name'] }}<small>SUPER APPLE</small></div>
-                    </div>
+                    @if (! empty($company['logo_data_uri']))
+                        <img src="{{ $company['logo_data_uri'] }}" alt="{{ $company['name'] }}" style="max-height:44px; max-width:200px; object-fit:contain;">
+                    @else
+                        <div class="inv-brand">
+                            <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+                                <circle cx="19" cy="20" r="11" fill="{{ $gold }}"/>
+                                <path d="M18 5c.8 2.2-.7 3.9-2.9 3.9C15.1 6.7 16.6 5 18 5z" fill="{{ $navy }}"/>
+                                <circle cx="12.5" cy="20" r="7.5" fill="{{ $navy }}"/>
+                            </svg>
+                            <div class="inv-word">{{ $company['name'] }}<small>SUPER APPLE</small></div>
+                        </div>
+                    @endif
                 </td>
                 <td class="inv-doc">
                     <div class="inv-doc-t">فاتورة</div>

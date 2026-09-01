@@ -83,9 +83,18 @@
                         @error('payment_amount')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="mb-1 block text-sm text-slate-600">سعر صرف الدفعة (1 USD = ? ILS)</label>
+                        <label class="mb-1 block text-sm text-slate-600">
+                            سعر صرف الدفعة (1 USD = ? ILS)
+                            @if ($payment_currency === 'ILS')<span class="text-red-500">*</span>@endif
+                        </label>
                         <input type="number" step="0.000001" min="0" wire:model.live="exchange_rate" @disabled(! $canEdit) placeholder="مثال: 3.05" dir="ltr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50">
-                        <p class="mt-1 text-xs text-slate-400">يُدخل يدوياً لكل دفعة، ومستقل تماماً عن سعر صرف الفاتورة.</p>
+                        <p class="mt-1 text-xs text-slate-400">
+                            @if ($payment_currency === 'ILS')
+                                مطلوب لتحويل مبلغ الشيكل إلى الدولار (رصيد العميل الرسمي بالدولار). يُدخل يدوياً لكل دفعة ومستقل عن سعر صرف الفاتورة.
+                            @else
+                                يُدخل يدوياً لكل دفعة، ومستقل تماماً عن سعر صرف الفاتورة.
+                            @endif
+                        </p>
                         @error('exchange_rate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
@@ -225,9 +234,24 @@
             <div class="rounded-xl border border-slate-200 bg-white p-5">
                 <h3 class="mb-3 font-semibold text-slate-800">ملخص</h3>
                 <dl class="space-y-2 text-sm">
-                    <div class="flex justify-between"><dt class="text-slate-500">المبلغ المستلم</dt><dd class="font-semibold" dir="ltr">{{ number_format((float) $payment->payment_amount, 2) }} {{ $payment->payment_currency->symbol() }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">ما يعادله USD</dt><dd class="font-semibold text-slate-800" dir="ltr">${{ number_format((float) ($payment->isDraft() ? $usdPreview : $payment->usd_equivalent), 2) }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">سعر الصرف</dt><dd dir="ltr">{{ $payment->exchange_rate ?? '—' }}</dd></div>
+                    @php
+                        // For a draft, reflect the LIVE form values (not the last-saved
+                        // model) so the received amount and its currency show at once.
+                        $summaryAmount = $payment->isDraft() ? (float) ($payment_amount ?: 0) : (float) $payment->payment_amount;
+                        $summaryCurrency = $payment->isDraft() ? $payment_currency : $payment->payment_currency->value;
+                        $summarySymbol = $summaryCurrency === 'ILS' ? '₪' : '$';
+                        $summaryRate = $payment->isDraft() ? $exchange_rate : $payment->exchange_rate;
+                        $needsRate = $summaryCurrency === 'ILS' && (float) ($summaryRate ?? 0) <= 0;
+                    @endphp
+                    <div class="flex justify-between"><dt class="text-slate-500">المبلغ المستلم</dt><dd class="font-semibold" dir="ltr">{{ number_format($summaryAmount, 2) }} {{ $summarySymbol }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">ما يعادله USD</dt>
+                        @if ($needsRate)
+                            <dd class="text-xs text-amber-600">أدخل سعر الصرف</dd>
+                        @else
+                            <dd class="font-semibold text-slate-800" dir="ltr">${{ number_format((float) ($payment->isDraft() ? $usdPreview : $payment->usd_equivalent), 2) }}</dd>
+                        @endif
+                    </div>
+                    <div class="flex justify-between"><dt class="text-slate-500">سعر الصرف</dt><dd dir="ltr">{{ $summaryRate ?: '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">الطريقة</dt><dd>{{ $payment->payment_method->label() }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">الحساب المستلم</dt><dd class="font-medium">@if ($receivedAccount)<a href="{{ route('admin.cash-banks') }}" class="text-brand-600 hover:underline">{{ $receivedAccount->name }}</a>@else<span class="text-amber-600">غير محدد</span>@endif</dd></div>
                     @unless ($payment->isDraft())

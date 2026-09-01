@@ -125,7 +125,7 @@
             <tr>
                 <td>
                     @if (! empty($company['logo_data_uri']))
-                        <img src="{{ $company['logo_data_uri'] }}" alt="{{ $company['name'] }}" style="max-height:44px; max-width:200px; object-fit:contain;">
+                        <img src="{{ $company['logo_data_uri'] }}" alt="{{ $company['name'] }}" style="max-height:60px; max-width:240px; object-fit:contain;">
                     @else
                         <div class="inv-brand">
                             <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">

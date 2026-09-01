@@ -37,7 +37,7 @@
                         <div class="flex-1">
                             <input type="file" wire:model="logo" accept="image/png,image/jpeg,image/webp" class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100">
                             <div wire:loading wire:target="logo" class="mt-1 text-xs text-slate-400">جارٍ الرفع…</div>
-                            <p class="mt-1 text-xs text-slate-400">PNG بخلفية شفافة (أو JPG/WEBP) — يُفضّل أفقي ‎~600×132px أو مربّع ‎~320×320px (يُعرض بحد أقصى ارتفاع 44px). الحد الأقصى 2MB.</p>
+                            <p class="mt-1 text-xs text-slate-400">PNG بخلفية شفافة (أو JPG/WEBP) — يُفضّل أفقي ‎~600×132px أو مربّع ‎~320×320px (يُعرض بحد أقصى ارتفاع 60px). الحد الأقصى 2MB.</p>
                             @error('logo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             @if ($this->logoPreview)
                                 <button type="button" wire:click="removeLogo" class="mt-2 text-xs font-medium text-red-600 hover:underline">حذف الشعار</button>

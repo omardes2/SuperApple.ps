@@ -329,7 +329,16 @@ class WhatsAppService
         }
 
         $provider = app(WhatsAppProvider::class);
-        $result = $provider->sendText($message->phone, $message->message_body);
+
+        // A configured provider-side template reaches the customer reliably as a
+        // business-initiated message; a free text send only lands inside the 24h
+        // customer-service window. The rendered body becomes the single {{1}}
+        // parameter (flattened — Meta rejects newlines/tabs in params) and is
+        // also passed as the fallback text for the offline drivers.
+        $template = $this->invoiceTemplateName();
+        $result = $template !== null
+            ? $provider->sendTemplate($message->phone, $template, [$this->sanitizeTemplateParam($message->message_body)], $message->message_body)
+            : $provider->sendText($message->phone, $message->message_body);
 
         if ($result->ok) {
             $message->update([

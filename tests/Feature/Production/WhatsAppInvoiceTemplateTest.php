@@ -5,6 +5,7 @@ namespace Tests\Feature\Production;
 use App\Enums\RoleName;
 use App\Enums\WhatsAppMessageStatus;
 use App\Livewire\Admin\WhatsAppDashboard;
+use App\Models\WhatsAppMessage;
 use App\Services\Settings;
 use App\Services\WhatsAppService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -123,6 +124,40 @@ class WhatsAppInvoiceTemplateTest extends TestCase
         $this->assertSame(WhatsAppMessageStatus::Sent, $message->status);
         $this->assertNotNull($message->document_name);
         Http::assertSent(fn ($r) => str_contains($r->url(), '/media'));
+    }
+
+    public function test_queued_message_delivers_via_template_when_configured(): void
+    {
+        // A payment reminder / notification goes through the queue → deliver()
+        // path (sendText historically). With a template configured it must be
+        // delivered as that template so it reaches the customer reliably.
+        $this->configureMeta(withTemplate: true);
+        Http::fake([
+            'graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.Q']]], 200),
+        ]);
+
+        $customer = $this->makeCustomer(['whatsapp_number' => '0599432037']);
+        $message = WhatsAppMessage::create([
+            'customer_id' => $customer->id,
+            'phone' => '970599432037',
+            'message_body' => "تذكير دفع مستحق\nالفاتورة INV-1\nالمبلغ 100 USD",
+            'provider' => 'meta_cloud',
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessageStatus::Pending,
+        ]);
+
+        app(WhatsAppService::class)->deliver($message);
+
+        $this->assertSame(WhatsAppMessageStatus::Sent, $message->fresh()->status);
+        $this->assertSame('wamid.Q', $message->fresh()->provider_message_id);
+
+        Http::assertSent(function ($request) {
+            $param = $request['template']['components'][0]['parameters'][0]['text'] ?? '';
+
+            return ($request['type'] ?? null) === 'template'
+                && $param !== ''
+                && ! str_contains($param, "\n"); // flattened to one line for Meta
+        });
     }
 
     public function test_settings_ui_persists_template_name_and_language(): void

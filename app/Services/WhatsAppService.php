@@ -148,6 +148,66 @@ class WhatsAppService
             throw new RuntimeException('رقم واتساب غير صالح للعميل.');
         }
 
+        // An approved provider-side template reaches the customer reliably as a
+        // first (business-initiated) message; a free PDF document only lands
+        // inside the 24h customer-service window. When an invoice template is
+        // configured we send it (text only, one {{1}} parameter); otherwise we
+        // keep the historical behaviour of attaching the invoice PDF.
+        $template = $this->invoiceTemplateName();
+
+        return $template !== null
+            ? $this->sendInvoiceTemplate($invoice, $customer, $phone, $template)
+            : $this->sendInvoiceDocument($invoice, $customer, $phone);
+    }
+
+    /** Send the invoice as an approved provider-side template (text only). */
+    private function sendInvoiceTemplate(Invoice $invoice, Customer $customer, string $phone, string $templateName): WhatsAppMessage
+    {
+        $variable = $this->invoiceTemplateVariable($invoice);
+
+        $message = WhatsAppMessage::create([
+            'customer_id' => $customer->id,
+            'invoice_id' => $invoice->id,
+            'phone' => $phone,
+            'message_body' => $variable,
+            'provider' => (string) $this->settings->get('whatsapp', 'provider', 'null'),
+            'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessageStatus::Pending,
+            'created_by' => Auth::id(),
+        ]);
+
+        try {
+            $provider = app(WhatsAppProvider::class);
+            $result = $provider->sendTemplate($phone, $templateName, [$variable], $variable);
+
+            if (! $result->ok) {
+                throw new RuntimeException($result->error ?? 'WhatsApp template send failed');
+            }
+
+            $message->update([
+                'status' => WhatsAppMessageStatus::Sent,
+                'provider' => $provider->key(),
+                'provider_message_id' => $result->providerMessageId,
+                'sent_at' => now(),
+                'failure_reason' => null,
+            ]);
+
+            app(AuditLogger::class)->log('invoice_whatsapp_sent', $invoice, 'Invoices',
+                new: ['phone' => $phone, 'template' => $templateName],
+                description: "إرسال الفاتورة {$invoice->invoice_number} عبر واتساب");
+        } catch (\Throwable $e) {
+            Log::warning('WhatsApp invoice template send failed', ['invoice' => $invoice->id, 'error' => $e->getMessage()]);
+            $this->markFailed($message, $e->getMessage());
+
+            throw new RuntimeException('تعذّر إرسال الفاتورة عبر واتساب. حاول مرة أخرى.');
+        }
+
+        return $message;
+    }
+
+    /** Send the invoice PDF as a document attachment (used inside the 24h window). */
+    private function sendInvoiceDocument(Invoice $invoice, Customer $customer, string $phone): WhatsAppMessage
+    {
         $pdfService = app(InvoicePdfService::class);
         $filename = $pdfService->filename($invoice);
         $body = $this->invoiceMessageBody($invoice);
@@ -224,6 +284,41 @@ class WhatsAppService
         $lines[] = $company;
 
         return implode("\n", $lines);
+    }
+
+    /** The configured Meta-side invoice-notification template name, or null. */
+    public function invoiceTemplateName(): ?string
+    {
+        $name = trim((string) ($this->settings->get('whatsapp', 'meta_invoice_template')
+            ?: config('services.whatsapp.meta_invoice_template') ?? ''));
+
+        return $name !== '' ? $name : null;
+    }
+
+    /**
+     * The single {{1}} body parameter for the invoice-notification template:
+     * a one-line invoice summary. Kept to a single line because Meta rejects
+     * template parameters containing newlines, tabs, or 4+ consecutive spaces.
+     */
+    public function invoiceTemplateVariable(Invoice $invoice): string
+    {
+        $invoice->loadMissing('customer');
+        $total = Money::money($invoice->total_usd);
+        $due = optional($invoice->due_date)->toDateString();
+
+        $text = "عزيزنا {$invoice->customer?->name}، صدرت فاتورتكم رقم {$invoice->invoice_number} بقيمة {$total} USD";
+        if ($due) {
+            $text .= "، تاريخ الاستحقاق {$due}";
+        }
+        $text .= '.';
+
+        return $this->sanitizeTemplateParam($text);
+    }
+
+    /** Collapse every whitespace run to a single space (Meta template rule). */
+    private function sanitizeTemplateParam(string $value): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
     }
 
     /** The single send attempt performed by the job (throws on failure). */

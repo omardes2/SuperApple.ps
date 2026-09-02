@@ -31,6 +31,11 @@ class WhatsAppDashboard extends Component
 
     public string $metaApiVersion = 'v21.0';
 
+    // The approved template used for invoice notifications + its language.
+    public string $metaInvoiceTemplate = '';
+
+    public string $metaTemplateLanguage = 'ar';
+
     // Write-only: left blank on load; a blank value keeps the stored token.
     public string $metaAccessToken = '';
 
@@ -51,6 +56,8 @@ class WhatsAppDashboard extends Component
         $this->default_country_code = (string) $settings->get('whatsapp', 'default_country_code', '');
         $this->metaPhoneNumberId = (string) $settings->get('whatsapp', 'meta_phone_number_id', '');
         $this->metaApiVersion = (string) ($settings->get('whatsapp', 'meta_api_version') ?: 'v21.0');
+        $this->metaInvoiceTemplate = (string) $settings->get('whatsapp', 'meta_invoice_template', '');
+        $this->metaTemplateLanguage = (string) ($settings->get('whatsapp', 'meta_template_language') ?: 'ar');
         $this->metaTokenSet = filled($settings->get('whatsapp', 'meta_access_token'));
         $this->metaVerifyToken = (string) $settings->get('whatsapp', 'meta_verify_token', '');
         $this->metaAppSecretSet = filled($settings->get('whatsapp', 'meta_app_secret'));
@@ -70,6 +77,8 @@ class WhatsAppDashboard extends Component
             'default_country_code' => 'nullable|string|max:5',
             'metaPhoneNumberId' => 'nullable|string|max:40',
             'metaApiVersion' => 'nullable|string|max:10',
+            'metaInvoiceTemplate' => 'nullable|string|max:100',
+            'metaTemplateLanguage' => 'nullable|string|max:10',
             'metaAccessToken' => 'nullable|string|max:2000',
             'metaVerifyToken' => 'nullable|string|max:100',
             'metaAppSecret' => 'nullable|string|max:200',
@@ -95,6 +104,8 @@ class WhatsAppDashboard extends Component
         $settings->set('whatsapp', 'default_country_code', $this->default_country_code, 'string');
         $settings->set('whatsapp', 'meta_phone_number_id', $this->metaPhoneNumberId, 'string');
         $settings->set('whatsapp', 'meta_api_version', $this->metaApiVersion ?: 'v21.0', 'string');
+        $settings->set('whatsapp', 'meta_invoice_template', trim($this->metaInvoiceTemplate), 'string');
+        $settings->set('whatsapp', 'meta_template_language', $this->metaTemplateLanguage ?: 'ar', 'string');
         $settings->set('whatsapp', 'meta_verify_token', $this->metaVerifyToken, 'string');
 
         if ($this->metaAppSecret !== '') {

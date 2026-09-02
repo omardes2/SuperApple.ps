@@ -43,6 +43,11 @@ return [
         'meta_access_token' => env('WHATSAPP_META_ACCESS_TOKEN'),
         'meta_api_version' => env('WHATSAPP_META_API_VERSION', 'v21.0'),
         'meta_template_language' => env('WHATSAPP_META_TEMPLATE_LANGUAGE', 'ar'),
+        // The approved provider-side template used for invoice notifications.
+        // When set, the invoice WhatsApp send delivers this template (text only,
+        // a single {{1}} body parameter) instead of a free PDF document, so it
+        // reaches the customer reliably as a business-initiated message.
+        'meta_invoice_template' => env('WHATSAPP_META_INVOICE_TEMPLATE'),
         // Webhook: the verify token echoed on the GET handshake and the app
         // secret used to validate the X-Hub-Signature-256 of POST payloads.
         'meta_verify_token' => env('WHATSAPP_META_VERIFY_TOKEN'),

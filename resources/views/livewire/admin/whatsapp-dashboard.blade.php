@@ -43,6 +43,20 @@
                     </div>
                 </div>
 
+                <div class="mt-4 grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+                    <div class="sm:col-span-2">
+                        <label class="mb-1 block text-xs text-slate-500">قالب إشعار الفاتورة (Template Name)</label>
+                        <input wire:model="metaInvoiceTemplate" dir="ltr" placeholder="superapple_notify" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('metaInvoiceTemplate') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs text-slate-400">اسم قالب مُعتمد في Meta بمتغيّر واحد @{{1}}. عند ضبطه تُرسَل الفاتورة كقالب نصّي موثوق (بدل مرفق PDF). اتركه فارغاً لإرسال ملف الـPDF كما كان.</p>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-slate-500">لغة القالب</label>
+                        <input wire:model="metaTemplateLanguage" dir="ltr" placeholder="ar" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('metaTemplateLanguage') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
                 <div class="mt-4 rounded-lg border border-slate-200 bg-white p-4">
                     <h4 class="mb-1 text-sm font-semibold text-slate-800">Webhook (اختياري — لتتبّع التسليم/القراءة واستقبال الردود)</h4>
                     <p class="mb-3 text-xs text-slate-400">انسخ عنوان الاستدعاء ورمز التحقق إلى إعدادات Webhook في تطبيق Meta.</p>

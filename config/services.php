@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    // WhatsApp Cloud API fallback credentials. The provider prefers values
+    // stored in Settings (whatsapp.*); these env values are only used when a
+    // setting is empty, so ops can supply secrets via env instead of the DB.
+    'whatsapp' => [
+        'meta_phone_number_id' => env('WHATSAPP_META_PHONE_NUMBER_ID'),
+        'meta_access_token' => env('WHATSAPP_META_ACCESS_TOKEN'),
+        'meta_api_version' => env('WHATSAPP_META_API_VERSION', 'v21.0'),
+        'meta_template_language' => env('WHATSAPP_META_TEMPLATE_LANGUAGE', 'ar'),
+    ],
+
 ];

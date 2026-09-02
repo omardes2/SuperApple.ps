@@ -7,6 +7,7 @@ use App\Enums\RoleName;
 use App\Services\Settings;
 use App\Services\WhatsApp\FakeWhatsAppProvider;
 use App\Services\WhatsApp\LogWhatsAppProvider;
+use App\Services\WhatsApp\MetaCloudWhatsAppProvider;
 use App\Services\WhatsApp\NullWhatsAppProvider;
 use App\Support\CurrencyDisplay;
 use Illuminate\Support\Facades\Gate;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
             $key = (string) $app->make(Settings::class)->get('whatsapp', 'provider', 'null');
 
             return match ($key) {
+                'meta_cloud' => $app->make(MetaCloudWhatsAppProvider::class),
                 'fake' => $app->make(FakeWhatsAppProvider::class),
                 'log' => $app->make(LogWhatsAppProvider::class),
                 default => $app->make(NullWhatsAppProvider::class), // null | manual | unknown

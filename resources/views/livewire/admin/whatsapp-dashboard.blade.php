@@ -21,11 +21,33 @@
             <h3 class="mb-3 font-semibold text-slate-800">إعدادات القناة</h3>
             <div class="flex flex-wrap items-end gap-4">
                 <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model="enabled"> تفعيل واتساب</label>
-                <div><label class="mb-1 block text-xs text-slate-500">المزوّد</label><select wire:model="provider" class="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="null">Null (لا إرسال)</option><option value="log">Log</option><option value="fake">Fake (اختبار)</option></select></div>
+                <div><label class="mb-1 block text-xs text-slate-500">المزوّد</label><select wire:model.live="provider" class="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="null">Null (لا إرسال)</option><option value="log">Log</option><option value="fake">Fake (اختبار)</option><option value="meta_cloud">Meta WhatsApp Cloud API</option></select></div>
                 <div><label class="mb-1 block text-xs text-slate-500">رمز الدولة الافتراضي</label><input wire:model="default_country_code" dir="ltr" class="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm"></div>
+            </div>
+
+            @if ($provider === 'meta_cloud')
+                <div class="mt-4 grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+                    <div>
+                        <label class="mb-1 block text-xs text-slate-500">Phone Number ID</label>
+                        <input wire:model="metaPhoneNumberId" dir="ltr" placeholder="123456789012345" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('metaPhoneNumberId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-slate-500">إصدار الـAPI</label>
+                        <input wire:model="metaApiVersion" dir="ltr" placeholder="v21.0" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-slate-500">Access Token @if ($metaTokenSet)<span class="text-emerald-600">(محفوظ)</span>@endif</label>
+                        <input type="password" wire:model="metaAccessToken" dir="ltr" placeholder="{{ $metaTokenSet ? '••••••••  (اتركه فارغاً للإبقاء على الحالي)' : 'EAAG...' }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        @error('metaAccessToken') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+            @endif
+
+            <div class="mt-4">
                 <button wire:click="saveSettings" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white">حفظ</button>
             </div>
-            <p class="mt-2 text-xs text-slate-400">لا تُحفظ أي بيانات اعتماد في الشيفرة — تُقرأ من الإعدادات/البيئة فقط.</p>
+            <p class="mt-2 text-xs text-slate-400">لا تُحفظ أي بيانات اعتماد في الشيفرة — تُقرأ من الإعدادات/البيئة فقط. رمز الوصول لا يُعرض بعد حفظه.</p>
         </div>
     @endif
 

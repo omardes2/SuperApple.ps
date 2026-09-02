@@ -5,6 +5,7 @@ namespace Tests\Feature\Sprint7;
 use App\Enums\RoleName;
 use App\Models\WhatsAppMessage;
 use App\Services\PaymentReminderService;
+use App\Services\Settings;
 use Database\Seeders\WhatsAppSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesUsers;
@@ -37,6 +38,20 @@ class ManualReminderTest extends TestCase
         $this->assertSame('800.00', $ctx['outstanding_usd']);
         $this->assertSame('800.00', $ctx['net_balance_usd']);
         $this->assertStringContainsString('USD', $ctx['invoice_list']);
+    }
+
+    public function test_default_manual_body_includes_company_and_amount(): void
+    {
+        app(Settings::class)->set('company', 'name', 'سوبر آبل', 'string');
+        $customer = $this->makeCustomer(['name' => 'بلوتو براند', 'whatsapp_number' => '0591234567']);
+        $this->makeIssuedInvoice($customer, '500', '3.20');
+
+        $body = $this->service()->defaultManualBody($customer);
+
+        $this->assertStringContainsString('بلوتو براند', $body); // customer
+        $this->assertStringContainsString('سوبر آبل', $body);      // company
+        $this->assertStringContainsString('500.00', $body);         // outstanding amount
+        $this->assertStringContainsString('USD', $body);
     }
 
     public function test_no_central_rate_means_no_ils_estimate_in_reminders(): void

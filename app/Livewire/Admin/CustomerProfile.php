@@ -153,13 +153,14 @@ class CustomerProfile extends Component
     {
         $this->authorize('whatsapp.send');
         $template = $reminders->defaultManualTemplate();
-        // Prefill with the rendered default template so the operator can edit.
+        // Prefill an editable body: the rendered DB template if one exists,
+        // otherwise a ready-made default (company name + outstanding amount).
         try {
             $this->reminderBody = $template
                 ? TemplateRenderer::render($template->body, $reminders->balanceVariables($this->customer))
-                : '';
+                : $reminders->defaultManualBody($this->customer);
         } catch (\Throwable $e) {
-            $this->reminderBody = '';
+            $this->reminderBody = $reminders->defaultManualBody($this->customer);
         }
         $this->showReminder = true;
     }

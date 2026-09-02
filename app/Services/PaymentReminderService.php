@@ -79,6 +79,33 @@ class PaymentReminderService
     }
 
     /**
+     * A ready-to-edit reminder body used to prefill the manual modal when no DB
+     * template is configured: greeting, the company name, the outstanding USD
+     * amount, and the list of unpaid invoices. Fully editable before sending.
+     */
+    public function defaultManualBody(Customer $customer): string
+    {
+        $ctx = $this->manualContext($customer);
+        $company = (string) app(Settings::class)->get('company', 'name', config('app.name'));
+        $outstanding = Money::money($ctx['outstanding_usd']);
+
+        $lines = [
+            "مرحباً {$customer->name}،",
+            "نودّ تذكيركم بأن إجمالي المبلغ المستحق لدى {$company} هو {$outstanding} USD.",
+        ];
+        if ($ctx['invoice_list'] !== '—') {
+            $lines[] = '';
+            $lines[] = 'الفواتير المستحقة:';
+            $lines[] = $ctx['invoice_list'];
+        }
+        $lines[] = '';
+        $lines[] = 'نرجو ترتيب السداد في أقرب فرصة ممكنة. شكراً لتعاملكم معنا.';
+        $lines[] = $company;
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * Send a manual reminder. If $customBody is given it is used (still rendered
      * against the balance variables); otherwise the default template is used.
      */

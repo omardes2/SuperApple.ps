@@ -36,6 +36,13 @@ class WhatsAppDashboard extends Component
 
     public bool $metaTokenSet = false;
 
+    // Webhook: verify token (chosen by us) + app secret (write-only).
+    public string $metaVerifyToken = '';
+
+    public string $metaAppSecret = '';
+
+    public bool $metaAppSecretSet = false;
+
     public function mount(Settings $settings): void
     {
         $this->authorize('whatsapp.view');
@@ -45,6 +52,14 @@ class WhatsAppDashboard extends Component
         $this->metaPhoneNumberId = (string) $settings->get('whatsapp', 'meta_phone_number_id', '');
         $this->metaApiVersion = (string) ($settings->get('whatsapp', 'meta_api_version') ?: 'v21.0');
         $this->metaTokenSet = filled($settings->get('whatsapp', 'meta_access_token'));
+        $this->metaVerifyToken = (string) $settings->get('whatsapp', 'meta_verify_token', '');
+        $this->metaAppSecretSet = filled($settings->get('whatsapp', 'meta_app_secret'));
+    }
+
+    /** The public Callback URL to paste into Meta's webhook configuration. */
+    public function getCallbackUrlProperty(): string
+    {
+        return url('/webhooks/whatsapp');
     }
 
     public function saveSettings(Settings $settings): void
@@ -56,6 +71,8 @@ class WhatsAppDashboard extends Component
             'metaPhoneNumberId' => 'nullable|string|max:40',
             'metaApiVersion' => 'nullable|string|max:10',
             'metaAccessToken' => 'nullable|string|max:2000',
+            'metaVerifyToken' => 'nullable|string|max:100',
+            'metaAppSecret' => 'nullable|string|max:200',
         ]);
 
         // Enabling the Cloud API needs a phone number id and a token (stored or
@@ -78,6 +95,13 @@ class WhatsAppDashboard extends Component
         $settings->set('whatsapp', 'default_country_code', $this->default_country_code, 'string');
         $settings->set('whatsapp', 'meta_phone_number_id', $this->metaPhoneNumberId, 'string');
         $settings->set('whatsapp', 'meta_api_version', $this->metaApiVersion ?: 'v21.0', 'string');
+        $settings->set('whatsapp', 'meta_verify_token', $this->metaVerifyToken, 'string');
+
+        if ($this->metaAppSecret !== '') {
+            $settings->set('whatsapp', 'meta_app_secret', $this->metaAppSecret, 'string');
+            $this->metaAppSecret = '';
+            $this->metaAppSecretSet = true;
+        }
 
         // Only overwrite the token when a new one is typed; a blank field keeps
         // the existing secret so it never needs re-entering.

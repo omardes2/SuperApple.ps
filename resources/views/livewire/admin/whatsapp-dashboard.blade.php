@@ -42,6 +42,27 @@
                         @error('metaAccessToken') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
+
+                <div class="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+                    <h4 class="mb-1 text-sm font-semibold text-slate-800">Webhook (اختياري — لتتبّع التسليم/القراءة واستقبال الردود)</h4>
+                    <p class="mb-3 text-xs text-slate-400">انسخ عنوان الاستدعاء ورمز التحقق إلى إعدادات Webhook في تطبيق Meta.</p>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="sm:col-span-2">
+                            <label class="mb-1 block text-xs text-slate-500">عنوان URL الاستدعاء (Callback URL)</label>
+                            <input type="text" value="{{ $this->callbackUrl }}" readonly dir="ltr" onclick="this.select()" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs text-slate-500">رمز التحقق (Verify Token)</label>
+                            <input wire:model="metaVerifyToken" dir="ltr" placeholder="اختر رمزاً سرياً" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            @error('metaVerifyToken') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs text-slate-500">App Secret @if ($metaAppSecretSet)<span class="text-emerald-600">(محفوظ)</span>@endif</label>
+                            <input type="password" wire:model="metaAppSecret" dir="ltr" placeholder="{{ $metaAppSecretSet ? '••••••••  (اتركه فارغاً للإبقاء على الحالي)' : 'اختياري — للتحقق من التوقيع' }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            @error('metaAppSecret') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                </div>
             @endif
 
             <div class="mt-4">

@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.area' => EnsureAdminExperience::class,
         ]);
+
+        // The Meta WhatsApp webhook is an external POST callback — exempt from CSRF.
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/whatsapp',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

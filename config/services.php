@@ -43,6 +43,10 @@ return [
         'meta_access_token' => env('WHATSAPP_META_ACCESS_TOKEN'),
         'meta_api_version' => env('WHATSAPP_META_API_VERSION', 'v21.0'),
         'meta_template_language' => env('WHATSAPP_META_TEMPLATE_LANGUAGE', 'ar'),
+        // Webhook: the verify token echoed on the GET handshake and the app
+        // secret used to validate the X-Hub-Signature-256 of POST payloads.
+        'meta_verify_token' => env('WHATSAPP_META_VERIFY_TOKEN'),
+        'meta_app_secret' => env('WHATSAPP_META_APP_SECRET'),
     ],
 
 ];

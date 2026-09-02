@@ -5,6 +5,7 @@ use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\InvoicePrintController;
 use App\Http\Controllers\PaymentReceiptController;
 use App\Http\Controllers\PayslipController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use App\Livewire\Admin\ActivityFeed;
 use App\Livewire\Admin\ArAgingReport;
 use App\Livewire\Admin\AttendanceIndex;
@@ -79,6 +80,10 @@ Route::get('/', function () {
         Auth::user()->usesAdminExperience() ? 'admin.dashboard' : 'employee.dashboard'
     );
 });
+
+// ---- Public WhatsApp Cloud API webhook (Meta calls it; no app auth) ----
+Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
+Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive']);
 
 // ---- Guest ----
 Route::middleware('guest')->group(function () {

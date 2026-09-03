@@ -61,9 +61,24 @@ class WhatsAppMessage extends Model
         return $this->status->isRetryable();
     }
 
+    public function isInbound(): bool
+    {
+        return $this->direction === self::DIRECTION_INBOUND;
+    }
+
+    public function isOutbound(): bool
+    {
+        return $this->direction === self::DIRECTION_OUTBOUND;
+    }
+
     public function scopeOutbound(Builder $query): Builder
     {
         return $query->where('direction', self::DIRECTION_OUTBOUND);
+    }
+
+    public function scopeInbound(Builder $query): Builder
+    {
+        return $query->where('direction', self::DIRECTION_INBOUND);
     }
 
     public function scopeFailed(Builder $query): Builder

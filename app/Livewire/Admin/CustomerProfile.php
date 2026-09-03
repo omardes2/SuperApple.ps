@@ -258,7 +258,10 @@ class CustomerProfile extends Component
         $data['canSendWhatsapp'] = auth()->user()->can('whatsapp.send');
 
         if ($this->tab === 'communications' && $data['canWhatsapp']) {
-            $data['messages'] = $this->customer->whatsappMessages()->with('invoice')->limit(50)->get();
+            // Latest 50, shown oldest→newest so the thread reads like a chat.
+            $data['messages'] = $this->customer->whatsappMessages()
+                ->with('invoice')->latest('id')->limit(50)->get()
+                ->reverse()->values();
         }
 
         return view('livewire.admin.customer-profile', $data);

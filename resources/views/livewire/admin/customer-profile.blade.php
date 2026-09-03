@@ -222,22 +222,35 @@
     @endif
 
     @if ($tab === 'communications' && ($canWhatsapp ?? false))
-        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-right text-xs font-semibold uppercase text-slate-500"><tr><th class="px-4 py-3">التاريخ</th><th class="px-4 py-3">النص</th><th class="px-4 py-3">الفاتورة</th><th class="px-4 py-3">الحالة</th></tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($messages as $m)
-                        <tr>
-                            <td class="px-4 py-3 text-slate-400" dir="ltr">{{ $m->created_at?->format('Y-m-d H:i') }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ \Illuminate\Support\Str::limit($m->message_body, 70) }}</td>
-                            <td class="px-4 py-3">@if ($m->invoice)<span class="font-mono text-xs text-slate-500" dir="ltr">{{ $m->invoice->invoice_number }}</span>@else—@endif</td>
-                            <td class="px-4 py-3"><x-badge :class="$m->status->badgeClass()">{{ $m->status->label() }}</x-badge></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">لا مراسلات.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700">سجل المحادثة (واتساب)</h3>
+                <div class="flex items-center gap-3 text-xs text-slate-400">
+                    <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400"></span>صادرة</span>
+                    <span class="flex items-center gap-1"><span class="inline-block h-2.5 w-2.5 rounded-full bg-white ring-1 ring-slate-300"></span>واردة</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                @forelse ($messages as $m)
+                    @php $in = $m->isInbound(); @endphp
+                    <div class="flex {{ $in ? 'justify-start' : 'justify-end' }}">
+                        <div class="max-w-[80%] rounded-2xl px-4 py-2 shadow-sm {{ $in ? 'rounded-tr-sm bg-white text-slate-700 ring-1 ring-slate-200' : 'rounded-tl-sm bg-emerald-600 text-white' }}">
+                            <div class="mb-1 flex items-center gap-2 text-[10px] {{ $in ? 'text-slate-400' : 'text-emerald-100' }}">
+                                <span class="font-semibold">{{ $in ? 'وارد' : 'صادر' }}</span>
+                                @if ($m->invoice)<span class="font-mono" dir="ltr">{{ $m->invoice->invoice_number }}</span>@endif
+                            </div>
+                            <div class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ $m->message_body }}</div>
+                            <div class="mt-1 flex items-center justify-end gap-2 text-[10px] {{ $in ? 'text-slate-400' : 'text-emerald-100' }}">
+                                <span dir="ltr">{{ $m->created_at?->format('Y-m-d H:i') }}</span>
+                                @unless ($in)<span>· {{ $m->status->label() }}</span>@endunless
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="py-8 text-center text-sm text-slate-400">لا مراسلات بعد.</p>
+                @endforelse
+            </div>
         </div>
     @endif
 

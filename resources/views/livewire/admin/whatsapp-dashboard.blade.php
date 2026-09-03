@@ -98,7 +98,10 @@
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 text-slate-700">{{ $m->customer?->name ?? '—' }}</td>
                         <td class="px-4 py-3 font-mono text-slate-500" dir="ltr">{{ $m->phone }}</td>
-                        <td class="px-4 py-3 text-slate-600"><span class="line-clamp-1 block max-w-xs">{{ \Illuminate\Support\Str::limit($m->message_body, 60) }}</span></td>
+                        <td class="px-4 py-3 text-slate-600">
+                            @if ($m->isInbound())<span class="me-1 rounded bg-slate-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-slate-500">وارد</span>@endif
+                            <span class="line-clamp-1 inline-block max-w-xs align-middle">{{ \Illuminate\Support\Str::limit($m->message_body, 60) }}</span>
+                        </td>
                         <td class="px-4 py-3"><x-badge :class="$m->status->badgeClass()">{{ $m->status->label() }}</x-badge>@if ($m->failure_reason)<span class="block text-xs text-red-500">{{ \Illuminate\Support\Str::limit($m->failure_reason, 40) }}</span>@endif</td>
                         <td class="px-4 py-3 text-slate-400" dir="ltr">{{ $m->created_at?->format('Y-m-d H:i') }}</td>
                         <td class="px-4 py-3">@if ($canRetry && $m->status->value === 'failed')<button wire:click="retry({{ $m->id }})" class="rounded border border-amber-300 px-2 py-1 text-xs text-amber-700">إعادة إرسال</button>@endif</td>

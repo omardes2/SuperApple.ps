@@ -52,6 +52,7 @@
                     <th class="px-4 py-3">الحالة</th>
                     <th class="hidden px-4 py-3 md:table-cell">المهام</th>
                     @if ($canViewBalance)<th class="px-4 py-3">الرصيد المتبقي</th>@endif
+                    <th class="hidden px-4 py-3 md:table-cell">آخر مراسلة</th>
                     <th class="px-4 py-3">الإجراءات</th>
                 </tr>
             </thead>
@@ -79,6 +80,9 @@
                                 <x-amount :ils="$bal['ils']" :usd="$bal['usd']" :usd-approx="false" class="font-medium text-slate-800" />
                             </td>
                         @endif
+                        <td class="hidden px-4 py-3 text-slate-500 md:table-cell" dir="ltr">
+                            {{ $customer->last_whatsapp_at ? \Illuminate\Support\Carbon::parse($customer->last_whatsapp_at)->format('Y-m-d H:i') : '—' }}
+                        </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
                                 <a href="{{ route('admin.customers.show', $customer) }}"
@@ -119,7 +123,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $canViewBalance ? 7 : 6 }}" class="px-4 py-10 text-center text-slate-400">لا يوجد عملاء مطابقون.</td></tr>
+                    <tr><td colspan="{{ $canViewBalance ? 8 : 7 }}" class="px-4 py-10 text-center text-slate-400">لا يوجد عملاء مطابقون.</td></tr>
                 @endforelse
             </tbody>
         </table>

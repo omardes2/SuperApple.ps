@@ -265,6 +265,10 @@ class CustomersIndex extends Component
 
         $customers = Customer::query()
             ->withCount('tasks')
+            // Date of the last OUTBOUND WhatsApp message to each customer, from
+            // any source (invoice send or a manual/balance reminder). One
+            // aggregate sub-query — no per-row lookups.
+            ->withMax(['whatsappMessages as last_whatsapp_at' => fn ($q) => $q->outbound()], 'created_at')
             ->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'like', "%{$this->search}%")
                 ->orWhere('customer_number', 'like', "%{$this->search}%")

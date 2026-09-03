@@ -3,6 +3,7 @@
 namespace Tests\Feature\Production;
 
 use App\Enums\RoleName;
+use App\Enums\WhatsAppMessageStatus;
 use App\Livewire\Admin\CustomersIndex;
 use App\Models\WhatsAppMessage;
 use App\Services\Settings;
@@ -62,6 +63,31 @@ class CustomersIndexReminderTest extends TestCase
             'customer_id' => $customer->id,
             'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
         ]);
+    }
+
+    public function test_last_whatsapp_column_tracks_latest_outbound_only(): void
+    {
+        $this->actingAs($this->makeUser(RoleName::GeneralManager));
+        $with = $this->makeCustomer(['name' => 'مع مراسلة', 'whatsapp_number' => '0599432037']);
+        $without = $this->makeCustomer(['name' => 'بدون صادرة', 'whatsapp_number' => '0599111111']);
+
+        WhatsAppMessage::create([
+            'customer_id' => $with->id, 'phone' => '970599432037', 'message_body' => 'صادر',
+            'provider' => 'meta_cloud', 'direction' => WhatsAppMessage::DIRECTION_OUTBOUND,
+            'status' => WhatsAppMessageStatus::Sent,
+        ]);
+        // An inbound reply must NOT count as an outbound "last message".
+        WhatsAppMessage::create([
+            'customer_id' => $without->id, 'phone' => '970599111111', 'message_body' => 'وارد',
+            'provider' => 'meta_cloud', 'direction' => WhatsAppMessage::DIRECTION_INBOUND,
+            'status' => WhatsAppMessageStatus::Delivered,
+        ]);
+
+        Livewire::test(CustomersIndex::class)
+            ->assertViewHas('customers', function ($customers) use ($with, $without) {
+                return $customers->firstWhere('id', $with->id)->last_whatsapp_at !== null
+                    && $customers->firstWhere('id', $without->id)->last_whatsapp_at === null;
+            });
     }
 
     public function test_reminder_button_hidden_without_permission(): void

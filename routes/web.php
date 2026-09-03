@@ -57,6 +57,7 @@ use App\Livewire\Admin\TasksIndex;
 use App\Livewire\Admin\TrialBalanceReport;
 use App\Livewire\Admin\UsersIndex;
 use App\Livewire\Admin\WhatsAppDashboard;
+use App\Livewire\Admin\WhatsAppInbox;
 use App\Livewire\Admin\WhatsAppReport;
 use App\Livewire\Admin\WhatsAppTemplatesIndex;
 use App\Livewire\Auth\Login;
@@ -172,6 +173,7 @@ Route::middleware('auth')->group(function () {
 
         // WhatsApp — Sprint 7
         Route::get('/whatsapp', WhatsAppDashboard::class)->middleware('can:whatsapp.view')->name('whatsapp');
+        Route::get('/whatsapp/inbox', WhatsAppInbox::class)->middleware('can:whatsapp.view')->name('whatsapp.inbox');
         Route::get('/whatsapp/templates', WhatsAppTemplatesIndex::class)->middleware('can:whatsapp.templates.view')->name('whatsapp.templates');
         Route::get('/whatsapp/reminders', ReminderRulesIndex::class)->middleware('can:whatsapp.reminders.view')->name('whatsapp.reminders');
 

@@ -19,7 +19,7 @@ class WhatsAppMessage extends Model
         'customer_id', 'invoice_id', 'payment_id', 'subscription_id', 'template_id',
         'phone', 'message_body', 'document_name', 'provider', 'provider_message_id', 'direction',
         'status', 'scheduled_for', 'sent_at', 'delivered_at', 'read_at',
-        'failed_at', 'failure_reason', 'created_by',
+        'admin_read_at', 'failed_at', 'failure_reason', 'created_by',
     ];
 
     protected $casts = [
@@ -28,6 +28,7 @@ class WhatsAppMessage extends Model
         'sent_at' => 'datetime',
         'delivered_at' => 'datetime',
         'read_at' => 'datetime',
+        'admin_read_at' => 'datetime',
         'failed_at' => 'datetime',
     ];
 
@@ -79,6 +80,23 @@ class WhatsAppMessage extends Model
     public function scopeInbound(Builder $query): Builder
     {
         return $query->where('direction', self::DIRECTION_INBOUND);
+    }
+
+    /** Inbound replies an operator has not opened yet. */
+    public function scopeUnreadByAdmin(Builder $query): Builder
+    {
+        return $query->where('direction', self::DIRECTION_INBOUND)->whereNull('admin_read_at');
+    }
+
+    public function isUnreadByAdmin(): bool
+    {
+        return $this->isInbound() && $this->admin_read_at === null;
+    }
+
+    /** Number of inbound replies awaiting an operator (the Inbox badge). */
+    public static function unreadInboxCount(): int
+    {
+        return static::query()->unreadByAdmin()->count();
     }
 
     public function scopeFailed(Builder $query): Builder

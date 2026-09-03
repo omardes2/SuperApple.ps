@@ -10,7 +10,7 @@ namespace App\Support;
 final class AdminNavigation
 {
     /**
-     * @return list<array{label:string,items:list<array{route:?string,label:string,icon:string,permission:string}>}>
+     * @return list<array{label:string,items:list<array{route:?string,label:string,icon:string,permission:string,badge?:string}>}>
      */
     public static function groups(): array
     {
@@ -29,6 +29,7 @@ final class AdminNavigation
                     ['route' => 'admin.invoices', 'label' => 'الفواتير', 'icon' => 'invoice', 'permission' => 'invoices.view'],
                     ['route' => 'admin.payments', 'label' => 'الدفعات والتحصيل', 'icon' => 'cash', 'permission' => 'payments.view'],
                     ['route' => 'admin.whatsapp', 'label' => 'واتساب', 'icon' => 'chat', 'permission' => 'whatsapp.view'],
+                    ['route' => 'admin.whatsapp.inbox', 'label' => 'الصندوق الوارد', 'icon' => 'whatsapp', 'permission' => 'whatsapp.view', 'badge' => 'wa_inbox'],
                 ],
             ],
             [

@@ -22,6 +22,7 @@
                 <span class="font-bold">{{ config('app.name') }}</span>
             </div>
             <nav class="space-y-6 px-3 py-5">
+                @php $waInboxUnread = auth()->user()->can('whatsapp.view') ? \App\Models\WhatsAppMessage::unreadInboxCount() : 0; @endphp
                 @foreach ($navGroups as $group)
                     @php
                         $visible = collect($group['items'])->filter(fn ($i) => auth()->user()->can($i['permission']));
@@ -40,9 +41,11 @@
                                            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition {{ $active ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-white/5' }}">
                                             <x-icon :name="$item['icon']" class="h-5 w-5 shrink-0" />
                                             <span>{{ $item['label'] }}</span>
-                                            @unless ($item['route'])
+                                            @if (($item['badge'] ?? null) === 'wa_inbox' && ($waInboxUnread ?? 0) > 0)
+                                                <span class="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">{{ $waInboxUnread > 99 ? '99+' : $waInboxUnread }}</span>
+                                            @elseif (! $item['route'])
                                                 <span class="mr-auto rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-slate-400">قريباً</span>
-                                            @endunless
+                                            @endif
                                         </a>
                                     </li>
                                 @endforeach

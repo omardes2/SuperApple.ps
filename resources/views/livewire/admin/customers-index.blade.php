@@ -86,6 +86,13 @@
                                    title="عرض العميل" aria-label="عرض العميل">
                                     <x-icon name="eye" class="h-4 w-4" />
                                 </a>
+                                @if ($canSendWhatsapp)
+                                    <button wire:click="openReminder({{ $customer->id }})"
+                                            class="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600"
+                                            title="تذكير بالرصيد عبر واتساب" aria-label="تذكير بالرصيد عبر واتساب">
+                                        <x-icon name="whatsapp" class="h-4 w-4" />
+                                    </button>
+                                @endif
                                 @can('customers.edit')
                                     <button wire:click="edit({{ $customer->id }})"
                                             class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-brand-600"
@@ -119,6 +126,18 @@
     </div>
 
     <div class="mt-4">{{ $customers->links() }}</div>
+
+    @if ($canSendWhatsapp)
+        <x-modal show="showReminder" title="إرسال تذكير بالرصيد عبر واتساب" maxWidth="max-w-xl">
+            <p class="mb-2 text-xs text-slate-500">المبلغ بالدولار هو المرجع الرسمي. يمكنك تعديل النص قبل الإرسال.</p>
+            @error('reminder')<p class="mb-2 rounded bg-red-50 px-3 py-2 text-xs text-red-600">{{ $message }}</p>@enderror
+            <textarea wire:model="reminderBody" rows="8" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>@error('reminderBody')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+            <div class="mt-4 flex justify-end gap-2">
+                <button @click="$wire.showReminder=false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm">تراجع</button>
+                <button wire:click="sendReminder" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">إرسال</button>
+            </div>
+        </x-modal>
+    @endif
 
     <x-modal show="showForm" :title="$editingId ? 'تعديل عميل' : 'عميل جديد'" maxWidth="max-w-md">
         <form wire:submit="save" class="space-y-4">

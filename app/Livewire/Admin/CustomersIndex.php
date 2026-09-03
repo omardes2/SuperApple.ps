@@ -8,8 +8,10 @@ use App\Models\CustomerOpeningBalance;
 use App\Services\CustomerBalanceService;
 use App\Services\CustomerOpeningBalanceService;
 use App\Services\CustomerService;
+use App\Services\PaymentReminderService;
 use App\Services\ReportsService;
 use App\Support\Money;
+use App\Support\TemplateRenderer;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -61,6 +63,13 @@ class CustomersIndex extends Component
     public string $obDate = '';
 
     public string $obNotes = '';
+
+    // WhatsApp balance-reminder modal (opened from the row actions).
+    public bool $showReminder = false;
+
+    public ?int $reminderCustomerId = null;
+
+    public string $reminderBody = '';
 
     public function mount(): void
     {
@@ -195,6 +204,39 @@ class CustomersIndex extends Component
         session()->flash('status', 'تم تفعيل العميل.');
     }
 
+    /** Open the WhatsApp balance-reminder modal prefilled with an editable body. */
+    public function openReminder(int $id, PaymentReminderService $reminders): void
+    {
+        $this->authorize('whatsapp.send');
+        $this->reminderCustomerId = $id;
+        $customer = Customer::findOrFail($id);
+        $template = $reminders->defaultManualTemplate();
+        try {
+            $this->reminderBody = $template
+                ? TemplateRenderer::render($template->body, $reminders->balanceVariables($customer))
+                : $reminders->defaultManualBody($customer);
+        } catch (\Throwable $e) {
+            $this->reminderBody = $reminders->defaultManualBody($customer);
+        }
+        $this->resetErrorBag();
+        $this->showReminder = true;
+    }
+
+    public function sendReminder(PaymentReminderService $reminders): void
+    {
+        $this->authorize('whatsapp.send');
+        $this->validate(['reminderBody' => 'required|string|min:2']);
+        try {
+            $reminders->sendManualReminder(Customer::findOrFail($this->reminderCustomerId), $this->reminderBody);
+        } catch (\Throwable $e) {
+            $this->addError('reminder', $e->getMessage());
+
+            return;
+        }
+        $this->showReminder = false;
+        session()->flash('status', 'تم إرسال التذكير عبر واتساب.');
+    }
+
     private function resetForm(): void
     {
         $this->reset(['editingId', 'customer_number', 'name', 'whatsapp_number', 'notes',
@@ -255,6 +297,7 @@ class CustomersIndex extends Component
             'balanceMap' => $balanceMap,
             'canViewBalance' => $canViewBalance,
             'canOpeningBalance' => $this->canManageOpeningBalance(),
+            'canSendWhatsapp' => auth()->user()->can('whatsapp.send'),
         ]);
     }
 }
